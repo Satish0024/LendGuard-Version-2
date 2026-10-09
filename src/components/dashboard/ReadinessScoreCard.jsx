@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faInfoCircle } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRight, faInfoCircle, faSlidersH } from '@fortawesome/free-solid-svg-icons'
 import { useParticipant } from '../../context/ParticipantContext.jsx'
-import { isEligibleNotEnrolledUser, isNotEligibleUser, isOptedOutUser } from '../../data/participants'
+import { isNotEligibleUser, isOptedOutUser } from '../../data/participants'
 import {
   READINESS_KEY,
   ageFromDob,
@@ -30,13 +30,19 @@ function ScoreRing({ pct }) {
   const dash = (Math.max(0, Math.min(100, pct)) / 100) * RING_C
   return (
     <svg className="rgs-orbit-rings" viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="rgs-arc" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--rgs-arc-1)" />
+          <stop offset="100%" stopColor="var(--rgs-arc-2)" />
+        </linearGradient>
+      </defs>
       <circle cx="64" cy="64" r={RING_R} fill="none" stroke="var(--rgs-track)" strokeWidth="8" />
       <circle
         cx="64"
         cy="64"
         r={RING_R}
         fill="none"
-        stroke="var(--rgs-arc-2)"
+        stroke="url(#rgs-arc)"
         strokeWidth="8"
         strokeLinecap="round"
         strokeDasharray={`${dash} ${RING_C}`}
@@ -137,13 +143,19 @@ export default function ReadinessScoreCard() {
                 </div>
                 <div className="rgs-snap-div" aria-hidden="true" />
                 <div className="rgs-snap-row income">
-                  <dt className="rgs-snap-label">All income</dt>
+                  <dt className="rgs-snap-label">
+                    <span className="rgs-dot" aria-hidden="true" />
+                    All income
+                  </dt>
                   <dd>
                     <b>{money(income)}</b>
                   </dd>
                 </div>
                 <div className="rgs-snap-row shortfall">
-                  <dt className="rgs-snap-label">Short fall</dt>
+                  <dt className="rgs-snap-label">
+                    <span className="rgs-dot" aria-hidden="true" />
+                    Short fall
+                  </dt>
                   <dd>
                     <b>{money(shortfall)}</b>
                   </dd>
@@ -153,50 +165,36 @@ export default function ReadinessScoreCard() {
           </>
         ) : (
           <div className="rgs-intro">
-            {isEligibleNotEnrolledUser(participant) ? (
-              <>
-                <p>Please enroll to get started with your retirement readiness set up.</p>
-                <span className="rgs-primary-cta rgs-primary-cta--disabled" aria-disabled="true">
-                  Get started
-                </span>
-              </>
-            ) : (
-              <>
-                <p>
-                  This estimates how much of your retirement spending is covered by your savings, using your deferrals, age,
-                  and location.
-                </p>
-                <Link className="rgs-primary-cta" to="/retirement-goal">
-                  Get started
-                </Link>
-              </>
-            )}
+            <p>
+              This estimates how much of your retirement spending is covered by your savings, using your deferrals, age,
+              and location.
+            </p>
+            <Link className="rgs-cta" to="/retirement-goal">
+              Get started
+              <Icon icon={faArrowRight} size={14} aria-hidden="true" />
+            </Link>
           </div>
         )}
 
         <div className="rgs-foot">
-          {/* Adjust is one full-width primary action, shown only once the
-              widget is already started (showing it alongside "Get started"
-              duplicated the same CTA). The info note and Disclaimer used to
-              be two visually separate rows for what is really one sentence
-              ("Not guaranteed results. Disclaimer") -- now a single line.
-              With Adjust absent, this row simply has one child instead of
-              two -- flex-direction:column + gap only applies *between*
-              children, so there's no leftover button-sized gap to "hug". */}
-          {started && (
-            <Link className="rgs-adjust-btn" to="/retirement-goal">
-              Adjust Deferral Rate and Goal
-            </Link>
-          )}
-          <p className="rgs-foot-note">
+          <span className="rgs-foot-note">
             <Icon icon={faInfoCircle} size={13} aria-hidden="true" />
-            <span>
-              Not guaranteed results.{' '}
-              <button type="button" className="rgs-disclaimer-link" onClick={() => setOpen(true)}>
-                Disclaimer
-              </button>
-            </span>
-          </p>
+            Not guaranteed results.
+          </span>
+          {/* Adjust link only shown once the widget is already started —
+              showing it alongside "Get started" duplicated the same CTA. */}
+          <span className="rgs-foot-actions">
+            {started && (
+              <Link className="rgs-foot-link" to="/retirement-goal">
+                <Icon icon={faSlidersH} size={12} aria-hidden="true" />
+                Adjust deferral rate and goal
+              </Link>
+            )}
+            <button type="button" className="rgs-foot-link" onClick={() => setOpen(true)}>
+              Disclaimer
+              <Icon icon={faArrowRight} size={12} aria-hidden="true" />
+            </button>
+          </span>
         </div>
       </div>
 

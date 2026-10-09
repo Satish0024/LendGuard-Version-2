@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Design System + Portal — Complete Audit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0f1220; --panel:#171a2b; --panel2:#1e2236; --line:#2a2f47;
+    --ink:#e8e9f3; --muted:#9a9fc0; --muted2:#6f7494;
+    --brand:#5b8def; --brand2:#8fb4ff;
+    --p0:#e5484d; --p1:#f5a623; --p2:#f7d154; --p3:#7ee0b0;
+    --pass:#3ecf8e; --partial:#f5a623; --fail:#e5484d; --nv:#7a7fa6;
+    --match:#3ecf8e; --mismatch:#e5484d; --gap:#f5a623; --custom:#5b8def; --unknown:#7a7fa6;
+    font-size:15px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55;}
+  a{color:var(--brand2);}
+  code, .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.88em; background:#0b0d17; padding:1px 5px; border-radius:4px; color:#c9d6ff;}
+  .layout{display:flex; min-height:100vh;}
+  nav.toc{width:280px; flex:0 0 280px; background:var(--panel); border-right:1px solid var(--line); position:sticky; top:0; height:100vh; overflow-y:auto; padding:20px 14px;}
+  nav.toc h3{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted2); margin:18px 8px 6px;}
+  nav.toc a{display:block; padding:6px 8px; border-radius:6px; color:var(--muted); text-decoration:none; font-size:13.5px;}
+  nav.toc a:hover{background:var(--panel2); color:var(--ink);}
+  nav.toc a.lvl2{padding-left:20px; font-size:12.5px;}
+  main{flex:1; min-width:0; padding:36px 48px 120px; max-width:1180px;}
+  header.hero{margin-bottom:36px;}
+  header.hero h1{font-size:30px; margin:0 0 8px;}
+  header.hero p.sub{color:var(--muted); margin:0; max-width:780px;}
+  section{margin-bottom:52px; scroll-margin-top:20px;}
+  section h2{font-size:22px; border-bottom:1px solid var(--line); padding-bottom:10px; margin-top:0;}
+  section h3{font-size:17px; color:var(--brand2); margin-top:28px;}
+  section h4{font-size:14.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:22px 0 8px;}
+  .grid-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:18px 0;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+  .card .num{font-size:26px; font-weight:700;}
+  .card .label{color:var(--muted); font-size:12.5px; margin-top:2px;}
+  table{width:100%; border-collapse:collapse; margin:14px 0 22px; font-size:13.5px;}
+  th, td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--panel2); color:var(--muted); font-weight:600; position:sticky; top:0;}
+  tr:nth-child(even) td{background:rgba(255,255,255,0.015);}
+  .badge{display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:.02em; white-space:nowrap;}
+  .b-pass{background:rgba(62,207,142,.15); color:var(--pass);}
+  .b-partial{background:rgba(245,166,35,.15); color:var(--partial);}
+  .b-fail, .b-missing{background:rgba(229,72,77,.15); color:var(--fail);}
+  .b-nv{background:rgba(122,127,166,.18); color:var(--nv);}
+  .b-na{background:rgba(122,127,166,.1); color:var(--muted2);}
+  .b-match{background:rgba(62,207,142,.15); color:var(--match);}
+  .b-mismatch{background:rgba(229,72,77,.15); color:var(--mismatch);}
+  .b-gap{background:rgba(245,166,35,.15); color:var(--gap);}
+  .b-custom{background:rgba(91,141,239,.15); color:var(--custom);}
+  .b-unknown{background:rgba(122,127,166,.15); color:var(--unknown);}
+  .pri{display:inline-block; width:30px; height:22px; border-radius:5px; text-align:center; font-weight:800; font-size:12px; line-height:22px;}
+  .pri-p0{background:rgba(229,72,77,.2); color:var(--p0); border:1px solid var(--p0);}
+  .pri-p1{background:rgba(245,166,35,.2); color:var(--p1); border:1px solid var(--p1);}
+  .pri-p2{background:rgba(247,209,84,.15); color:var(--p2); border:1px solid var(--p2);}
+  .pri-p3{background:rgba(126,224,176,.15); color:var(--p3); border:1px solid var(--p3);}
+  .callout{background:var(--panel); border-left:3px solid var(--brand); border-radius:0 8px 8px 0; padding:14px 18px; margin:16px 0;}
+  .callout.warn{border-left-color:var(--p1);}
+  .callout.danger{border-left-color:var(--p0);}
+  .evidence{font-size:12.5px; color:var(--muted2);}
+  .searchbar{margin:10px 0 4px;}
+  input.filter{background:var(--panel2); border:1px solid var(--line); color:var(--ink); padding:8px 12px; border-radius:8px; width:100%; max-width:420px; font-size:13.5px;}
+  input.filter::placeholder{color:var(--muted2);}
+  .tag-row{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 16px;}
+  .tag{background:var(--panel2); border:1px solid var(--line); border-radius:999px; padding:3px 12px; font-size:12px; color:var(--muted); cursor:pointer;}
+  .tag.active{background:var(--brand); color:#0b0d17; border-color:var(--brand); font-weight:700;}
+  .branch-pill{display:inline-block; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:1px 8px; font-size:11.5px; color:var(--brand2); font-weight:700;}
+  ul.tight li{margin-bottom:6px;}
+  .flowline{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin:10px 0;}
+  .flowline .step{background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:4px 10px; color:var(--ink);}
+  .footer-note{margin-top:60px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted2); font-size:12.5px;}
+  .not-captured{color:var(--muted2); font-style:italic;}
+  @media (max-width:900px){
+    .layout{display:block;}
+    nav.toc{position:relative; width:auto; height:auto; top:auto;}
+    main{padding:24px 18px 80px; max-width:none;}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" id="toc">
+  <h3>Navigate</h3>
+  <a href="#exec">Executive Summary</a>
+  <h3>Design System</h3>
+  <a class="lvl2" href="#ds-overview">Overview &amp; Provenance</a>
+  <a class="lvl2" href="#ds-foundations">Foundations</a>
+  <a class="lvl2" href="#ds-tokens">Token Architecture</a>
+  <a class="lvl2" href="#ds-components">Component Inventory</a>
+  <a class="lvl2" href="#ds-states">Component State Matrix</a>
+  <a class="lvl2" href="#ds-a11y">Accessibility</a>
+  <a class="lvl2" href="#ds-responsive">Responsive / Visual</a>
+  <a class="lvl2" href="#ds-gaps">Design System Gaps</a>
+  <h3>Portal</h3>
+  <a class="lvl2" href="#portal-main">Branch: main</a>
+  <a class="lvl2" href="#portal-jr">Branch: journey-retirement</a>
+  <h3>Reconciliation</h3>
+  <a class="lvl2" href="#reconciliation">DS ↔ Portal Integration Reality</a>
+  <a class="lvl2" href="#recon-matrix">Master Reconciliation Matrix</a>
+  <a class="lvl2" href="#token-map">Token Mapping</a>
+  <h3>Risk &amp; Planning</h3>
+  <a class="lvl2" href="#regression">Functional Regression Baseline</a>
+  <a class="lvl2" href="#priority">Priority Matrix</a>
+  <a class="lvl2" href="#impl-order">Implementation Order</a>
+  <a class="lvl2" href="#manual-review">Manual Review Needed</a>
+  <a class="lvl2" href="#methodology">Methodology &amp; Evidence Notes</a>
+</nav>
+
+<main>
+<header class="hero">
+  <h1>Design System + Portal — Complete Audit</h1>
+  <p class="sub">Evidence-based, read-only audit of the <code>design-system-main</code> package and the Portal repository (branches <span class="branch-pill">main</span> and <span class="branch-pill">journey-retirement</span>). No source files were modified. Every finding below is backed by a file:line reference or a described live-rendered observation captured during this session — claims that could not be verified are explicitly marked <span class="badge b-nv">NOT VERIFIED</span> rather than guessed.</p>
+</header>
+
+<section id="exec">
+  <h2>Executive Summary</h2>
+  <div class="grid-cards">
+    <div class="card"><div class="num" style="color:var(--fail)">FAIL</div><div class="label">DS ↔ Portal integration</div></div>
+    <div class="card"><div class="num" style="color:var(--partial)">PARTIAL</div><div class="label">Design System maturity</div></div>
+    <div class="card"><div class="num" style="color:var(--partial)">PARTIAL</div><div class="label">Portal (main) health</div></div>
+    <div class="card"><div class="num" style="color:var(--pass)">PASS*</div><div class="label">Portal (journey-retirement) health</div></div>
+    <div class="card"><div class="num">2</div><div class="label">Portal branches audited</div></div>
+    <div class="card"><div class="num">~20</div><div class="label">Routes per branch</div></div>
+    <div class="card"><div class="num">~50</div><div class="label">DS components (documented)</div></div>
+    <div class="card"><div class="num">13</div><div class="label">Dead component files (combined)</div></div>
+    <div class="card"><div class="num">4/6</div><div class="label">DS button tones failing WCAG AA contrast</div></div>
+    <div class="card"><div class="num">2</div><div class="label">Portal data-correctness bugs shared by both branches</div></div>
+    <div class="card"><div class="num">0</div><div class="label"><code>@core-ds/*</code> imports found in Portal</div></div>
+    <div class="card"><div class="num">0</div><div class="label">Automated tests in either repo</div></div>
+  </div>
+
+  <div class="callout danger">
+    <strong>Single most important structural finding:</strong> the Design System package and the Portal application are <strong>two entirely separate codebases that are not wired together</strong>. A repo-wide grep for <code>@core-ds</code> across both Portal branches returns zero hits — the Portal never imports <code>@core-ds/core</code>, <code>@core-ds/tokens</code>, or <code>@core-ds/themes</code>. The Portal has its own hand-written CSS token system (<code>src/styles/index.css</code>, plus <code>core-color-palette.css</code> on <code>journey-retirement</code>) that in places <em>manually copies</em> specific hex values from the Design System's Figma export (e.g. the shared brand navy <code>#1F4F8D</code> appears in both), but this is a one-time manual value-sync, not a structural dependency. Any future Design System change (a token, a component fix, an accessibility correction) will <strong>not</strong> propagate to the Portal automatically — see <a href="#reconciliation">Reconciliation</a>.
+  </div>
+
+  <h4>Design System status</h4>
+  <p>The token architecture is real (a genuine <code>primitives → semantic → component</code> JSON pipeline that builds cleanly) but is undermined by a second, hand-maintained <code>--theme-*</code> CSS variable set that the actual component stylesheet depends on more than the generated one, 236 raw hex literals (several with no token fallback at all), a broken out-of-the-box dev workflow, and — the most consequential single defect — <strong>4 of 6 semantic button tones (destructive, success, warning, info) fail WCAG AA contrast for white-on-color text</strong>, with warning failing even the large-text floor (2.32:1). Structural accessibility (ARIA roles, focus management, keyboard semantics) is strong. The documentation site itself has no usable navigation below ~1024px width.</p>
+
+  <h4>Portal status — <span class="branch-pill">main</span></h4>
+  <p>Functionally solid across the great majority of flows (14 of 17 exercised flows WORKING). Two high-visibility, demo-breaking bugs found: the <strong>Investment Portfolio page shows identical, hardcoded figures regardless of which participant is logged in</strong>, and the <strong>enrollment flow displays a hardcoded placeholder plan name</strong> ("401(k) Company Plan High Returns") instead of the real plan. A real mobile layout bug was confirmed via DOM coordinates: a floating "Prototype demo" button overlaps two bottom-nav tabs at 375px width. 7 dead component files and 3 parallel app-chrome implementations add maintenance risk. No automated tests.</p>
+
+  <h4>Portal status — <span class="branch-pill">journey-retirement</span></h4>
+  <p>Same core architecture as <code>main</code>, plus 5 additional commits focused on portfolio/plan-table mobile-card responsiveness — those specific fixes hold up cleanly at all three tested viewports. The <strong>same Investment Portfolio non-participant-aware bug</strong> and the <strong>same hardcoded enrollment plan-name bug</strong> are present here too (this is shared, upstream-of-both-branches code, not something introduced by either branch). Two new findings specific to this branch: a real, reproduced <strong>timezone off-by-one bug in the shared <code>DatePicker</code> component</strong>, and a <strong>stale <code>PROJECT_NOTES.md</code></strong> that describes a teal/forest "Journey Retirement" re-skin which does not exist anywhere in this branch's actual code (it runs LendGuard/CORE-Blue branding instead) — meaning the branch's own documentation misrepresents its current state.</p>
+
+  <h4>Reading this report</h4>
+  <p>Every finding is tagged one of <span class="badge b-pass">PASS</span> <span class="badge b-partial">PARTIAL</span> <span class="badge b-fail">FAIL / MISSING</span> <span class="badge b-nv">NOT VERIFIED</span>, and every reconciliation row is tagged <span class="badge b-match">MATCH</span> <span class="badge b-mismatch">MISMATCH</span> <span class="badge b-gap">DESIGN SYSTEM GAP</span> <span class="badge b-custom">PORTAL-SPECIFIC</span> <span class="badge b-unknown">UNKNOWN</span>. No single subjective score is assigned to the whole product, per the audit brief.</p>
+</section>
+
+<!-- ============ DESIGN SYSTEM ============ -->
+<section id="ds-overview">
+  <h2>Design System — Overview &amp; Provenance</h2>
+  <ul class="tight">
+    <li><strong>Product:</strong> "CORE Design System" for a fictional 401(k) recordkeeping platform, an npm-workspaces monorepo (<code>packages/tokens</code>, <code>packages/core</code>, <code>packages/themes</code>, <code>apps/docs-site</code>).</li>
+    <li><strong>Stack:</strong> Vite + React 18 + TypeScript docs site; <code>packages/core</code> has no build step and is consumed as source.</li>
+    <li><strong>Provenance:</strong> built iteratively by an AI coding assistant across ~14 documented waves, including cross-checks against shadcn/ui, Metronic, and a real "LendGuard" reference app. A "Manager Feedback" action plan exists and is <strong>only partially executed</strong> — several items are explicitly still open in the repo's own tracking file.</li>
+    <li><strong>Scale:</strong> 21 component source files implementing ~50+ documented components; all visual styling lives in one 3,822-line <code>components.css</code> file (no per-component CSS split, no CSS-in-JS).</li>
+  </ul>
+  <div class="callout">
+    <strong>Verdict at a glance:</strong> the documentation describes a clean three-tier token pipeline and a fully token-driven component layer. In practice: two parallel, only partially-reconciled CSS variable systems; 236 raw hex literals despite a file-header comment claiming none exist; a broken out-of-the-box <code>npm run dev</code>; and a non-functional responsive navigation on the docs site itself below ~1024px.
+  </div>
+</section>
+
+<section id="ds-foundations">
+  <h2>Design System — Foundations</h2>
+
+  <h3>Colors</h3>
+  <ul class="tight">
+    <li>Primitive ramps: <code>brand</code>, <code>secondary</code>, <code>tertiary</code>, <code>neutral</code> (0–1000, 13 steps), <code>success</code>/<code>warning</code>/<code>danger</code>/<code>info</code> (50–950, 10 steps), 5 categorical accent hues (only 500/700 steps each).</li>
+    <li>Semantic layer covers <code>bg</code>, <code>surface</code>, <code>text</code> (primary/secondary/tertiary/disabled/inverse/onBrand), <code>border</code>, <code>action.*</code>, <code>status.*</code>, <code>focus.ring</code> — genuine, non-trivial light/dark divergence (e.g. hover state is <code>brand.600</code> in light, <code>brand.400</code> in dark).</li>
+    <li><span class="badge b-fail">FAIL</span> A <strong>second semantic naming scheme</strong> was grafted on later (<code>brand.text.*</code>, <code>brand.background.*</code>, <code>semantics.critical.*</code>, …) that duplicates existing <code>color.*</code> tokens under new names with identical resolved values, rather than replacing them — <span class="evidence"><code>packages/tokens/src/semantic.json:67-106</code></span>.</li>
+    <li><span class="badge b-pass">PASS</span> Disabled, focus, hover/active, status roles all have dedicated tokens and real consuming CSS.</li>
+    <li><span class="badge b-pass">PASS</span> Dark mode is a genuine second value set (not a filter/invert trick), verified live with a working Light/Dark toggle.</li>
+  </ul>
+
+  <h3>Typography</h3>
+  <ul class="tight">
+    <li>24 roles (<code>h1</code>–<code>h6</code>, <code>text{32..12}{Regular,Medium,SemiBold,Bold}</code>, <code>eyebrow</code>, <code>numericData</code>) each with explicit desktop/mobile size/weight/line-height/letter-spacing — more complete than a typical flat type scale.</li>
+    <li>Font: "Inclusive Sans" (base), "JetBrains Mono" (numeric/mono) — confirmed actually loaded and rendering live, not just declared.</li>
+    <li><span class="badge b-fail">FAIL</span> <code>typography.json</code> does not reference <code>primitives.json</code>'s own <code>font.size.*</code> scale — every role hardcodes its own px values instead of composing from the primitive tier one level down, so typography is architecturally a disconnected 4th token source, not a true semantic layer. <span class="evidence"><code>typography.json:5</code> vs <code>primitives.json:81-82</code></span></li>
+  </ul>
+
+  <h3>Spacing, Radius, Shadows, Breakpoints</h3>
+  <ul class="tight">
+    <li>Spacing: <code>space.0</code>–<code>space.24</code>, 13 steps, conventional 4px-based but non-linear at the high end.</li>
+    <li>Radius: 7-step scale (0/4/6/8/12/16/9999px) with real, working per-client theme overrides (<code>clientb.json</code> → sharp 2–6px, <code>meridian.json</code> → soft 10–22px) — <span class="badge b-pass">PASS</span>, structurally verified.</li>
+    <li>Shadows: 5-step elevation scale, confirmed to vary by component state (card interactive: none default → elevation.2 on hover) via live docs copy.</li>
+    <li>Breakpoints: 576/768/992/1200/1400px, deliberately matching Bootstrap 5's own scale (documented, not accidental).</li>
+    <li><span class="badge b-fail">FAIL</span> The docs site's own live responsive behavior does not honor this scale for its primary navigation — see <a href="#ds-responsive">Responsive findings</a>.</li>
+  </ul>
+</section>
+
+<section id="ds-tokens">
+  <h2>Design System — Token Architecture</h2>
+  <p>Documented architecture: <code>primitives.json → semantic.json → component.json</code>, resolved by <code>packages/tokens/scripts/build.mjs</code> into <code>--core-*</code> CSS variables. This is real for a minority of the surface and undermined elsewhere:</p>
+  <table>
+    <tr><th style="width:130px">Verdict</th><th>Finding</th><th>Evidence</th></tr>
+    <tr><td><span class="badge b-pass">PASS</span></td><td>The 3-file JSON pipeline is real and builds cleanly (verified by actually running <code>node packages/tokens/scripts/build.mjs</code>).</td><td><code>packages/tokens/src/{primitives,semantic,component}.json</code></td></tr>
+    <tr><td><span class="badge b-fail">FAIL</span></td><td><code>packages/tokens/dist/</code> is gitignored and nothing in the root <code>dev</code> script builds it first — <code>npm run dev</code> fails from a clean checkout, contradicting the README's own quick-start.</td><td><code>.gitignore:2</code>, root <code>package.json</code> <code>dev</code> script, <code>README.md:122-129</code></td></tr>
+    <tr><td><span class="badge b-fail">FAIL</span></td><td><strong>A second, hand-maintained <code>--theme-*</code> variable system</strong> in the docs-site's <code>site.css</code> (210 occurrences) is what <code>components.css</code> actually depends on as its <em>primary</em> value, with the generated <code>--core-*</code> only as a fallback, and a raw hex as the final fallback.</td><td><code>packages/core/src/styles/components.css:56</code>: <code>background: var(--theme-brand-background-primary-default, var(--core-button-primary-bg, #1F4F8D));</code></td></tr>
+    <tr><td><span class="badge b-fail">FAIL</span></td><td>236 raw hex literals remain in <code>components.css</code> despite a file-header comment claiming "no hardcoded visual values"; at least 5 rules (destructive/success/warning/info <code>:active</code> states, destructive text color) have <strong>no <code>var()</code> at all</strong>.</td><td><code>components.css:142,151-154,167-169,182-184,197-199</code></td></tr>
+    <tr><td><span class="badge b-fail">FAIL</span></td><td>Duplicate tokens for the same value under different names (singular/plural pair) still present despite being marked "cleaned" in <code>PROJECT-LOG.md</code>.</td><td><code>site.css:44-50</code>: <code>--theme-brand-border-primary-default</code> vs <code>--theme-brand-borders-primary-default</code>, both <code>#3275CD</code></td></tr>
+    <tr><td><span class="badge b-partial">PARTIAL</span></td><td><code>component.json</code> only covers ~8 of ~50 component families; the rest skip the component tier and reference semantic tokens (or hand-written <code>--theme-*</code>) directly.</td><td><code>packages/tokens/src/component.json</code></td></tr>
+    <tr><td><span class="badge b-fail">FAIL</span></td><td>Homepage "THEME:" selector uses its own hardcoded 7-color preset array, entirely disconnected from the real 3-theme white-label system (<code>core</code>/<code>meridian</code>/<code>clientb</code>) — misrepresents the product's actual theming surface on its own front page.</td><td><code>apps/docs-site/src/pages/Home.tsx:5-76</code></td></tr>
+    <tr><td><span class="badge b-fail">FAIL</span></td><td>"Meridian (dummy client)" theme's logo assets are literally path-named <code>lendguard-*</code> — an incomplete rename, contradicting the README's claim that no real client names appear in the repo.</td><td><code>packages/themes/src/meridian.json:4-9</code></td></tr>
+  </table>
+</section>
+
+<section id="ds-components">
+  <h2>Design System — Component Inventory</h2>
+  <p>21 source files implementing the ~50+ documented components (cross-checked against <code>COMPONENT-LIBRARY.md</code>'s 64-row shadcn checklist and the live docs site):</p>
+  <table>
+    <tr><th>File</th><th>Components implemented</th></tr>
+    <tr><td><code>Button.tsx</code></td><td>Button (8 tones × 3 sizes), IconButton, Link</td></tr>
+    <tr><td><code>Field.tsx</code></td><td>Field wrapper, Input, Textarea</td></tr>
+    <tr><td><code>FormControls.tsx</code></td><td>Select (native), Checkbox, Radio, RadioGroup</td></tr>
+    <tr><td><code>ToggleInputs.tsx</code></td><td>Switch/Toggle, ToggleGroup, InputGroup, InputOTP</td></tr>
+    <tr><td><code>Primitives.tsx</code></td><td>Collapsible, Empty, Item, Slider, ButtonGroup</td></tr>
+    <tr><td><code>Combobox.tsx</code></td><td>Combobox</td></tr>
+    <tr><td><code>Calendar.tsx</code></td><td>Calendar, DatePicker</td></tr>
+    <tr><td><code>Attachment.tsx</code></td><td>Attachment/Dropzone, AttachmentList</td></tr>
+    <tr><td><code>Chart.tsx</code></td><td>LineChartCard, BarChartCard</td></tr>
+    <tr><td><code>DataDisplay.tsx</code></td><td>Card, Badge, Table, DataTable, Avatar, AvatarGroup, Progress, DescriptionList</td></tr>
+    <tr><td><code>Disclosure.tsx</code></td><td>Accordion, Separator, Skeleton</td></tr>
+    <tr><td><code>Navigation.tsx</code></td><td>NavigationMenu, Tabs, Breadcrumb, Stepper, Pagination, AppSidebar</td></tr>
+    <tr><td><code>Overlays.tsx</code></td><td>Modal, ConfirmDialog, Drawer/Slideover, DropdownMenu, Tooltip, Popover, Spinner, Toast</td></tr>
+    <tr><td><code>ToastManager.tsx</code></td><td>ToastProvider / useToast (stacking + auto-dismiss)</td></tr>
+    <tr><td><code>HoverCard.tsx</code></td><td>HoverCard</td></tr>
+    <tr><td><code>Questionnaire.tsx</code></td><td>Questionnaire (multi-step)</td></tr>
+    <tr><td><code>Layout.tsx</code></td><td>AppHeader, AppFooter, AppShell, Grid, GridCol, Container</td></tr>
+    <tr><td><code>Misc.tsx</code></td><td>Alert, Switch (grep-level, not fully re-verified)</td></tr>
+  </table>
+  <p class="evidence">"56 components built" (per <code>COMPONENT-LIBRARY.md</code>) is broadly corroborated but not exactly re-derived — treated as <span class="badge b-nv">NOT VERIFIED</span> at the exact-count level.</p>
+</section>
+
+<section id="ds-states">
+  <h2>Design System — Component State Matrix</h2>
+  <div class="searchbar"><input class="filter" type="text" placeholder="Filter table by component, state, or verdict…" oninput="filterTable('ds-state-table', this.value)"></div>
+  <table id="ds-state-table">
+    <tr><th>Component</th><th>Variant</th><th>State</th><th>Verdict</th><th>Evidence</th></tr>
+    <tr><td>Button</td><td>all 8 tones</td><td>default / hover / focus-visible / disabled</td><td><span class="badge b-pass">PASS</span></td><td><code>components.css:55-210</code>; live matrix at <code>/#/components/actions#button</code></td></tr>
+    <tr><td>Button</td><td>Destructive/Success/Warning/Info</td><td>active/pressed</td><td><span class="badge b-partial">PARTIAL</span></td><td>Hardcoded hex, no <code>var()</code> — <code>components.css:151-154,167-169,182-184,197-199</code></td></tr>
+    <tr><td>Button</td><td>all</td><td>loading</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Claimed in docs; no selector found in CSS grep pass</td></tr>
+    <tr><td>Input / Textarea / Select</td><td>—</td><td>default/hover/focus/error/disabled</td><td><span class="badge b-pass">PASS</span></td><td>Live docs pages demo all states explicitly</td></tr>
+    <tr><td>Checkbox / Radio</td><td>—</td><td>checked/unchecked/indeterminate/disabled</td><td><span class="badge b-pass">PASS</span></td><td>Live docs page demo</td></tr>
+    <tr><td>Switch / Toggle</td><td>—</td><td>default/hover/focus/active/disabled</td><td><span class="badge b-pass">PASS</span></td><td>Live docs page demo</td></tr>
+    <tr><td>Tabs</td><td>horizontal + vertical</td><td>selected / hover / focus-visible</td><td><span class="badge b-pass">PASS</span></td><td><code>components.css:1711-1724,1753-1755</code></td></tr>
+    <tr><td>Tabs</td><td>horizontal + vertical</td><td>disabled</td><td><span class="badge b-missing">MISSING</span></td><td>No selector anywhere in Tabs CSS block or <code>Navigation.tsx</code> — matches open manager-feedback item #17</td></tr>
+    <tr><td>Modal / ConfirmDialog</td><td>—</td><td>open / focus-trap / escape-to-close</td><td><span class="badge b-pass">PASS</span></td><td><code>Overlays.tsx:7,15-20</code></td></tr>
+    <tr><td>DropdownMenu</td><td>submenu/checkbox/radio item</td><td>all</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Present in source, not interactively clicked live</td></tr>
+    <tr><td>Toast (static + Manager)</td><td>tone-based</td><td>stacking / auto-dismiss</td><td><span class="badge b-nv">NOT VERIFIED</span> (interaction)</td><td>Buttons render; not clicked to confirm timing</td></tr>
+    <tr><td>DataTable</td><td>sortable/paginated/searchable/read-only/disabled</td><td>all</td><td><span class="badge b-pass">PASS</span></td><td>Live docs page shows a fully separate demo per state — better coverage than the repo's own feedback doc assumed</td></tr>
+    <tr><td>Card / Badge / Avatar / Progress</td><td>all documented</td><td>all documented</td><td><span class="badge b-pass">PASS</span></td><td>Live docs pages</td></tr>
+    <tr><td>Attachment/Dropzone</td><td>default/success/error/warning/disabled</td><td>all</td><td><span class="badge b-pass">PASS</span></td><td>Unusually complete state coverage, live docs page</td></tr>
+    <tr><td>Alert</td><td>success/warning/danger/info</td><td>—</td><td><span class="badge b-pass">PASS</span></td><td>Live docs page</td></tr>
+    <tr><td>Stepper / Breadcrumb</td><td>all documented variants</td><td>complete/current/upcoming; current-page</td><td><span class="badge b-pass">PASS</span></td><td>Live docs page</td></tr>
+  </table>
+</section>
+
+<section id="ds-a11y">
+  <h2>Design System — Accessibility Findings</h2>
+  <table>
+    <tr><th>Check</th><th>Verdict</th><th>Evidence</th></tr>
+    <tr><td>Accessible names on interactive elements</td><td><span class="badge b-pass">PASS</span></td><td>Accessibility-tree read on Button matrix returned fully descriptive names for every control</td></tr>
+    <tr><td>Dialog / overlay semantics</td><td><span class="badge b-pass">PASS</span></td><td><code>role="dialog"</code>, <code>aria-modal</code>, Escape-to-close, initial focus set</td></tr>
+    <tr><td>Tab/tablist semantics</td><td><span class="badge b-pass">PASS</span></td><td><code>role="tablist"</code>, <code>aria-selected</code>, <code>aria-orientation</code></td></tr>
+    <tr><td>Chart accessibility (hidden data table)</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Claimed in README, not opened this pass</td></tr>
+    <tr><td>Focus-visible styling</td><td><span class="badge b-pass">PASS</span></td><td>Global <code>:focus-visible</code> rules reference shared <code>focusRing.*</code> tokens</td></tr>
+    <tr><td>Contrast — Primary button (white on <code>#1F4F8D</code>)</td><td><span class="badge b-pass">PASS</span></td><td>8.20:1 — exceeds AAA</td></tr>
+    <tr><td>Contrast — Destructive button (white on <code>#D8434A</code>)</td><td><span class="badge b-fail">FAIL</span></td><td>4.36:1 — below 4.5:1 AA normal-text threshold</td></tr>
+    <tr><td>Contrast — Success button (white on <code>#22A369</code>)</td><td><span class="badge b-fail">FAIL</span></td><td>3.23:1 — fails AA normal text, barely clears large-text floor</td></tr>
+    <tr><td>Contrast — Warning button (white on <code>#E89A1C</code>)</td><td><span class="badge b-fail">FAIL</span></td><td>2.32:1 — worst failure found; fails even AA large-text (3:1)</td></tr>
+    <tr><td>Contrast — Info button (white on <code>#2E8CD6</code>)</td><td><span class="badge b-fail">FAIL</span></td><td>3.60:1 — fails AA normal text</td></tr>
+    <tr><td>Contrast — body text secondary (light mode)</td><td><span class="badge b-fail">FAIL</span> (marginal)</td><td>4.34:1 vs 4.5:1 required</td></tr>
+    <tr><td>Contrast — dark mode text secondary</td><td><span class="badge b-pass">PASS</span></td><td>9.76:1</td></tr>
+    <tr><td>NVDA / real screen-reader pass</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Repo's own tracking doc admits this has never been done</td></tr>
+    <tr><td>Reduced-motion support</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Not grepped this pass</td></tr>
+  </table>
+  <div class="callout danger"><strong>Overall:</strong> structural accessibility (roles, ARIA, focus management) is genuinely solid. Color contrast is the weakest verified area — 4 of 6 button-tone/text pairs computed fail WCAG AA, a real, previously-undetected token-level defect (the primitive <code>success.500</code>/<code>warning.500</code>/<code>info.500</code>/<code>danger.600</code> steps are too light for AA-compliant white text).</div>
+</section>
+
+<section id="ds-responsive">
+  <h2>Design System — Responsive / Visual Findings</h2>
+  <p><em>Setup:</em> <code>npm install</code> → <code>npm run tokens:build</code> (required manually) → <code>npx vite --port 5183</code>. Server started cleanly, no console errors on initial load.</p>
+  <table>
+    <tr><th>Viewport</th><th>Page</th><th>Observation</th></tr>
+    <tr><td>Desktop 1440×900</td><td>Home, Colors, Typography, Button, Forms, Data Display, Navigation, Feedback, Overlays</td><td><span class="badge b-pass">PASS</span> All render correctly, no console errors, rich multi-state demos confirmed. One content bug: Typography page's subtitle copy is boilerplate copy-pasted from a different foundations page.</td></tr>
+    <tr><td>Tablet 768×1024</td><td>Home</td><td><span class="badge b-fail">FAIL</span> Left sidebar navigation (the entire site's primary nav) is completely absent, no hamburger/menu-toggle exists anywhere.</td></tr>
+    <tr><td>Mobile 375×812</td><td>Home</td><td><span class="badge b-fail">FAIL</span> Same nav absence, plus: "THEME:" preset pill row overflows horizontally with no wrap/scroll affordance (clipped both edges); hero banner caption text visually overlaps the "Color Tokens"/"Typography" pill buttons beneath it.</td></tr>
+  </table>
+  <p class="not-captured">Screenshot image files were viewed live during the audit session but not persisted to disk as standalone assets in this pass — visual findings above are derived directly from those live captures and are marked NOT CAPTURED only where no image evidence exists at all (e.g. the Drawer/Slideover exact-breakpoint claim, not independently re-tested).</p>
+</section>
+
+<section id="ds-gaps">
+  <h2>Design System — Gaps</h2>
+  <table>
+    <tr><th style="width:50px">Pri</th><th>Gap</th><th>Rationale</th></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td>Docs site has no usable navigation below ~1024px</td><td>The delivery vehicle for the entire design system cannot be browsed on tablet/phone — undercuts its own "Responsive &amp; Mobile" foundation claim.</td></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td>4 of 6 semantic button tones fail WCAG AA contrast</td><td>Primitive-token-level defect that propagates to every consumer automatically; fixable once at the token level.</td></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td><code>npm run dev</code> fails from a clean checkout</td><td>First thing any new engineer hits; directly contradicts the README's own quick-start.</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Tabs have no disabled state</td><td>Real, still-open manager-feedback item; sibling hover state was fixed but disabled wasn't.</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Two independently-authored token/variable systems (<code>--core-*</code> vs hand-maintained <code>--theme-*</code>)</td><td>A consumer wiring up only the documented <code>packages/tokens/dist</code> pipeline silently loses themed states to hardcoded fallbacks.</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Duplicate/dual-named semantic tokens resolving to identical values</td><td>Increases maintenance surface, risk of silent drift over time (already true for one pair).</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td><code>typography.json</code> hardcodes values duplicating the primitive font scale</td><td>Future primitive scale changes won't propagate to headings.</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Homepage "THEME:" selector unrelated to the real 3-theme system</td><td>Misrepresents the product's actual white-labeling capability on its own front page.</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Hardcoded, non-token <code>:active</code> states on 4 button tones</td><td>Will not respond to a white-label brand-color override or dark mode.</td></tr>
+    <tr><td><span class="pri pri-p2">P2</span></td><td>"Meridian" theme logo assets literally path-named <code>lendguard-*</code></td><td>Incomplete rename; contradicts README's no-real-client-names claim.</td></tr>
+    <tr><td><span class="pri pri-p2">P2</span></td><td>Manager-feedback items still open per repo's own tracker (Footer, Dialog size variants, NVDA pass, full responsive QA)</td><td>Not independently re-verified beyond what's already covered above.</td></tr>
+    <tr><td><span class="pri pri-p3">P3</span></td><td>Typography foundations page has copy-pasted subtitle text</td><td>Content-authoring bug, cosmetic.</td></tr>
+    <tr><td><span class="pri pri-p3">P3</span></td><td>Accent/categorical colors only have 500/700 steps vs full ramps elsewhere</td><td>Fine for current chart/tag use, inconsistent depth.</td></tr>
+  </table>
+</section>
+
+<!-- ============ PORTAL ============ -->
+<section id="portal-main">
+  <h2>Portal — Branch: <span class="branch-pill">main</span></h2>
+
+  <h3>Overview</h3>
+  <ul class="tight">
+    <li>React 18.3, Vite 6, react-router-dom 6.30, Chart.js 4. ~4,737 lines of hand-written CSS across 11 files, all globally bundled regardless of which page imports them (self-acknowledged in <code>PROJECT_NOTES.md</code>).</li>
+    <li>Demo/prototype 401(k) portal, no real backend; all data in <code>src/data/*.js</code> + <code>sessionStorage</code>. Trunk (<code>main</code>, brand "CORE") + client-branch model (<code>saturna</code>, <code>journey-retirement</code>).</li>
+    <li>Unusually good self-documentation (PROJECT_NOTES, CHANGELOG, RELEASE_NOTES, an in-app <code>/design-system</code> reference page).</li>
+    <li>No test suite, no linter config, no TypeScript.</li>
+  </ul>
+
+  <h4>Route Inventory</h4>
+  <table>
+    <tr><th>Path</th><th>Page</th><th>Protected?</th><th>Notes</th></tr>
+    <tr><td><code>/design-system</code></td><td>DesignSystem</td><td>No</td><td>Reachable while logged out</td></tr>
+    <tr><td><code>/login</code></td><td>Login</td><td>Guest-only</td><td></td></tr>
+    <tr><td><code>/</code></td><td>Dashboard</td><td>Yes (AppLayout)</td><td>Home</td></tr>
+    <tr><td><code>/account-summary</code></td><td>AccountSummary</td><td>Yes</td><td></td></tr>
+    <tr><td><code>/plans/:planId</code></td><td>PlanDetails</td><td>Yes</td><td></td></tr>
+    <tr><td><code>/portfolio</code></td><td>Portfolio</td><td>Yes</td><td>Two tabs</td></tr>
+    <tr><td><code>/profile</code></td><td>Profile</td><td>Yes</td><td></td></tr>
+    <tr><td><code>/transactions</code></td><td>Transactions</td><td>Yes</td><td></td></tr>
+    <tr><td><code>/reports</code></td><td>Reports</td><td>Yes</td><td>"Document Center"</td></tr>
+    <tr><td><code>/accounts</code></td><td>—</td><td>Yes</td><td>Redirect → <code>/reports</code> (dead alias)</td></tr>
+    <tr><td><code>/transactions/request/:type</code></td><td>TransactionRequest</td><td>Yes, <strong>outside AppLayout</strong></td><td>Loan/Withdrawal/Transfer/Rebalance/Rollover wizard; hand-rolled chrome</td></tr>
+    <tr><td><code>/risk-check-in</code></td><td>RiskQuestionnaire</td><td>Yes, standalone</td><td></td></tr>
+    <tr><td><code>/retirement-goal</code></td><td>RetirementGoal</td><td>Yes, standalone</td><td></td></tr>
+    <tr><td><code>/enrollment</code></td><td>Enrollment</td><td>Yes (EnrollmentLayout)</td><td>Step 1</td></tr>
+    <tr><td><code>/enrollment/auto-increase</code></td><td>—</td><td>Yes</td><td>Redirect (dead alias)</td></tr>
+    <tr><td><code>/enrollment/investments</code></td><td>Investments</td><td>Yes</td><td>Step 2</td></tr>
+    <tr><td><code>/enrollment/beneficiaries</code></td><td>—</td><td>Yes</td><td>Redirect (dead alias)</td></tr>
+    <tr><td><code>/enrollment/summary</code></td><td>EnrollmentSummary</td><td>Yes</td><td>Step 3</td></tr>
+    <tr><td><code>/enrich</code></td><td>Enrich</td><td>Yes, standalone</td><td>Learning portal</td></tr>
+    <tr><td><code>*</code></td><td>—</td><td>—</td><td>Catch-all → <code>/</code></td></tr>
+  </table>
+
+  <h4>Highest-impact findings</h4>
+  <table>
+    <tr><th style="width:50px">Pri</th><th>Finding</th><th>Evidence</th></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td>Investment Portfolio page ignores the logged-in participant — static data in <code>src/data/portfolio.js</code>, never keyed to <code>useParticipant()</code>. Jordan Hale's Dashboard shows $12,840 for the 401(k); Portfolio shows $100,416 for the same plan.</td><td><code>src/data/portfolio.js:1-24</code></td></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td>Enrollment header shows hardcoded placeholder plan name <code>"401(k) Company Plan High Returns"</code> instead of the real plan.</td><td><code>src/components/layout/EnrollmentLayout.jsx:80</code></td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Mobile floating "Prototype demo" button overlaps the <code>My profile</code> and <code>Document Center</code> bottom-nav tabs at 375px, confirmed via <code>getBoundingClientRect()</code> coordinate overlap.</td><td><code>DemoScenarioSwitcher.jsx</code> + <code>.demo-switcher</code> CSS</td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Three parallel app-chrome implementations (<code>AppLayout</code>, <code>EnrollmentLayout</code>, hand-rolled Header+Sidebar in <code>TransactionRequest.jsx</code>) already showing drift (different <code>&lt;main&gt;</code> id breaks the skip-link target).</td><td><code>TransactionRequest.jsx</code></td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>7 confirmed dead component files (RiskMeter/V2, RetirementGoalSimulator/V2, RiskCairnIllustration, LearningIllustration, ReadinessSceneV2) — verified unimported via grep.</td><td><code>src/components/dashboard/*</code></td></tr>
+    <tr><td><span class="pri pri-p2">P2</span></td><td><code>.btn</code> redefined independently across 4 CSS files, 31 <code>!important</code> uses.</td><td><code>index.css</code>, <code>enrollment.css</code>, <code>transactions.css</code>, <code>documents.css</code></td></tr>
+    <tr><td><span class="pri pri-p3">P3</span></td><td>Design System page's own "current light theme" caption shows dark-theme swatch values whenever viewed in dark mode.</td><td><code>src/pages/DesignSystem.jsx</code></td></tr>
+  </table>
+
+  <h4>Functional Regression Baseline</h4>
+  <table>
+    <tr><th>Flow</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Login via demo participant picker</td><td><span class="badge b-pass">WORKING</span></td><td>Instant login, correct participant data throughout</td></tr>
+    <tr><td>Dashboard — all 5 plan-card variants</td><td><span class="badge b-pass">WORKING</span></td><td>Screenshot + text extraction confirmed</td></tr>
+    <tr><td>Investment Portfolio</td><td><span class="badge b-partial">WORKING (rendering) / BROKEN (data)</span></td><td>Renders/interacts correctly, data is participant-independent</td></tr>
+    <tr><td>Transactions — History + Requests</td><td><span class="badge b-pass">WORKING</span></td><td>Correct balances, correct ledger</td></tr>
+    <tr><td>Loan Request wizard step 1</td><td><span class="badge b-partial">PARTIAL</span></td><td>Fields operable; steps 2-4 not exercised (NOT VERIFIED)</td></tr>
+    <tr><td>My Profile — Personal Details</td><td><span class="badge b-pass">WORKING</span></td><td></td></tr>
+    <tr><td>Document Center</td><td><span class="badge b-pass">WORKING</span></td><td>Correct default filter + result</td></tr>
+    <tr><td>Account Summary</td><td><span class="badge b-pass">WORKING</span></td><td>Correct breakdown</td></tr>
+    <tr><td>Plan Details</td><td><span class="badge b-pass">WORKING</span></td><td>Correct deferral/auto-increase data</td></tr>
+    <tr><td>Retirement Readiness</td><td><span class="badge b-pass">WORKING</span></td><td>Interactive sliders, live gauge</td></tr>
+    <tr><td>Risk Check-In (Q1/5)</td><td><span class="badge b-partial">PARTIAL</span></td><td>Q1 works; Q2-5 <span class="badge b-nv">NOT VERIFIED</span></td></tr>
+    <tr><td>Enrollment steps 1→2→3</td><td><span class="badge b-pass">WORKING</span></td><td>Navigation correct, plan-name bug noted separately</td></tr>
+    <tr><td>Sign out</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Reviewed in source only</td></tr>
+    <tr><td>Console errors (all pages)</td><td><span class="badge b-pass">NONE</span></td><td>Only React Router v7 future-flag warnings</td></tr>
+    <tr><td>Network requests</td><td><span class="badge b-pass">ALL 200 OK</span></td><td></td></tr>
+  </table>
+
+  <div class="callout warn"><strong>Unresolved tooling caveat:</strong> a scroll-triggered screenshot rendering anomaly was observed on <code>/transactions/request/loan</code> and once on <code>/portfolio</code> (a blank strip above what looked like a duplicated header). DOM inspection at the same moment showed only one correctly-positioned header — this is flagged <span class="badge b-nv">NOT VERIFIED as a real product bug</span> and may be a browser-automation capture artifact (the journey-retirement audit reproduced the identical phenomenon and concluded it was a tooling artifact — see below).</div>
+</section>
+
+<section id="portal-jr">
+  <h2>Portal — Branch: <span class="branch-pill">journey-retirement</span></h2>
+
+  <h3>Overview</h3>
+  <ul class="tight">
+    <li>Same stack and architecture as <code>main</code>; 216 commits ahead / 75 behind at the merge-base with <code>main</code> — a meaningfully diverged branch, not a small delta.</li>
+    <li><strong>Branch/documentation mismatch:</strong> <code>PROJECT_NOTES.md</code> describes this branch as a teal/forest "Journey Retirement" re-skin with a new SVG logo. The actual running app is branded <strong>"LendGuard"</strong> end-to-end (<code>src/config/brand.js</code>, <code>DEMO_PASSWORD='LendGuard2026'</code>) on the CORE-Blue theme (<code>#1F4F8D</code>) — no Journey assets, no teal/forest palette, no "Journey" string anywhere in <code>src/</code> (confirmed by grep). The branch's own documentation does not describe its own code.</li>
+    <li>Recent commit history (last 5 commits) is dominated by Account Summary / Portfolio "plan investments" table responsive fixes and a header sticky→fixed change — <strong>all independently re-verified as holding up</strong> at desktop/tablet/mobile with no double borders, black bars, or grey gaps reproduced.</li>
+  </ul>
+
+  <h4>Route Inventory</h4>
+  <p>Materially the same 20-route shape as <code>main</code>, plus a <code>/settings</code> route (Appearance/Notifications/Login &amp; security) not present on <code>main</code>. <code>/enrich</code> sits outside both <code>AppLayout</code> and <code>EnrollmentLayout</code> — confirmed live it renders with no sidebar/header chrome, unlike every other authed page.</p>
+
+  <h4>Highest-impact findings</h4>
+  <table>
+    <tr><th style="width:50px">Pri</th><th>Finding</th><th>Evidence</th></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td>Investment Portfolio page is not participant-aware — <strong>identical bug to <code>main</code></strong>, confirmed independently on this branch: Jordan Hale sees $100,416.00 (Ava Sullivan's figure) instead of his real $12,840.00. <code>grep -n "participant" src/data/portfolio.js</code> → no hits.</td><td><code>src/pages/Portfolio.jsx:71</code>, <code>src/data/portfolio.js</code></td></tr>
+    <tr><td><span class="pri pri-p0">P0</span></td><td>Enrollment flow shows the <strong>same hardcoded plan name</strong> bug as <code>main</code>.</td><td><code>src/components/layout/EnrollmentLayout.jsx:85</code></td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td><strong>New finding, this branch only:</strong> <code>DatePicker.jsx</code>'s <code>toISOString()</code> on a local-midnight <code>Date</code> is timezone-unsafe — reproduced live: selecting day 15 in the Loan wizard stored <code>2026-09-14</code>. Affects every date field app-wide for US-timezone users.</td><td><code>src/components/common/DatePicker.jsx:7-8</code></td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td>Loan balance figures disagree across screens for the same participant ($2,500.00 Dashboard vs $1,840.00 Loan wizard) — demo-data authoring gap.</td><td><code>src/data/transactions.js:427</code> vs <code>src/data/participants.js:87</code></td></tr>
+    <tr><td><span class="pri pri-p1">P1</span></td><td><code>PROJECT_NOTES.md</code>'s branch-identity section is stale/inaccurate (see Overview) — misleads anyone using it to orient on this branch.</td><td><code>PROJECT_NOTES.md</code> §3/§5.10</td></tr>
+    <tr><td><span class="pri pri-p2">P2</span></td><td>CSS specificity fragility in <code>portfolio.css</code>'s mobile-card block: 12 <code>!important</code> rules exist specifically to defeat a documented cascade-order collision with <code>index.css</code>'s <code>.t-stack-wrap</code>. Works today; fragile against future import reordering.</td><td><code>src/styles/portfolio.css:200-264</code></td></tr>
+    <tr><td><span class="pri pri-p2">P2</span></td><td>Custom <code>Select</code> component's listbox lacks arrow-key navigation despite <code>role="listbox"</code>/<code>role="option"</code> markup implying it (Tab+Enter still works — not a blocker).</td><td><code>src/components/common/Select.jsx:120,134</code></td></tr>
+    <tr><td><span class="pri pri-p2">P2</span></td><td>6 dead dashboard component files (same pattern as <code>main</code>'s 7 — one fewer here).</td><td><code>src/components/dashboard/*V2*</code>, illustrations</td></tr>
+  </table>
+
+  <h4>Functional Regression Baseline</h4>
+  <table>
+    <tr><th>Flow</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Login + auth gate (unauth deep-link → redirect)</td><td><span class="badge b-pass">WORKING</span></td><td>Confirmed via <code>location.href</code> check</td></tr>
+    <tr><td>Dashboard render</td><td><span class="badge b-pass">WORKING</span></td><td></td></tr>
+    <tr><td>Account Summary (incl. mobile card conversion)</td><td><span class="badge b-pass">WORKING</span></td><td>No double borders/black bars at any width — recent fixes hold</td></tr>
+    <tr><td>Investment Portfolio</td><td><span class="badge b-partial">WORKING (rendering) / BROKEN (data)</span></td><td>Same bug as main</td></tr>
+    <tr><td>Plan Details</td><td><span class="badge b-pass">WORKING</span></td><td>Correctly participant-wired, unlike Portfolio</td></tr>
+    <tr><td>Retirement Goal simulator</td><td><span class="badge b-pass">WORKING</span></td><td></td></tr>
+    <tr><td>Settings theme switch (Light/Dark/Match device)</td><td><span class="badge b-pass">WORKING</span></td><td>Propagates to Chart.js colors too</td></tr>
+    <tr><td>Loan wizard, all 4 steps → submission</td><td><span class="badge b-pass">WORKING</span></td><td>Full run to "Your loan request successfully sent!" confirmation</td></tr>
+    <tr><td>Withdrawal / Transfer wizards</td><td><span class="badge b-nv">NOT VERIFIED</span></td><td>Not driven to completion this pass</td></tr>
+    <tr><td>Rebalance / Rollover menu items</td><td><span class="badge b-nv">NOT VERIFIED / likely PARTIAL</span></td><td>Offered in menu, route-param handling not confirmed for these two</td></tr>
+    <tr><td>Enrollment Deferral + Investments steps</td><td><span class="badge b-partial">WORKING (interaction) / BROKEN (content)</span></td><td>Wrong plan name shown throughout</td></tr>
+    <tr><td>Risk Questionnaire Q1/5</td><td><span class="badge b-partial">PARTIAL</span></td><td>Q2-5 NOT VERIFIED</td></tr>
+    <tr><td>Enrich content library</td><td><span class="badge b-pass">WORKING</span></td><td>Renders outside AppLayout by route design</td></tr>
+    <tr><td>Profile — Personal + Beneficiary Details</td><td><span class="badge b-pass">WORKING</span></td><td>Beneficiary data split across 2 files — latent sync risk, not active bug</td></tr>
+  </table>
+
+  <div class="callout"><strong>Tooling caveat corroborated:</strong> this branch's audit independently reproduced the identical scroll-triggered screenshot artifact seen on <code>main</code> (blank strip, header appearing lower) while DOM/CSS evidence (<code>getBoundingClientRect</code>, computed <code>position:fixed</code>) showed the header correctly pinned at all times. Reproduced across two separate audit sessions on two different branches strongly suggests this is a <strong>browser-automation tool artifact, not a Portal bug</strong> — worth a manual (non-automated) spot-check before fully dismissing, but not treated as a product defect here.</div>
+</section>
+
+<!-- ============ RECONCILIATION ============ -->
+<section id="reconciliation">
+  <h2>Reconciliation — DS ↔ Portal Integration Reality</h2>
+  <div class="callout danger">
+    <p><strong>The Portal does not consume the Design System package.</strong> A repo-wide grep for <code>@core-ds</code> in both <code>main</code> and <code>journey-retirement</code> returns zero matches — no <code>import</code>, no dependency in <code>package.json</code>, no CSS <code>@import</code> of anything under <code>design-system-main/packages/</code>.</p>
+    <p>What actually happened instead: specific token <em>values</em> were hand-copied. Example — the Design System's primitive brand-500 color is <code>#1F4F8D</code> (<code>packages/tokens/src/primitives.json:5</code>). The Portal's <code>journey-retirement</code> branch defines <code>--theme-primitive-color-primary-500: #1F4F8D</code> in its own, independently-authored <code>src/styles/core-color-palette.css:39</code>, with an inline comment noting where it is/isn't yet "applied." This is a <strong>manual, one-time value port</strong> from a Figma export or a design-system snapshot — not a build-time or run-time dependency. The Portal's <code>main</code> branch does not use this <code>core-color-palette.css</code> file at all; its tokens (<code>--brand</code>, <code>--ink</code>, <code>--muted</code>, etc.) are a separate, older hand-authored system in <code>index.css</code>.</p>
+    <p><strong>Implication:</strong> every Design System fix in this report (button contrast, Tabs disabled state, token de-duplication, etc.) will have <strong>zero effect on the Portal</strong> unless someone manually re-transcribes the change — and conversely, the Portal's own component/CSS problems (4 parallel <code>.btn</code> definitions, 3 app-chrome implementations, no shared <code>Table</code>/<code>Modal</code> primitive) cannot be fixed "for free" by adopting the Design System, because nothing wires them together today.</p>
+  </div>
+
+  <h4>What is genuinely shared vs. coincidentally similar</h4>
+  <table>
+    <tr><th>Area</th><th>Shared?</th><th>Detail</th></tr>
+    <tr><td>Brand primary color</td><td><span class="badge b-partial">Value-matched, not structurally shared</span></td><td>Both land on <code>#1F4F8D</code> navy — Portal (journey-retirement) hand-copied it; Portal (main) has its own independent, slightly different navy definitions.</td></tr>
+    <tr><td>Token naming convention (<code>--theme-*</code>)</td><td><span class="badge b-partial">Coincidental convergence</span></td><td>Both the DS docs-site (<code>site.css</code>) and Portal <code>journey-retirement</code> (<code>core-color-palette.css</code>) independently use a <code>--theme-*</code> prefix following a "Figma Variable 1:1" naming idea — not generated from the same source, drift is already possible.</td></tr>
+    <tr><td>Component implementations (Button, Table, Modal, Tabs, DataTable, etc.)</td><td><span class="badge b-mismatch">Not shared at all</span></td><td>Portal hand-rolls every one of these from scratch in plain CSS/JSX; none import from <code>packages/core</code>.</td></tr>
+    <tr><td>Accessibility patterns (skip-link, focus-visible, escape-to-close, ARIA roles)</td><td><span class="badge b-partial">Independently arrived at similar solutions</span></td><td>Both codebases show mature, comparable a11y patterns — but built twice, separately, with no shared source.</td></tr>
+    <tr><td>Contrast defects</td><td><span class="badge b-unknown">Independent</span></td><td>DS's button-contrast failures are token-level and would need to be separately checked against the Portal's own, unrelated color values (not done in this pass — flagged in Manual Review).</td></tr>
+  </table>
+</section>
+
+<section id="recon-matrix">
+  <h2>Master Reconciliation Matrix</h2>
+  <div class="searchbar"><input class="filter" type="text" placeholder="Filter by area, result, or action…" oninput="filterTable('recon-table', this.value)"></div>
+  <table id="recon-table">
+    <tr><th>Area</th><th>Design System</th><th>Portal</th><th>Result</th><th>Action</th></tr>
+    <tr><td>Package dependency</td><td>Publishable workspace package</td><td>No <code>@core-ds/*</code> import anywhere</td><td><span class="badge b-mismatch">MISMATCH</span></td><td>MANUAL REVIEW — decide whether integration is even a goal, or whether Portal stays a standalone hand-styled app</td></tr>
+    <tr><td>Brand primary color</td><td><code>#1F4F8D</code> (token-driven)</td><td>Hand-copied literal in one branch, independent literal in the other</td><td><span class="badge b-mismatch">PARTIAL MATCH</span></td><td>FIX PORTAL — replace literals with generated tokens if/when integration happens</td></tr>
+    <tr><td>Button component</td><td>8 tones, token-driven, documented states, but 4 tones fail AA contrast</td><td>Hand-rolled <code>.btn</code>, redefined independently in 4 CSS files per branch</td><td><span class="badge b-mismatch">MISMATCH</span></td><td>FIX DESIGN SYSTEM (contrast) then FIX PORTAL (consolidate + adopt)</td></tr>
+    <tr><td>Table / DataTable</td><td>Full sortable/paginated/filterable DataTable component</td><td>Hand-rolled per-page <code>&lt;table&gt;</code> + custom mobile-card CSS convention, reimplemented per page</td><td><span class="badge b-gap">DESIGN SYSTEM GAP (adoption)</span></td><td>MANUAL REVIEW — DS component would need real per-domain data shape adaptation before Portal could adopt it</td></tr>
+    <tr><td>Modal / Dialog</td><td>Single Modal + ConfirmDialog primitive</td><td>3+ independent modal "shells" (ConfirmDialog, FundDetailDialog, page-specific inline modals)</td><td><span class="badge b-mismatch">MISMATCH</span></td><td>FIX PORTAL — consolidate onto one shared primitive (DS's or its own)</td></tr>
+    <tr><td>Tabs</td><td>Real component, hover/selected/focus-visible done, disabled missing</td><td>No dedicated Tabs component; ad hoc tab UIs per page (Portfolio, Transactions)</td><td><span class="badge b-gap">DESIGN SYSTEM GAP + PORTAL GAP</span></td><td>FIX DESIGN SYSTEM (disabled state) — Portal adoption is a separate, larger effort</td></tr>
+    <tr><td>Accessibility — focus-visible / skip-link / ARIA roles</td><td>Strong, systematic</td><td>Strong, systematic (independently built)</td><td><span class="badge b-match">MATCH (in spirit, not in code)</span></td><td>KEEP CUSTOM — both are solid; no urgency to unify</td></tr>
+    <tr><td>Color contrast — status colors</td><td>4/6 button tones fail AA</td><td>Portal's own success/warning/danger colors not independently contrast-checked this pass</td><td><span class="badge b-unknown">UNKNOWN</span></td><td>MANUAL REVIEW — run a contrast sweep on Portal's own token set before assuming it shares the same defect</td></tr>
+    <tr><td>Dark mode</td><td>Real second value set, data-driven</td><td>Real second value set, data-driven (both branches), independently implemented</td><td><span class="badge b-match">MATCH (parallel, not shared)</span></td><td>KEEP CUSTOM unless integration is pursued</td></tr>
+    <tr><td>Responsive nav (primary chrome)</td><td>Broken below ~1024px (docs site)</td><td>Portal's own Sidebar/bottom-tab-bar responsive pattern works (confirmed at 375/768/1440 on both branches)</td><td><span class="badge b-mismatch">MISMATCH (DS is worse here)</span></td><td>FIX DESIGN SYSTEM</td></tr>
+    <tr><td>Participant/session-scoped data correctness</td><td>N/A (no data layer)</td><td>Investment Portfolio page not participant-aware, on <strong>both</strong> branches</td><td><span class="badge b-custom">PORTAL-SPECIFIC</span></td><td>FIX PORTAL — highest-priority functional bug in this whole audit</td></tr>
+    <tr><td>Hardcoded plan name in Enrollment</td><td>N/A</td><td>Present on <strong>both</strong> branches, identical bug</td><td><span class="badge b-custom">PORTAL-SPECIFIC</span></td><td>FIX PORTAL</td></tr>
+    <tr><td>Dead component files</td><td>Not observed in this pass</td><td>7 (main) / 6 (journey-retirement), same underlying V2/illustration lineage</td><td><span class="badge b-custom">PORTAL-SPECIFIC</span></td><td>FIX PORTAL — safe, low-risk deletion once confirmed unused (already confirmed via grep)</td></tr>
+    <tr><td>Token naming duplication</td><td>Yes (singular/plural pair, dual semantic scheme)</td><td>Not observed to the same degree; Portal's own semantic layer is described as "unused by any component yet" per its own code comment</td><td><span class="badge b-mismatch">MISMATCH (DS is worse here)</span></td><td>FIX DESIGN SYSTEM</td></tr>
+  </table>
+</section>
+
+<section id="token-map">
+  <h2>Token Mapping</h2>
+  <p>A representative sample — a full 1:1 token reconciliation is not meaningful today because the Portal does not consume the Design System's generated output at all (see Reconciliation above). The table below maps concrete Portal values to their nearest Design System token, where one exists, to show what <em>would</em> be possible if integration were pursued.</p>
+  <table>
+    <tr><th>Portal value</th><th>Usage</th><th>Nearest DS token</th><th>Status</th><th>Confidence</th></tr>
+    <tr><td><code>#1F4F8D</code></td><td>Brand navy, buttons/links (journey-retirement)</td><td><code>brand.500</code> (<code>primitives.json:5</code>)</td><td><span class="badge b-match">MATCH</span></td><td>High — identical hex, manually copied</td></tr>
+    <tr><td><code>#2e3192</code></td><td>Brand navy, chart colors, custom-cursor SVG (main branch)</td><td><code>brand.500</code> is <code>#1F4F8D</code>, not this value</td><td><span class="badge b-mismatch">MISMATCH</span></td><td>High — <code>main</code> branch uses a visibly different navy than both the DS and the <code>journey-retirement</code> branch</td></tr>
+    <tr><td><code>#1a9d63</code> (success/green, both branches)</td><td>Success states, chart series</td><td><code>success.500</code> = <code>#22A369</code> in DS</td><td><span class="badge b-mismatch">MISMATCH</span></td><td>Medium — different value, not verified whether intentional</td></tr>
+    <tr><td>24px card padding (approx., Portal cards)</td><td>Card internal padding</td><td><code>space.24</code> = 24px (<code>primitives.json:59</code>)</td><td><span class="badge b-partial">REVIEW</span></td><td>Medium — plausible match, not individually re-measured per card class</td></tr>
+    <tr><td>Portal button border-radius (varies by class, ~6-8px observed)</td><td>Button chrome</td><td><code>radius.sm</code>/<code>radius.md</code> = 4/6px or 8px</td><td><span class="badge b-partial">REVIEW</span></td><td>Low — Portal has no single button radius value since <code>.btn</code> is redefined 4× per branch</td></tr>
+    <tr><td>Portal breakpoints (375/768/~1024 observed behavior)</td><td>Responsive layout switches</td><td><code>breakpoint.sm/md/lg</code> = 576/768/992px</td><td><span class="badge b-partial">REVIEW</span></td><td>Medium — close but not confirmed to be pixel-identical to DS's Bootstrap-derived scale</td></tr>
+  </table>
+</section>
+
+<section id="regression">
+  <h2>Cross-Branch Functional Regression Summary</h2>
+  <p>Both branches share the same two highest-priority functional bugs (Portfolio data, Enrollment plan name) — these predate the branch split and live in code both branches inherit. See each branch's own baseline table above for the full flow-by-flow status. Net picture:</p>
+  <div class="flowline">
+    <span class="step">Login</span>→<span class="step">Dashboard</span>→<span class="step">Portfolio ⚠ data bug (both branches)</span>
+  </div>
+  <div class="flowline">
+    <span class="step">Dashboard</span>→<span class="step">Enrollment ⚠ wrong plan name (both branches)</span>→<span class="step">Investments</span>→<span class="step">Summary</span>
+  </div>
+  <div class="flowline">
+    <span class="step">Dashboard</span>→<span class="step">Transactions</span>→<span class="step">Loan wizard</span>→<span class="step">✓ Confirmation (verified end-to-end, journey-retirement)</span>
+  </div>
+  <div class="flowline">
+    <span class="step">Dashboard</span>→<span class="step">Risk Check-In</span>→<span class="step">Q1/5 only verified</span>→<span class="step" style="color:var(--muted2)">NOT VERIFIED beyond Q1</span>
+  </div>
+</section>
+
+<section id="priority">
+  <h2>Priority Matrix</h2>
+
+  <h3>P0 — Production Blockers</h3>
+  <table>
+    <tr><th>ID</th><th>Branch/Area</th><th>Page/Component</th><th>Issue</th><th>Impact</th><th>Dependency</th></tr>
+    <tr><td>P0-1</td><td>Portal — main &amp; journey-retirement</td><td>Investment Portfolio</td><td>Page shows identical hardcoded figures regardless of logged-in participant</td><td>Breaks any multi-participant demo/QA; visibly contradicts every other screen</td><td>None — isolated fix in <code>Portfolio.jsx</code>/<code>portfolio.js</code></td></tr>
+    <tr><td>P0-2</td><td>Portal — main &amp; journey-retirement</td><td>Enrollment (all steps)</td><td>Hardcoded placeholder plan name shown for every plan</td><td>Undermines trust in the one screen whose job is confirming what's being elected into</td><td>None — isolated fix in <code>EnrollmentLayout.jsx</code></td></tr>
+    <tr><td>P0-3</td><td>Design System</td><td>Button (Destructive/Success/Warning/Info)</td><td>4 of 6 tones fail WCAG AA contrast for white-on-color text</td><td>Accessibility compliance failure that propagates to every consumer</td><td>None — token-level fix (darken the 4 primitive steps or add per-status <code>-onColor</code> tokens)</td></tr>
+    <tr><td>P0-4</td><td>Design System</td><td>Repo tooling / README</td><td><code>npm run dev</code> fails from a clean checkout</td><td>Blocks onboarding of any new contributor or consumer</td><td>None — wire <code>tokens:build</code> into <code>predev</code></td></tr>
+  </table>
+
+  <h3>P1 — High Priority</h3>
+  <table>
+    <tr><th>ID</th><th>Branch/Area</th><th>Page/Component</th><th>Issue</th><th>Impact</th><th>Dependency</th></tr>
+    <tr><td>P1-1</td><td>Portal — main</td><td>Mobile Dashboard/global chrome</td><td>Floating demo-switcher button overlaps 2 bottom-nav tabs at 375px</td><td>Blocks tapping "My profile"/"Document Center" on real phones</td><td>None</td></tr>
+    <tr><td>P1-2</td><td>Portal — journey-retirement</td><td>Shared <code>DatePicker</code></td><td>Timezone off-by-one on date selection (reproduced live)</td><td>Every date field app-wide is wrong by one day for US-timezone users</td><td>None — isolated fix in one shared component</td></tr>
+    <tr><td>P1-3</td><td>Portal — journey-retirement</td><td>Loan wizard / Dashboard</td><td>Loan balance figures disagree across screens ($2,500 vs $1,840)</td><td>Visible data-integrity red flag in the same session</td><td>Requires deciding which figure is canonical (demo-data authoring fix)</td></tr>
+    <tr><td>P1-4</td><td>Design System</td><td>Tabs</td><td>No disabled state, code-confirmed</td><td>Real, still-open gap vs. repo's own tracked feedback</td><td>None</td></tr>
+    <tr><td>P1-5</td><td>Design System</td><td>Token pipeline</td><td>Dual <code>--core-*</code>/<code>--theme-*</code> variable systems; components depend on the hand-maintained one</td><td>A consumer using only the documented pipeline silently loses themed states</td><td>Requires either generating <code>--theme-*</code> from <code>build.mjs</code> or migrating <code>components.css</code> to <code>--core-*</code> only — architectural decision needed first</td></tr>
+    <tr><td>P1-6</td><td>Portal — main &amp; journey-retirement</td><td>App chrome</td><td>3 parallel layout implementations (AppLayout/EnrollmentLayout/TransactionRequest's own) with visible drift</td><td>Any future header/sidebar change must be manually kept in sync across 3 places</td><td>None architecturally, but a real refactor effort</td></tr>
+    <tr><td>P1-7</td><td>Design System</td><td>Docs site</td><td>No usable navigation below ~1024px</td><td>Design system cannot be browsed on tablet/phone</td><td>None</td></tr>
+  </table>
+
+  <h3>P2 — Medium Priority</h3>
+  <table>
+    <tr><th>ID</th><th>Branch/Area</th><th>Page/Component</th><th>Issue</th><th>Impact</th><th>Dependency</th></tr>
+    <tr><td>P2-1</td><td>Portal — both branches</td><td><code>src/components/dashboard/*</code></td><td>6-7 confirmed dead component files (V2/illustration lineage)</td><td>Onboarding confusion; possible bundle bloat (unmeasured)</td><td>None — grep-confirmed safe to remove</td></tr>
+    <tr><td>P2-2</td><td>Portal — both branches</td><td><code>.btn</code> and CTA styles</td><td>Redefined independently across 4 CSS files, 31-36 <code>!important</code> uses</td><td>Drift risk on next brand re-skin or feature addition</td><td>Requires a shared button primitive first</td></tr>
+    <tr><td>Р2-3</td><td>Portal — journey-retirement</td><td><code>portfolio.css</code> mobile-card block</td><td>12 <code>!important</code> rules patching a documented cascade-order collision</td><td>Fragile against future CSS import reordering</td><td>Requires resolving underlying import order, not just removing <code>!important</code></td></tr>
+    <tr><td>P2-4</td><td>Design System</td><td>Token naming</td><td>Duplicate/dual-named semantic tokens resolving to identical values</td><td>Maintenance surface, drift risk over time</td><td>None — token cleanup</td></tr>
+    <tr><td>P2-5</td><td>Portal — journey-retirement</td><td>Documentation</td><td><code>PROJECT_NOTES.md</code> branch-identity section is stale/wrong</td><td>Misleads future contributors (misled this very audit initially)</td><td>None</td></tr>
+    <tr><td>P2-6</td><td>Design System</td><td>Homepage</td><td>"THEME:" selector uses a disconnected 7-color hardcoded preset array</td><td>Misrepresents actual 3-theme white-label capability</td><td>None</td></tr>
+    <tr><td>P2-7</td><td>Portal — journey-retirement</td><td><code>Select.jsx</code></td><td>Listbox lacks arrow-key navigation despite implying it via ARIA roles</td><td>Deviates from expected screen-reader/keyboard pattern (not a blocker)</td><td>None</td></tr>
+  </table>
+
+  <h3>P3 — Improvement</h3>
+  <table>
+    <tr><th>ID</th><th>Branch/Area</th><th>Page/Component</th><th>Issue</th><th>Impact</th><th>Dependency</th></tr>
+    <tr><td>P3-1</td><td>Design System</td><td>Typography foundations page</td><td>Subtitle copy is boilerplate copy-pasted from a different foundations page</td><td>Cosmetic content bug</td><td>None</td></tr>
+    <tr><td>P3-2</td><td>Design System</td><td>Meridian theme</td><td>Logo assets literally path-named <code>lendguard-*</code></td><td>Contradicts README's no-real-client-names claim</td><td>None — rename asset paths</td></tr>
+    <tr><td>P3-3</td><td>Portal — main</td><td>Design System reference page</td><td>"Current light theme" caption shows whichever theme is actually active</td><td>Minor self-contradiction on an internal-only page</td><td>None</td></tr>
+    <tr><td>P3-4</td><td>Portal — journey-retirement</td><td>Transactions fee breakdown</td><td>Fee sub-items visually under-indented, easy to mis-sum</td><td>Low-severity clarity issue, not a calculation bug</td><td>None</td></tr>
+  </table>
+</section>
+
+<section id="impl-order">
+  <h2>Implementation Order (dependency-based plan only — not implemented)</h2>
+  <ol>
+    <li>Fix Design System foundation gaps — button-tone contrast (P0-3), broken dev workflow (P0-4).</li>
+    <li>Fix Design System component/state gaps — Tabs disabled state (P1-4), token de-duplication (P2-4).</li>
+    <li>Resolve the dual <code>--core-*</code>/<code>--theme-*</code> token-system architecture decision (P1-5) — this blocks any confident "the DS is theme-safe" claim and should land before further component work builds on top of it.</li>
+    <li>Fix Design System docs-site responsive navigation (P1-7) so the system itself is reviewable on all devices before asking anyone to adopt it.</li>
+    <li>Freeze Design System baseline once the above land.</li>
+    <li>Fix Portal P0s independently of any DS decision — Investment Portfolio participant wiring (P0-1) and Enrollment plan name (P0-2) are isolated, low-risk, high-visibility fixes that do not require DS integration to ship.</li>
+    <li>Fix Portal P1s — mobile demo-switcher overlap (P1-1), DatePicker timezone bug (P1-2), loan-balance data mismatch (P1-3), app-chrome consolidation (P1-6, larger effort).</li>
+    <li>Decide, as a separate product/architecture question, whether the Portal should ever consume <code>@core-ds/*</code> as a real dependency — this audit found no technical blocker to doing so, but it is a meaningful adoption effort (Button/Table/Modal/Tabs would all need to be re-pointed at DS components) that should not be bundled into the P0/P1 fixes above.</li>
+    <li>If DS adoption is pursued: reconcile Portal's hand-authored tokens against DS's generated output (starting from the Token Mapping table above), then migrate components in the order Button → Field/Input → Table/DataTable → Modal → Tabs, since Button and Field have the clearest 1:1 DS equivalents and Table/Modal have the most Portal-side duplication to collapse.</li>
+    <li>Accessibility validation pass — real NVDA/screen-reader run (both DS and Portal, never done on either), automated contrast sweep on Portal's own colors (not yet checked against the same rigor applied to the DS).</li>
+    <li>Responsive validation — re-verify the disputed scroll/screenshot artifact manually (non-automated browser) before it's fully dismissed as tooling noise.</li>
+    <li>Functional regression pass — complete the NOT VERIFIED flows in this report (Loan wizard steps 2-4 on main; Withdrawal/Transfer/Rebalance/Rollover wizards on journey-retirement; Risk Check-In Q2-5 on both).</li>
+    <li>Technical cleanup — delete confirmed-dead component files (P2-1) on both branches, update stale <code>PROJECT_NOTES.md</code> (P2-5).</li>
+    <li>Production validation.</li>
+  </ol>
+</section>
+
+<section id="manual-review">
+  <h2>Manual Review Needed</h2>
+  <ul class="tight">
+    <li>The scroll-triggered screenshot rendering anomaly reproduced on both Portal branches (blank strip above a seemingly duplicated header) — DOM evidence says it's not real, but it recurred across two independent audit sessions and warrants a non-automated, real-browser spot-check before being fully dismissed.</li>
+    <li>Whether Portal's own success/warning/danger colors share the Design System's WCAG AA contrast failures — not independently computed this pass.</li>
+    <li>Whether Portal adoption of <code>@core-ds/*</code> is even a desired product direction, or whether the two codebases are intentionally meant to stay independent (a real product decision, not something this audit can answer from code alone).</li>
+    <li>DropdownMenu submenu/checkbox/radio-item interaction, Toast stacking/auto-dismiss timing, and chart hidden-data-table accessibility claims in the Design System — all code-plausible but not interactively clicked/confirmed live.</li>
+    <li>Whether the <code>/enrich</code> route's lack of standard app chrome (both branches) is an intentional "focused reading" layout choice or a leftover oversight — a product-intent question.</li>
+    <li>Withdrawal/Transfer/Rebalance/Rollover transaction wizards on both branches — only the Loan wizard was driven to completion in this pass.</li>
+  </ul>
+</section>
+
+<section id="methodology">
+  <h2>Methodology &amp; Evidence Notes</h2>
+  <ul class="tight">
+    <li><strong>Scope:</strong> per explicit user direction, this audit covers the Design System ZIP and Portal branches <span class="branch-pill">main</span> and <span class="branch-pill">journey-retirement</span> (not <code>design-system</code>/<code>saturna</code>/<code>cursor/token-audit-color-typo-a583</code>/<code>lendguard-chakra</code>, which exist in the repo but were out of scope for this pass).</li>
+    <li><strong>Method:</strong> the Design System ZIP was extracted to an isolated scratch location and run there; the Portal <code>main</code> branch was checked out into a separate git worktree; the <code>journey-retirement</code> branch was audited directly in the user's working directory, read-only, with a final <code>git status</code> confirming a clean tree at completion. No source file in any location was modified.</li>
+    <li><strong>Live verification:</strong> all three targets were installed (<code>npm install</code>) and run with a live dev server on a dedicated port, then driven through a browser-automation tool across desktop (1440×900 or 1024×768), tablet (768×1024), and mobile (375×812) viewports, using accessibility-tree reads, text extraction, console/network capture, and screenshots.</li>
+    <li><strong>Evidence discipline:</strong> every finding above is tagged PASS/PARTIAL/FAIL/MISSING/NOT VERIFIED and backed by either a <code>file:line</code> reference or a described live observation. Claims from the repos' own documentation (README, CHANGELOG, PROJECT_NOTES, manager-feedback trackers) were treated as evidence of intent/history, not as ground truth, and were independently re-checked wherever feasible.</li>
+    <li><strong>Screenshot evidence:</strong> screenshots were captured and visually inspected live during each audit session (inline to the auditing agent) but are not persisted as standalone image files alongside this report; visual/responsive findings above are the direct written record of those live observations. Any claim not backed by either a live capture or a code reference is explicitly marked NOT VERIFIED / NOT CAPTURED rather than asserted.</li>
+    <li><strong>No fixes were applied.</strong> This report reflects the state of both repositories as of 2026-09-17; no application source code was modified, no branches were merged, and no functionality was intentionally changed in the course of producing it.</li>
+  </ul>
+
+  <div class="footer-note">
+    AUDIT COMPLETE — Design System: 3,822-line component stylesheet across 21 files, ~50 components, 4 P0s / 7 P1s identified. Portal: 2 branches, ~20 routes each, 2 shared P0 data-correctness bugs, 13 combined dead component files, 0 automated tests on either side. No application source code was modified. No branches were merged. No functionality was intentionally changed.
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+function filterTable(id, q){
+  q = q.toLowerCase();
+  var table = document.getElementById(id);
+  var rows = table.getElementsByTagName('tr');
+  for(var i=1;i<rows.length;i++){
+    var text = rows[i].innerText.toLowerCase();
+    rows[i].style.display = text.indexOf(q) === -1 ? 'none' : '';
+  }
+}
+</script>
+</body>
+</html>

@@ -6,3 +6,4 @@ dist
 .vite
 .netlify
 .claude/
+.playwright-mcp/

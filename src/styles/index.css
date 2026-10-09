@@ -3116,7 +3116,7 @@ summary:focus-visible {
   inset: 0;
   pointer-events: none;
   opacity: var(--rgs-decor, 0);
-  background-image: radial-gradient(color-mix(in srgb, var(--rgs-ink) 12%, transparent) 1px, transparent 1.4px);
+  background-image: radial-gradient(rgba(255, 255, 255, .12) 1px, transparent 1.4px);
   background-size: 16px 16px;
   /* #000 here is a mask luminance channel, not a rendered color -- CSS
      masks read black/transparent as opacity stops, so this isn't a
@@ -3130,7 +3130,7 @@ summary:focus-visible {
   pointer-events: none;
   opacity: var(--rgs-decor, 0);
 }
-.rgs-body { position: relative; z-index: 1; min-width: 0; padding:var(--card-padding-lg); }
+.rgs-body { position: relative; z-index: 1; min-width: 0; padding:var(--space-5); }
 
 /* Header banner — a full-bleed colour strip above the card body, holding
    the widget's name/description and the supplied beach/sunset
@@ -3145,13 +3145,13 @@ summary:focus-visible {
   display: flex;
   align-items: flex-start;
   gap:var(--space-3);
-  padding:var(--card-padding-sm) var(--card-padding-lg) var(--card-padding);
+  padding:var(--space-4) var(--space-5) var(--space-5);
   min-height: 92px;
-  background: linear-gradient(115deg, var(--brand-text-primary-default) 0%, color-mix(in srgb, var(--brand-text-primary-default) 65%, white) 100%);
+  background: linear-gradient(115deg, var(--brand) 0%, color-mix(in srgb, var(--brand) 65%, white) 100%);
   border-radius:var(--widget-radius) var(--widget-radius) 0 0;
 }
 .rgs-banner-copy { position: relative; z-index: 1; min-width: 0; flex: 1; max-width: 66%; }
-.rgs-banner .rgs-eyebrow { color: color-mix(in srgb, var(--brand-text-primary-oncolor) 78%, transparent); }
+.rgs-banner .rgs-eyebrow { color: rgba(255, 255, 255, .78); }
 .rgs-banner .rgs-headline { color: var(--brand-text-primary-oncolor); }
 .rgs-banner-art {
   position: absolute;
@@ -3171,6 +3171,7 @@ summary:focus-visible {
   font-size:var(--text-eyebrow-size);
   font-weight: var(--text-eyebrow-weight);
   letter-spacing:var(--ls-wider);
+  text-transform: uppercase;
   color: var(--rgs-muted);
 }
 .rgs-headline {
@@ -3180,14 +3181,13 @@ summary:focus-visible {
   letter-spacing: var(--text-h5-ls);
   color: var(--rgs-ink);
   line-height: var(--text-h5-lh);
-  overflow-wrap: anywhere;
 }
 .rgs-main {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap:var(--space-5);
-  margin-bottom:var(--space-5);
+  gap:var(--space-4);
+  margin-bottom:var(--space-4);
 }
 
 /* One clean progress ring: a track plus a single gradient arc with a
@@ -3232,17 +3232,12 @@ summary:focus-visible {
   align-items: center;
   justify-content: center;
   line-height: 1.2;
-  /* "of your" / "goal" is an explicit two-line break (in the markup, not a
-     soft-wrap) so it reads as a deliberate label instead of overflow --
-     capping the column to the ring's usable inner width (the track sits
+  /* Capping the column to the ring's usable inner width (the track sits
      ~8px inside the SVG's edge) keeps it clear of the circumference at
-     every ring size. Padding gives the text room to breathe inside the
-     ring instead of crowding the stroke.
-     74% was measured off the inner *diameter*, but text is a horizontal
+     every ring size.
+     70% was measured off the inner *diameter*, but text is a horizontal
      band across the circle, so the space it actually has is the inscribed
-     square — ~0.707 of that diameter, not all of it. At 74% a 3-digit
-     value ("100%") rendered ~74px wide inside ~70px of clear room and
-     collided with the stroke. */
+     square — ~0.707 of that diameter, not all of it. */
   width: 70%;
   padding: var(--space-1) var(--space-0);
   box-sizing: border-box;
@@ -3290,7 +3285,7 @@ summary:focus-visible {
   align-items: baseline;
   justify-content: space-between;
   gap:var(--space-0-5) var(--space-2-5);
-  padding:var(--space-2-5) var(--space-0);
+  padding:var(--space-2) var(--space-0);
 }
 .rgs-snap-row + .rgs-snap-row { border-top: 1px solid var(--rgs-glass-border); }
 .rgs-snap-label {
@@ -3300,15 +3295,23 @@ summary:focus-visible {
   min-width: 0;
   margin:var(--space-0);
   font-size:var(--text-xs-size);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 600;
   color: var(--rgs-ink-soft);
   white-space: nowrap;
 }
 .rgs-snap-row.expense .rgs-snap-label {
+  text-transform: uppercase;
   letter-spacing:var(--ls-wider);
   font-size:var(--text-2xs-size);
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
   color: var(--rgs-muted);
+}
+.rgs-dot {
+  width: 6px;
+  height: 6px;
+  border-radius:50%;
+  flex: 0 0 auto;
+  background: currentColor;
 }
 .rgs-snap-row.income .rgs-snap-label { color: var(--rgs-success); }
 .rgs-snap-row.shortfall .rgs-snap-label { color: var(--rgs-danger); }
@@ -3334,7 +3337,7 @@ summary:focus-visible {
   align-items: center;
   gap:var(--space-2-5);
   padding:var(--space-3) var(--space-3-5);
-  border-radius:var(--radius-sm);
+  border-radius:12px;
   background: var(--rgs-glass);
   border: 1px solid var(--rgs-glass-border);
 }
@@ -3351,7 +3354,7 @@ summary:focus-visible {
 .rgs-status.ok, .rgs-status.warn { background: var(--rgs-glass); }
 .rgs-status.ok .rgs-status-ico, .rgs-status.warn .rgs-status-ico { background: color-mix(in srgb, var(--rgs-ink) 12%, transparent); color: var(--rgs-ink); }
 .rgs-status-copy { min-width: 0; }
-.rgs-status-copy b { display: block; font-size:var(--text-body-sm-size); font-weight: var(--font-weight-bold); color: var(--rgs-ink); }
+.rgs-status-copy b { display: block; font-size:var(--text-body-sm-size); font-weight: 700; color: var(--rgs-ink); }
 .rgs-status.ok .rgs-status-copy b { color: var(--rgs-ink); }
 .rgs-status.warn .rgs-status-copy b { color: var(--rgs-ink); }
 .rgs-status-copy span {
@@ -3362,53 +3365,54 @@ summary:focus-visible {
   color: var(--rgs-ink-soft);
 }
 
-.rgs-intro { display: flex; flex-direction: column; align-items: flex-start; gap:var(--space-3); margin-bottom:var(--space-5); }
+.rgs-intro { display: flex; flex-direction: column; align-items: flex-start; gap:var(--space-3); margin-bottom:var(--space-4); }
 .rgs-intro p { margin:var(--space-0); font-size: var(--text-caption-size); line-height: 1.55; color: var(--rgs-ink-soft); }
-.rgs-primary-cta {
+.rgs-cta {
   display: inline-flex; align-items: center; gap:var(--space-1-5);
   padding:var(--space-2-5) var(--space-4); border-radius:var(--radius-sm); border: none;
-  background: var(--rgs-primary-cta-bg); color: var(--rgs-primary-cta-ink);
-  font: inherit; font-size:var(--text-body-sm-size); font-weight: var(--font-weight-bold);
+  background: var(--rgs-cta-bg); color: var(--rgs-cta-ink);
+  font: inherit; font-size:var(--text-body-sm-size); font-weight: 700;
   text-decoration: none; cursor: pointer;
 }
-.rgs-primary-cta:hover { filter: brightness(1.12); }
-.rgs-primary-cta:focus-visible { outline: 2px solid var(--rgs-arc-1); outline-offset: 2px; }
-.rgs-primary-cta--disabled { background: var(--semantics-disabled-background); color: var(--semantics-disabled-text); cursor: not-allowed; }
-.rgs-primary-cta--disabled:hover { filter: none; }
-/* One column: a full-width Adjust button (when present) stacked above a
-   single info-note line. With Adjust absent the row has just one child,
-   so there's no leftover gap where the button would have sat -- the
-   section naturally hugs the note instead of leaving a placeholder gap. */
+.rgs-cta:hover { filter: brightness(1.12); }
+.rgs-cta:focus-visible { outline: 2px solid var(--rgs-arc-1); outline-offset: 2px; }
 .rgs-foot {
-  display: flex; flex-direction: column; gap:var(--space-2-5);
-  margin:var(--space-4) var(--space-0) var(--space-0); padding-top:var(--space-3-5);
+  display: flex; flex-direction: column; align-items: stretch; gap:var(--space-2);
+  margin:var(--space-3-5) var(--space-0) var(--space-0); padding-top:var(--space-3);
   border-top: 1px solid var(--rgs-glass-border);
   font-size:var(--text-2xs-size);
 }
-.rgs-adjust-btn {
-  display: flex; align-items: center; justify-content: center; width: 100%;
-  padding:var(--btn-padding-y-sm) var(--btn-padding-x-sm); min-height:var(--icon-btn-size-sm);
-  border-radius:var(--radius-sm); border:1px solid var(--neutral-border-light);
-  background: var(--surface-default); color: var(--brand-text-primary-default);
-  font: inherit; font-size:var(--text-button-sm-size); font-weight:var(--text-button-sm-weight);
-  line-height:var(--text-button-sm-lh); text-decoration: none; cursor: pointer;
-}
-.rgs-adjust-btn:hover { background: var(--brand-background-primary-subtle); border-color: var(--brand-border-primary-default); }
-.rgs-adjust-btn:focus-visible { outline: 2px solid var(--brand-text-primary-default); outline-offset: 2px; }
-/* Info icon + "Not guaranteed results." + the Disclaimer trigger read as
-   one sentence, so they're one <p>, not a note row plus a separate
-   actions row -- Disclaimer is an inline text button, not a second CTA. */
 .rgs-foot-note {
-  display: flex; align-items: baseline; gap:var(--space-1-5);
-  margin:var(--space-0); color: var(--rgs-muted); line-height: 1.45;
+  display: flex; align-items: flex-start; gap:var(--space-1-5);
+  width: 100%; min-width: 0; margin:var(--space-0);
+  color: var(--rgs-muted); line-height: 1.45;
 }
-.rgs-foot-note svg { flex: 0 0 auto; align-self: center; }
-.rgs-disclaimer-link {
-  font: inherit; color: var(--neutral-text-subtle); text-decoration: underline; text-underline-offset: 2px;
-  background: none; border: none; padding:var(--space-0); cursor: pointer;
+.rgs-foot-note svg { flex: 0 0 auto; margin-top:var(--space-px); }
+.rgs-foot-note > span { flex: 1; min-width: 0; }
+.rgs-foot-note .rgs-foot-link {
+  display: inline;
+  color: var(--brand);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding:var(--space-0);
+  margin:var(--space-0);
+  white-space: normal;
+  vertical-align: baseline;
 }
-.rgs-disclaimer-link:hover { color: var(--neutral-text-default); }
-.rgs-disclaimer-link:focus-visible { outline: 2px solid var(--brand-text-primary-default); outline-offset: 2px; }
+.rgs-foot-actions { display: flex; align-items: center; justify-content: space-between; gap:var(--space-3-5); width: 100%; }
+.rgs-foot-link {
+  /* Padding + matching negative margin lift the click target to the WCAG
+     2.5.8 24px minimum without moving the visible text. */
+  display: inline-flex; align-items: center; gap:var(--space-1);
+  font: inherit; font-size:var(--text-2xs-size); font-weight: 700;
+  color: var(--rgs-ink); background: none; border: none; cursor: pointer;
+  flex: 0 0 auto; white-space: nowrap;
+  padding:var(--space-1-5) var(--space-1); margin:calc(-1 * var(--space-1-5)) calc(-1 * var(--space-1)); border-radius:6px;
+}
+.rgs-foot-link:hover { text-decoration: underline; }
+.rgs-foot-link:focus-visible { outline: 2px solid var(--rgs-arc-1); outline-offset: 2px; }
+
 
 /* ---------- Financial Wellness ----------
    Light, editorial content card. Typography leads on the left; the
@@ -3725,68 +3729,3 @@ th:has(.th-sort){padding:0}
 .th-sort.active svg{color:var(--brand-text-primary-default);opacity:1}
 .th-sort:focus-visible{outline:2px solid var(--brand-text-primary-default);outline-offset:-2px}
 
-/* ---------- Mobile: tables become stacked cards ----------
-   Every data table in the app previously survived narrow screens by
-   horizontally scrolling inside .table-wrap, several with a min-width of
-   640-980px. On a 375px screen that means a participant reads a balance by
-   dragging the table sideways, with the row's identity column scrolled out of
-   view by the time they reach the number.
-
-   At <=640px an opted-in table drops its header row and re-flows each <tr>
-   into a card, each cell becoming a "label / value" line. The label comes from
-   the cell's own data-label attribute, so the header text stays in one place
-   in the markup and screen readers keep the real <th> association above.
-
-   This mirrors .ai-row / .doc-row, which already collapse to a single column
-   at this breakpoint, and uses only DS tokens -- the same surface, border,
-   radius and spacing values the desktop table and .panel already use. */
-@media(max-width:640px){
-  .t-stack thead{
-    /* Not display:none: that drops the cells from the accessibility tree and
-       with them the column associations the data-labels are mirroring. */
-    position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-  .t-stack,.t-stack tbody,.t-stack tr,.t-stack td{display:block;width:auto}
-  .t-stack{min-width:0;border-collapse:separate}
-  .t-stack tr{
-    background:var(--surface-default);border:1px solid var(--neutral-border-light);border-radius:var(--radius-sm);
-    padding:var(--space-1) var(--space-3-5);margin:var(--space-0) var(--space-0) var(--space-3)}
-  .t-stack tr:last-child{margin-bottom:var(--space-0)}
-  /* Zebra striping is a row-scanning cue for a grid; once rows are separate
-     cards the card edge does that job and alternating fills just look like
-     two kinds of card. */
-  .t-stack tbody tr:nth-child(even),.t-stack tbody tr.as-row-alt{background:var(--surface-default)}
-  .t-stack td{
-    display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-4);
-    padding:var(--space-2) var(--space-0);text-align:left;border-bottom:1px solid var(--neutral-border-light);white-space:normal}
-  .t-stack td:last-child{border-bottom:none}
-  .t-stack td::before{
-    content:attr(data-label);flex:0 0 auto;
-    font-size:var(--text-body-sm-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
-  /* A cell with no label is a full-width slot (row actions, an expand
-     control, a colSpan message) rather than a label/value pair. */
-  .t-stack td:not([data-label])::before{content:none}
-  .t-stack td:not([data-label]){display:block}
-  /* An unlabelled leading cell is the card's title — the fund or source name
-     the rest of the values belong to — so it gets heading weight instead of
-     sitting in the label column of a pair. */
-  .t-stack td:first-child:not([data-label]){
-    padding-top:var(--space-2-5);font-size:var(--text-body-md-size);font-weight:var(--font-weight-bold)}
-  /* .num right-aligns numerics against a desktop column edge; in a card the
-     value already sits opposite its label, so the override only has to stop
-     the text collapsing to the left of the flex line. */
-  .t-stack td.num{text-align:right}
-  .t-stack tfoot{display:block}
-  .t-stack tfoot tr{
-    background:var(--surface-muted);border-color:var(--neutral-border-strong)}
-  /* A benchmark is a comparison for the fund card above it, not a fund in its
-     own right. As a grid row the dashed rule and muted fill carried that; as a
-     card it needs to stay visibly subordinate, so it's tucked in and tinted
-     rather than presented as an equal sibling. */
-  .t-stack tr.bench-row{
-    background:var(--surface-subtle);margin:calc(-1 * var(--space-2)) var(--space-0) var(--space-3) var(--space-4);
-    border-color:var(--neutral-border-light)}
-  .t-stack tr.bench-row td:first-child{font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
-  /* The wrapper's scroll affordance and min-width are what forced the sideways
-     drag; with cards there is nothing left to scroll. */
-  .t-stack-wrap{overflow:visible;border:none;border-radius:0;background:transparent;box-shadow:none}
-}
