@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
-import { faPercent, faChartLine, faCircleInfo, faClockRotateLeft, faBriefcase } from '@fortawesome/free-solid-svg-icons'
-import { PLAN_HISTORY, SDB_ACCOUNTS } from '../data/portfolio'
+import { faPercent, faChartLine, faCircleInfo, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
+import { PLAN_HISTORY, SDB_ACCOUNTS, SDB_FUNDS, PLAN_FUNDS, HOLDINGS } from '../data/portfolio'
 import { useParticipant } from '../context/ParticipantContext.jsx'
 import {
   AUTO_INCREASE_KEY,
@@ -69,6 +69,7 @@ export default function PlanDetails() {
   const savedAi = useMemo(() => readSession(AUTO_INCREASE_KEY), [tick])
   const savedInv = useMemo(() => readSession(INVESTMENT_KEY), [tick])
   const [optOutOpen, setOptOutOpen] = useState(false)
+  const [invView, setInvView] = useState('plan')
   const [optedOut, setOptedOut] = useState(!!savedDeferral?.optedOut)
   useEscapeToClose(optOutOpen, () => setOptOutOpen(false))
   const optOutTrapRef = useFocusTrap(optOutOpen)
@@ -99,7 +100,7 @@ export default function PlanDetails() {
   // saved instead of leaving this section a single line of plain notice
   // text with no way to see what they'd actually set up.
   const hasAdvanceSave = !enrolled && !eligible && hasAdvanceElections(participant.id) && !!savedDeferral
-  const activeTab = !deferCapable && (tab === 'deferral' || tab === 'sdb') ? 'investments' : tab
+  const activeTab = !deferCapable && tab === 'deferral' ? 'investments' : tab === 'sdb' ? 'investments' : tab
   // The plan's real balance breakdown (Pre-Tax/Roth/Match/etc. with vested
   // amounts) and current holdings already exist in the data model and are
   // used on Account Summary, but were never surfaced here — a participant
@@ -274,20 +275,6 @@ export default function PlanDetails() {
               </span>
               History
             </button>
-            {deferCapable && (
-              <button
-                type="button"
-                className={activeTab === 'sdb' ? 'on' : ''}
-                role="tab"
-                aria-selected={activeTab === 'sdb'}
-                onClick={() => switchTab('sdb')}
-              >
-                <span className="pr-nav-ico" aria-hidden="true">
-                  <Icon icon={faBriefcase} size={16} />
-                </span>
-                SDB details
-              </button>
-            )}
           </nav>
 
           <div className="pr-main">
@@ -390,15 +377,74 @@ export default function PlanDetails() {
                       {savedInv?.mode === 'custom' ? 'Your selection' : 'Plan investments'}
                       {applyAll || !savedInv ? ' · Same for all sources' : ' · By source'}
                     </p>
-                    {applyAll || !savedInv ? (
-                      <FundList rows={funds} />
-                    ) : (
-                      ['pre', 'roth'].map((src) => (
-                        <div key={src}>
-                          <h3 className="src-label">{src === 'pre' ? 'Pre-Tax' : 'Roth'}</h3>
-                          <FundList rows={fundRows(savedInv?.bySource?.[src])} />
-                        </div>
-                      ))
+                    <ul className="detail-rows inv-settings">
+                      <li>
+                        <span>Auto rebalance</span>
+                        <b>{savedInv?.autoRebalance ? 'On' : 'Off'}</b>
+                      </li>
+                      {deferCapable && (
+                        <li>
+                          <span>Self-Directed Brokerage</span>
+                          {sdbInfo?.enabled ? (
+                            <b>
+                              <span className="badge green">Opted in</span>{' '}
+                              {sdbInfo.separate ? 'Traditional and Roth tracked separately' : 'One combined account'}
+                            </b>
+                          ) : (
+                            <b>Not opted in</b>
+                          )}
+                        </li>
+                      )}
+                    </ul>
+                    {deferCapable && sdbInfo?.enabled && (
+                      <div className="period inv-view-switch" role="tablist" aria-label="Investment view">
+                        {[
+                          ['plan', 'Plan investments'],
+                          ['sdb', 'Self-Directed Brokerage']
+                        ].map(([val, label]) => (
+                          <button
+                            key={val}
+                            type="button"
+                            role="tab"
+                            aria-selected={invView === val}
+                            className={invView === val ? 'on' : ''}
+                            onClick={() => setInvView(val)}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {(!sdbInfo?.enabled || invView === 'plan') &&
+                      (applyAll || !savedInv ? (
+                        <FundList rows={funds} sdbOn={!!sdbInfo?.enabled} onOpenSdb={() => setInvView('sdb')} />
+                      ) : (
+                        ['pre', 'roth'].map((src) => (
+                          <div key={src}>
+                            <h3 className="src-label">{src === 'pre' ? 'Pre-Tax' : 'Roth'}</h3>
+                            <FundList
+                              rows={fundRows(savedInv?.bySource?.[src])}
+                              sdbOn={!!sdbInfo?.enabled}
+                              onOpenSdb={() => setInvView('sdb')}
+                            />
+                          </div>
+                        ))
+                      ))}
+                    {deferCapable && sdbInfo?.enabled && invView === 'sdb' && (
+                      <SdbView
+                        info={sdbInfo}
+                        accounts={sdbAccounts}
+                        rows={applyAll ? funds : [...fundRows(savedInv?.bySource?.pre), ...fundRows(savedInv?.bySource?.roth)]}
+                      />
+                    )}
+                    {deferCapable && !sdbInfo?.enabled && (
+                      <div className="plan-notice eligible-notice sdb-optin">
+                        <b>Want more investment choices?</b> Self-Directed Brokerage lets you pick from a wider range of
+                        funds alongside your plan investments.{' '}
+                        <button type="button" className="text-link" onClick={beginEdit}>
+                          Opt in to SDB
+                        </button>
+                      </div>
                     )}
                   </>
                 )}
@@ -436,58 +482,6 @@ export default function PlanDetails() {
               </section>
             )}
 
-            {activeTab === 'sdb' && deferCapable && (
-              <section className="panel">
-                <div className="panel-h">
-                  <h3>Self-Directed Brokerage details</h3>
-                  <button
-                    type="button"
-                    className="text-link"
-                    onClick={() => {
-                      switchTab('investments')
-                      beginEdit()
-                    }}
-                  >
-                    {sdbInfo?.enabled ? 'Edit' : 'Opt in'}
-                  </button>
-                </div>
-                {sdbInfo?.enabled ? (
-                  <>
-                    <p className="panel-note">
-                      {sdbAccounts.length} records found ·{' '}
-                      {sdbInfo.separate ? 'Traditional and Roth tracked separately' : 'One combined account'}
-                    </p>
-                    <div className="table-wrap pr-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th scope="col">SDB account number</th>
-                            <th scope="col">SDB type</th>
-                            <th scope="col">Updated on</th>
-                            <th scope="col">Updated through</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sdbAccounts.map((row) => (
-                            <tr key={row.number}>
-                              <td>{row.number}</td>
-                              <td>{row.type}</td>
-                              <td>{row.updatedOn}</td>
-                              <td>{row.through}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                ) : (
-                  <p>
-                    You haven&apos;t opted in to Self-Directed Brokerage for this plan. Turn it on under Investments
-                    to choose from a wider range of investments.
-                  </p>
-                )}
-              </section>
-            )}
           </div>
         </div>
       )}
@@ -567,29 +561,153 @@ export default function PlanDetails() {
   )
 }
 
-function FundList({ rows }) {
+const SDB_BY_NAME = Object.fromEntries(SDB_FUNDS.map((f) => [f.name, f]))
+const fundInfo = (name) => {
+  const h = HOLDINGS.find((f) => f.name === name)
+  const p = PLAN_FUNDS.find((f) => f.name === name)
+  return { type: p?.cat || h?.asset || '—', cusip: h?.cusip || p?.cusip || '—' }
+}
+
+// Contribution election: plan funds plus one Self-Directed Brokerage line
+// (the share of each paycheck swept into the brokerage account).
+function FundList({ rows, sdbOn = false, onOpenSdb }) {
   if (!rows?.length) return <p>No funds selected yet.</p>
-  const total = rows.reduce((sum, [, share]) => sum + (+share || 0), 0)
+  const sum = (list) => list.reduce((t, [, share]) => t + (+share || 0), 0)
+  const core = sdbOn ? rows.filter(([name]) => !SDB_BY_NAME[name]) : rows
+  const sdb = sdbOn ? rows.filter(([name]) => SDB_BY_NAME[name]) : []
+  const accounts = [...new Set(sdb.flatMap(([name]) => SDB_BY_NAME[name].accounts))]
   return (
-    <div className="fund-list">
-      <div className="fund-list-head">
-        <span>Investment</span>
-        <span>Election Percentage</span>
-      </div>
-      <ul className="detail-rows">
-        {rows.map(([name, share]) => (
-          <li key={name}>
-            <span>{name}</span>
-            <b>{pct(share)}</b>
-          </li>
-        ))}
+    <div className="table-wrap pr-table inv-table">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Investment</th>
+            <th scope="col">Type</th>
+            <th scope="col" className="num">Election %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {core.map(([name, share]) => {
+            const info = fundInfo(name)
+            return (
+              <tr key={name}>
+                <td className="inv-name">
+                  {name}
+                  <small>CUSIP {info.cusip}</small>
+                </td>
+                <td>{info.type}</td>
+                <td className="num">{pct(share)}</td>
+              </tr>
+            )
+          })}
+          {sdbOn && sdb.length > 0 && (
+            <tr className="inv-sdb-row">
+              <td className="inv-name">
+                Self-Directed Brokerage
+                <small>
+                  Account No. {accounts.join(' | ') || '—'} ·{' '}
+                  <button type="button" className="text-link" onClick={onOpenSdb}>
+                    View holdings
+                  </button>
+                </small>
+              </td>
+              <td>Brokerage</td>
+              <td className="num">{pct(sum(sdb))}</td>
+            </tr>
+          )}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colSpan={2}>
+              Total
+            </th>
+            <td className="num">{pct(sum(rows))}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  )
+}
+
+// SDB view: account status, what sits in the brokerage, and account records.
+function SdbView({ info, accounts, rows }) {
+  const sdb = rows.filter(([name]) => SDB_BY_NAME[name])
+  const total = sdb.reduce((t, [, share]) => t + (+share || 0), 0)
+  return (
+    <div className="sdb-view">
+      <ul className="detail-rows inv-settings">
+        <li>
+          <span>Status</span>
+          <b>
+            <span className="badge green">Active</span>
+          </b>
+        </li>
+        <li>
+          <span>Traditional and Roth</span>
+          <b>{info.separate ? 'Tracked separately' : 'One combined account'}</b>
+        </li>
+        <li>
+          <span>Share of contributions</span>
+          <b>{pct(total)}</b>
+        </li>
       </ul>
-      <div className={`totalbar${Math.round(total) === 100 ? ' ok' : ''}`}>
-        <span />
-        <span className="tval-wrap">
-          Total
-          <b className="tval">{pct(total)}</b>
-        </span>
+      <h3 className="src-label">Holdings in your brokerage</h3>
+      {sdb.length ? (
+        <div className="table-wrap pr-table inv-table">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Investment</th>
+                <th scope="col">Type</th>
+                <th scope="col">Account</th>
+                <th scope="col" className="num">Election %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sdb.map(([name, share]) => {
+                const f = SDB_BY_NAME[name]
+                return (
+                  <tr key={name}>
+                    <td className="inv-name">
+                      {name.replace(/ - SDB$/, '')}
+                      <small>CUSIP {f.cusip}</small>
+                    </td>
+                    <td>{f.fundType}</td>
+                    <td className="inv-acct">
+                      {f.accounts.length ? f.accounts.map((a) => <span key={a}>{a}</span>) : '—'}
+                    </td>
+                    <td className="num">{pct(share)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="panel-note">No brokerage investments yet. Use Edit to add SDB funds.</p>
+      )}
+      <h3 className="src-label sdb-accounts">Brokerage accounts</h3>
+      <div className="table-wrap pr-table">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">SDB account number</th>
+              <th scope="col">SDB type</th>
+              <th scope="col">Updated on</th>
+              <th scope="col">Updated through</th>
+            </tr>
+          </thead>
+          <tbody>
+            {accounts.map((row) => (
+              <tr key={row.number}>
+                <td>{row.number}</td>
+                <td>{row.type}</td>
+                <td>{row.updatedOn}</td>
+                <td>{row.through}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

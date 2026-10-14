@@ -773,7 +773,6 @@ button.opt { width:100%; text-align:left; color:inherit; appearance:none; -webki
 /* ---------- Investment election: Manual options (Auto rebalance, SDB) ----------
    Same bordered surface as the .choice cards above; the switch is the shared
    .inv-toggle and Yes/No is the shared CORE toggle group (.period). */
-.choice-list.two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
 .inv-options{display:flex;flex-direction:column;gap:var(--core-space-3);margin:var(--core-space-0) var(--core-space-0) var(--core-space-5)}
 .inv-opt{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01);padding:var(--core-space-4)}
 .inv-opt-h{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4)}
@@ -784,8 +783,6 @@ button.opt { width:100%; text-align:left; color:inherit; appearance:none; -webki
   margin-top:var(--core-space-4);padding-top:var(--core-space-4);border-top:1px solid var(--neutral-border-light)}
 .inv-opt-q{font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
 .inv-total-error{margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--semantics-critical-text)}
-.sdb-activate{font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold)}
-.sdb-activate-meta{margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
 .inv-panel .plan-notice b,.success-modal .plan-notice b{display:block;font-weight:var(--typography-font-weight-bold)}
 .success-modal .plan-notice{width:100%;text-align:left;box-sizing:border-box}
 .review-opts{margin-bottom:var(--core-space-3);padding-bottom:var(--core-space-3);border-bottom:1px solid var(--neutral-border-light)}
@@ -798,10 +795,35 @@ button.opt { width:100%; text-align:left; color:inherit; appearance:none; -webki
 .ai-row.off .ai-source b,.ai-row.off .ai-source small{color:var(--semantics-disabled-text)}
 
 @media(max-width:640px){
-  .choice-list.two-up{grid-template-columns:1fr}
   .inv-opt-h{flex-direction:column;align-items:flex-start;gap:var(--core-space-2)}
 }
 /* SDB opt-in inside the fund picker: same switch as the Manual options row,
    pushed to the end of the filter row and aligned with the input baseline. */
 .funds-filters .funds-sdb-toggle{margin-left:auto;align-self:flex-end;min-height:var(--input-min-height, 40px);white-space:nowrap}
 @media(max-width:640px){.funds-filters .funds-sdb-toggle{margin-left:var(--core-space-0)}}
+
+/* Plan details > Investments: settings line, fund groups, SDB section */
+.detail-rows.inv-settings{margin:var(--core-space-0) var(--core-space-0) var(--core-space-6)}
+.inv-settings b{display:inline-flex;align-items:center;gap:var(--core-space-2);flex-wrap:wrap;justify-content:flex-end}
+.inv-table .num{text-align:right;white-space:nowrap}
+.inv-table .inv-name{font-weight:var(--typography-font-weight-medium)}
+.inv-table .inv-name small{display:block;margin-top:var(--core-space-1);font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-subtle)}
+.inv-table .inv-acct span{display:block;white-space:nowrap}
+.inv-table tr.inv-group th,.inv-table tr.inv-group td{background:var(--neutral-surface-layer-02);font-weight:var(--typography-font-weight-bold);text-align:left}
+.inv-table tr.inv-group td.num{text-align:right}
+.inv-table tfoot th{text-align:right;font-weight:var(--typography-font-weight-bold)}
+.inv-table tfoot th,.inv-table tfoot td{background:var(--neutral-surface-layer-01);font-weight:var(--typography-font-weight-bold)}
+.inv-table tfoot tr.ok td{color:var(--brand-text-primary-default)}
+.sdb-accounts{margin-top:var(--core-space-6)}
+.sdb-optin{margin-top:var(--core-space-5)}
+.pr-table.inv-table table{min-width:0}
+.pr-table.inv-table tbody tr{background:none}
+.pr-table.inv-table tr.inv-group th{color:var(--neutral-text-default);font-size:var(--typography-body-sm-size)}
+@media (max-width:640px){.pr-table.inv-table table{min-width:560px}}
+.pr-table.inv-table td.inv-name{white-space:normal;min-width:200px}
+.pr-table.inv-table tbody tr:not(.inv-group) td{background:var(--neutral-surface-layer-01)}
+.pr-table.inv-table tr.inv-group th,.pr-table.inv-table tr.inv-group td{background:var(--neutral-surface-layer-03)}
+.pr-table.inv-table tfoot td.num{color:var(--brand-text-primary-default)}
+.inv-view-switch{margin:var(--core-space-0) var(--core-space-0) var(--core-space-4)}
+.pr-table.inv-table tr.inv-sdb-row td{background:var(--neutral-surface-layer-03)}
+.inv-sdb-row .text-link{font-size:inherit}

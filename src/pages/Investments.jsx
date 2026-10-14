@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
 import { faRocket, faBalanceScale, faShieldAlt, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
@@ -86,7 +85,7 @@ export function InvestmentEditor({
   const location = useLocation()
   const [params] = useSearchParams()
   const saved = useMemo(() => readSession(INVESTMENT_KEY), [])
-  const [mode, setMode] = useState(() => (embedded ? saved?.mode || 'plan' : ''))
+  const [mode, setMode] = useState(() => (embedded ? (saved?.mode === 'managed' ? 'plan' : saved?.mode) || 'plan' : ''))
   const [riskLevelId, setRiskLevelId] = useState(() => saved?.riskLevelId || '')
   const [applyAll, setApplyAll] = useState(saved?.applyAll !== false)
   const [bySource, setBySource] = useState(() => ({
@@ -107,7 +106,7 @@ export function InvestmentEditor({
   const [autoRebalance, setAutoRebalance] = useState(!!saved?.autoRebalance)
   const [sdbOn, setSdbOn] = useState(!!saved?.sdb?.enabled)
   const [sdbSeparate, setSdbSeparate] = useState(saved?.sdb?.separate !== false)
-  const [pending, setPending] = useState(() => saved?.sdb?.pending || [])
+  const [pending] = useState(() => saved?.sdb?.pending || [])
 
   const sharedAlloc = bySource[SOURCES[0].id] || emptyAlloc()
   const customFunds = fundsFromNames(picked)
@@ -179,10 +178,6 @@ export function InvestmentEditor({
     setSdbOn(false)
     const remaining = picked.filter((name) => !isSdbName(name))
     if (remaining.length !== picked.length) applyPicks(remaining, { keepOpen: true })
-  }
-
-  const confirmActivate = (name) => {
-    setPending((prev) => (prev.includes(name) ? prev : [...prev, name]))
   }
 
   const toggleApplyAll = () => {
@@ -263,20 +258,7 @@ export function InvestmentEditor({
         </button>
       </div>
 
-      <div className="choice-list two-up" role="radiogroup" aria-label="Investment election">
-        <button
-          type="button"
-          className={`choice${usingManaged ? ' on' : ''}`}
-          role="radio"
-          aria-checked={usingManaged}
-          onClick={chooseManaged}
-        >
-          <span className="choice-dot" aria-hidden="true" />
-          <span>
-            <b>Managed accounts</b>
-            <small>An advisor helps you choose how much to save and where to invest.</small>
-          </span>
-        </button>
+      <div className="choice-list" role="radiogroup" aria-label="Investment election">
         <button
           type="button"
           className={`choice${usingPlan ? ' on' : ''}`}
@@ -493,7 +475,6 @@ export function InvestmentEditor({
           sdbOn={sdbOn}
           onToggleSdb={toggleSdb}
           pending={pending}
-          onActivated={confirmActivate}
           onApply={applyPicks}
           onClose={() => setFundsOpen(false)}
         />
@@ -605,13 +586,12 @@ function AllocPanel({ title, funds, alloc, locked, showReset, onChange, onReset 
   )
 }
 
-function FundsModal({ selectable, selected, sdbOn, onToggleSdb, pending = [], onActivated, onApply, onClose }) {
+function FundsModal({ selectable, selected, sdbOn, onToggleSdb, pending = [], onApply, onClose }) {
   const [query, setQuery] = useState('')
   const [asset, setAsset] = useState('all')
   const [picks, setPicks] = useState(() => selected || [])
   const [modalError, setModalError] = useState('')
-  const [activating, setActivating] = useState(null)
-  useEscapeToClose(!activating, onClose)
+  useEscapeToClose(true, onClose)
   const trapRef = useFocusTrap(true)
   const classes = sdbOn ? [...ASSET_CLASSES, 'SDB'] : ASSET_CLASSES
   const funds = useMemo(() => {
@@ -770,16 +750,7 @@ function FundsModal({ selectable, selected, sdbOn, onToggleSdb, pending = [], on
                             ) : (
                               <>
                                 <span className="badge amber">SDB account not activated</span>
-                                <button
-                                  type="button"
-                                  className="text-link sdb-activate"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setActivating(f)
-                                  }}
-                                >
-                                  Click here to activate
-                                </button>
+                                <span className="fund-cat">Activate using the link in your email</span>
                               </>
                             ))}
                         </div>
@@ -831,63 +802,11 @@ function FundsModal({ selectable, selected, sdbOn, onToggleSdb, pending = [], on
             </div>
           </div>
         )}
-        {activating && (
-          <SdbActivateModal
-            fund={activating}
-            onClose={() => {
-              onActivated?.(activating.name)
-              setActivating(null)
-            }}
-          />
-        )}
       </div>
     </div>
   )
 }
 
-// Figma "SDB" confirmation: requesting activation sends the participant an
-// email to open the brokerage account; until then the fund stays locked in
-// the picker and is marked as pending.
-function SdbActivateModal({ fund, onClose }) {
-  useEscapeToClose(true, onClose)
-  const trapRef = useFocusTrap(true)
-  // Portalled: the picker dialog it opens from is a transformed container,
-  // which would otherwise clip this fixed overlay to the picker's own box.
-  return createPortal(
-    <div className="enroll-modal-bg" role="presentation" onClick={onClose}>
-      <div
-        ref={trapRef}
-        className="enroll-modal success-modal sdb-activate-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="sdb-activate-title"
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="enroll-success">
-          <div className="success-mark" aria-hidden="true">
-            <svg viewBox="0 0 52 52">
-              <circle className="success-ring" cx="26" cy="26" r="24" />
-              <path className="success-check" d="M15.5 27.2l7.2 7.2 14.6-16" />
-            </svg>
-          </div>
-          <h3 id="sdb-activate-title">SDB activation requested</h3>
-          <p className="success-lead">
-            <b>You opted for Self-Directed Brokerage.</b> You&apos;ll receive an email shortly to activate the account for{' '}
-            {fund.name}.
-          </p>
-          <p className="sdb-activate-meta">{PLAN_ID_LABEL}</p>
-          <div className="success-actions">
-            <button type="button" className="btn btn-primary" onClick={onClose}>
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  )
-}
 
 export default function Investments() {
   const navigate = useNavigate()
