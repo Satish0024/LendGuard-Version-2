@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
 import { useParticipant } from '../../context/ParticipantContext.jsx'
+import { getSdb, setSdbDemo } from '../../data/sdb'
 
 // Prototype-only: switching between demo participants/scenarios. Kept
 // deliberately separate from the real account menu (Settings/Help/Sign out
@@ -15,6 +16,7 @@ export default function DemoScenarioSwitcher() {
   const { participant, participants, selectParticipant } = useParticipant()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [sdbOn, setSdbOn] = useState(() => !!getSdb().enabled)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -64,6 +66,29 @@ export default function DemoScenarioSwitcher() {
               <span className="demo-switcher-text">
                 <strong>{p.name}</strong>
                 <small>{p.scenario}</small>
+              </span>
+            </button>
+          ))}
+          <div className="demo-switcher-label">Self-Directed Brokerage</div>
+          {[
+            [true, 'Opted in', 'Active brokerage with holdings'],
+            [false, 'Not opted in', 'Shows the opt-in prompt']
+          ].map(([val, label, hint]) => (
+            <button
+              key={label}
+              type="button"
+              className={`demo-switcher-row${sdbOn === val ? ' on' : ''}`}
+              role="option"
+              aria-selected={sdbOn === val}
+              onClick={() => {
+                setSdbDemo(val)
+                setSdbOn(val)
+                setOpen(false)
+              }}
+            >
+              <span className="demo-switcher-text">
+                <strong>{label}</strong>
+                <small>{hint}</small>
               </span>
             </button>
           ))}

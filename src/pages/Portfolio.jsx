@@ -1,4 +1,4 @@
-import { useMemo, useState, Fragment } from 'react'
+import { useEffect, useMemo, useState, Fragment } from 'react'
 import { Icon } from '../lib/icons'
 import SortIconCore from '../components/common/SortIcon.jsx'
 import {
@@ -11,13 +11,15 @@ import {
   Tooltip
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
-import { HOLDINGS, PLAN_FUNDS, PLAN_STATS, PLAN_COL_LABELS, cumSeries, labelsFor, ENDS, money } from '../data/portfolio'
+import { SDB_ACCOUNTS, HOLDINGS, PLAN_FUNDS, PLAN_STATS, PLAN_COL_LABELS, cumSeries, labelsFor, ENDS, money } from '../data/portfolio'
 import { ASSET_CLASS_ORDER, chartTokenForAsset } from '../lib/chartPalette.js'
 import { useTheme } from '../context/ThemeContext.jsx'
 import FundDetailDialog from '../components/common/FundDetailDialog.jsx'
 import ChartLegend from '../components/common/ChartLegend.jsx'
 import Select, { Option } from '../components/common/Select.jsx'
 import { exportCsv } from '../lib/exportCsv.js'
+import { Link } from 'react-router-dom'
+import { getSdb, SDB_EVENT } from '../data/sdb'
 import '../styles/documents.css'
 import '../styles/portfolio.css'
 
@@ -68,6 +70,13 @@ const COLS = {
 export default function Portfolio() {
   const { theme } = useTheme()
   const [tab, setTab] = useState('overview')
+  // Re-read SDB when the Prototype demo switch flips the variant.
+  const [sdbOn, setSdbOn] = useState(() => !!getSdb().enabled)
+  useEffect(() => {
+    const sync = () => setSdbOn(!!getSdb().enabled)
+    window.addEventListener(SDB_EVENT, sync)
+    return () => window.removeEventListener(SDB_EVENT, sync)
+  }, [])
   const [openFund, setOpenFund] = useState(null)
   const [period, setPeriod] = useState('1y')
   const [planId, setPlanId] = useState('lendguard-401k')
@@ -223,6 +232,18 @@ export default function Portfolio() {
           onClick={() => setTab('investments')}
         >
           Plan investments
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="portfolio-tab-sdb"
+          aria-selected={tab === 'sdb'}
+          aria-controls="portfolio-panel-sdb"
+          tabIndex={tab === 'sdb' ? 0 : -1}
+          className={`tab${tab === 'sdb' ? ' on' : ''}`}
+          onClick={() => setTab('sdb')}
+        >
+          Self-Directed Brokerage
         </button>
       </div>
       <div className="page-body">
@@ -394,6 +415,7 @@ export default function Portfolio() {
             </section>
           </div>
         )}
+        {tab === 'sdb' && <SdbPanel key={String(sdbOn)} />}
         {tab === 'investments' && (
           <div className="tab-panel on" role="tabpanel" id="portfolio-panel-investments" aria-labelledby="portfolio-tab-investments">
             <section className="section">
@@ -597,4 +619,57 @@ function buildChartOptions({ axisTitle, gridLine, tick }) {
       }
     }
   }
+}
+
+// Self-Directed Brokerage: what sits in the participant's brokerage accounts.
+// Opt-in lives in the plan's investment election, so this tab only reads it.
+function SdbPanel() {
+  const sdb = getSdb()
+  const accounts = sdb?.separate === false ? SDB_ACCOUNTS.filter((a) => a.type === 'Traditional') : SDB_ACCOUNTS
+
+  if (!sdb?.enabled) {
+    return (
+      <div className="tab-panel on" role="tabpanel" id="portfolio-panel-sdb" aria-labelledby="portfolio-tab-sdb">
+        <section className="section">
+          <h2>Self-Directed Brokerage</h2>
+          <div className="plan-notice eligible-notice sdb-empty">
+            <b>You haven&apos;t opted in to Self-Directed Brokerage.</b> A brokerage account lets you invest part of your
+            balance in a wider range of funds beyond the plan&apos;s line-up. Turn it on from your investment election.{' '}
+            <Link to="/plans/401k?openInvestments=1">Opt in to SDB</Link>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  // Figma "SDB Details": account number, type, updated on, updated through.
+  return (
+    <div className="tab-panel on" role="tabpanel" id="portfolio-panel-sdb" aria-labelledby="portfolio-tab-sdb">
+      <section className="section">
+        <h2>SDB details</h2>
+        <div className="table-wrap">
+          <table className="holdings-table sdb-table">
+            <thead>
+              <tr>
+                <th scope="col">SDB account number</th>
+                <th scope="col">SDB type</th>
+                <th scope="col">Updated on</th>
+                <th scope="col">Updated through</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.map((a) => (
+                <tr key={a.number}>
+                  <td>{a.number}</td>
+                  <td>{a.type}</td>
+                  <td>{a.updatedOn}</td>
+                  <td>{a.through}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  )
 }

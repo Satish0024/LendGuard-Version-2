@@ -183,3 +183,8 @@
     .chart-wrap{height:220px}
     .overview-row .chart-wrap{min-height:220px;height:220px}
   }
+
+/* Self-Directed Brokerage tab */
+.sdb-empty{margin-top:var(--core-space-3)}
+.holdings-table.sdb-table{min-width:720px}
+.holdings-table.sdb-table td{vertical-align:middle}
