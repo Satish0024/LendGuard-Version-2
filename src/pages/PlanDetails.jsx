@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
-import { faPercent, faChartLine, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
+import { faPercent, faChartLine, faCircleInfo, faClockRotateLeft, faBriefcase } from '@fortawesome/free-solid-svg-icons'
+import { PLAN_HISTORY, SDB_ACCOUNTS } from '../data/portfolio'
 import { useParticipant } from '../context/ParticipantContext.jsx'
 import {
   AUTO_INCREASE_KEY,
@@ -98,7 +99,7 @@ export default function PlanDetails() {
   // saved instead of leaving this section a single line of plain notice
   // text with no way to see what they'd actually set up.
   const hasAdvanceSave = !enrolled && !eligible && hasAdvanceElections(participant.id) && !!savedDeferral
-  const activeTab = deferCapable ? tab : 'investments'
+  const activeTab = !deferCapable && (tab === 'deferral' || tab === 'sdb') ? 'investments' : tab
   // The plan's real balance breakdown (Pre-Tax/Roth/Match/etc. with vested
   // amounts) and current holdings already exist in the data model and are
   // used on Account Summary, but were never surfaced here — a participant
@@ -109,6 +110,8 @@ export default function PlanDetails() {
   const autoInc = enrolled ? { ...DEFAULT_AI, ...(savedAi || {}) } : savedAi
   const skippedAi = !autoInc || autoInc.skipped || autoInc.mode !== 'do'
   const applyAll = savedInv?.applyAll !== false
+  const sdbInfo = savedInv?.sdb
+  const sdbAccounts = sdbInfo?.separate === false ? SDB_ACCOUNTS.filter((a) => a.type === 'Traditional') : SDB_ACCOUNTS
   const funds =
     fundRows(savedInv?.bySource?.pre || savedInv?.alloc).length
       ? fundRows(applyAll ? savedInv?.bySource?.pre || savedInv?.alloc : null)
@@ -259,6 +262,32 @@ export default function PlanDetails() {
               </span>
               Investments
             </button>
+            <button
+              type="button"
+              className={activeTab === 'history' ? 'on' : ''}
+              role="tab"
+              aria-selected={activeTab === 'history'}
+              onClick={() => switchTab('history')}
+            >
+              <span className="pr-nav-ico" aria-hidden="true">
+                <Icon icon={faClockRotateLeft} size={16} />
+              </span>
+              History
+            </button>
+            {deferCapable && (
+              <button
+                type="button"
+                className={activeTab === 'sdb' ? 'on' : ''}
+                role="tab"
+                aria-selected={activeTab === 'sdb'}
+                onClick={() => switchTab('sdb')}
+              >
+                <span className="pr-nav-ico" aria-hidden="true">
+                  <Icon icon={faBriefcase} size={16} />
+                </span>
+                SDB details
+              </button>
+            )}
           </nav>
 
           <div className="pr-main">
@@ -310,13 +339,17 @@ export default function PlanDetails() {
                           <li>
                             <span>Pre-Tax</span>
                             <b>
-                              +{pct(autoInc.incPre ?? autoInc.inc)} until {pct(autoInc.capPre ?? autoInc.cap)}
+                              {autoInc.sources?.pre === false
+                                ? 'Not included'
+                                : `+${pct(autoInc.incPre ?? autoInc.inc)} until ${pct(autoInc.capPre ?? autoInc.cap)}`}
                             </b>
                           </li>
                           <li>
                             <span>Roth</span>
                             <b>
-                              +{pct(autoInc.incRoth ?? autoInc.inc)} until {pct(autoInc.capRoth ?? autoInc.cap)}
+                              {autoInc.sources?.roth === false
+                                ? 'Not included'
+                                : `+${pct(autoInc.incRoth ?? autoInc.inc)} until ${pct(autoInc.capRoth ?? autoInc.cap)}`}
                             </b>
                           </li>
                         </ul>
@@ -368,6 +401,90 @@ export default function PlanDetails() {
                       ))
                     )}
                   </>
+                )}
+              </section>
+            )}
+
+            {activeTab === 'history' && (
+              <section className="panel">
+                <div className="panel-h">
+                  <h3>History</h3>
+                </div>
+                <p className="panel-note">Changes to this plan&apos;s elections, newest first.</p>
+                <div className="table-wrap pr-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Change</th>
+                        <th scope="col">Details</th>
+                        <th scope="col">Updated by</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PLAN_HISTORY.map((row) => (
+                        <tr key={`${row.date}-${row.change}`}>
+                          <td>{row.date}</td>
+                          <td>{row.change}</td>
+                          <td>{row.detail}</td>
+                          <td>{row.by}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {activeTab === 'sdb' && deferCapable && (
+              <section className="panel">
+                <div className="panel-h">
+                  <h3>Self-Directed Brokerage details</h3>
+                  <button
+                    type="button"
+                    className="text-link"
+                    onClick={() => {
+                      switchTab('investments')
+                      beginEdit()
+                    }}
+                  >
+                    {sdbInfo?.enabled ? 'Edit' : 'Opt in'}
+                  </button>
+                </div>
+                {sdbInfo?.enabled ? (
+                  <>
+                    <p className="panel-note">
+                      {sdbAccounts.length} records found ·{' '}
+                      {sdbInfo.separate ? 'Traditional and Roth tracked separately' : 'One combined account'}
+                    </p>
+                    <div className="table-wrap pr-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th scope="col">SDB account number</th>
+                            <th scope="col">SDB type</th>
+                            <th scope="col">Updated on</th>
+                            <th scope="col">Updated through</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sdbAccounts.map((row) => (
+                            <tr key={row.number}>
+                              <td>{row.number}</td>
+                              <td>{row.type}</td>
+                              <td>{row.updatedOn}</td>
+                              <td>{row.through}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <p>
+                    You haven&apos;t opted in to Self-Directed Brokerage for this plan. Turn it on under Investments
+                    to choose from a wider range of investments.
+                  </p>
                 )}
               </section>
             )}

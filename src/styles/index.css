@@ -2167,6 +2167,8 @@ this grey triplet is only for
     width:100%;max-width:var(--drawer-width);height:100%;background:var(--neutral-surface-layer-01);box-shadow:var(--core-elevation-4);
     display:flex;flex-direction:column;animation:slideover-in .28s cubic-bezier(.2,.9,.3,1)}
   .slideover-panel.slideover-wide{max-width:680px}
+  /* Multi-column editors (e.g. transfer from / buy / allocation side by side). */
+  .slideover-panel.slideover-full{max-width:min(1180px,94vw)}
   @keyframes slideover-in{from{transform:translateX(100%)}to{transform:translateX(0)}}
   .slideover-head{
     display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4);
@@ -2185,7 +2187,7 @@ this grey triplet is only for
   .slideover-close:hover{background:var(--neutral-surface-layer-02);color:var(--neutral-text-default)}
   .slideover-body{flex:1;overflow-y:auto;padding:var(--core-space-4);font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-line-height)}
   @media(max-width:640px){
-    .slideover-panel,.slideover-panel.slideover-wide{max-width:100%}
+    .slideover-panel,.slideover-panel.slideover-wide,.slideover-panel.slideover-full{max-width:100%}
   }
 
   /* ---------- Confirm dialog (centered, distinct from Slideover) ---------- */

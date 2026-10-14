@@ -524,12 +524,13 @@ button.opt { width:100%; text-align:left; color:inherit; appearance:none; -webki
 .inv-toggle.on .switch::after{transform:translateX(16px)}
 /* Locked plan-selected allocations: only the percent fields are disabled (CORE disabled
    input + input-group addon); the panel, fund links, categories and total stay normal. */
-.enroll-form .sval:has(input:disabled),.enroll-form .sval:has(input:disabled):hover{
+.enroll-form .sval:has(input:disabled),.enroll-form .sval:has(input:disabled):hover,
+.ai-source-table .sval:has(input:disabled),.ai-source-table .sval:has(input:disabled):hover{
   background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);box-shadow:none;cursor:not-allowed}
-.enroll-form .sval input:disabled{
+.enroll-form .sval input:disabled,.ai-source-table .sval input:disabled{
   background:transparent;color:var(--semantics-disabled-text);opacity:1;cursor:not-allowed}
 .enroll-form .sval input:disabled::placeholder{color:var(--core-color-control-disabled-placeholder)}
-.enroll-form .sval:has(input:disabled) .pct{
+.enroll-form .sval:has(input:disabled) .pct,.ai-source-table .sval:has(input:disabled) .pct{
   background:var(--brand-background-primary-disabled-light);color:var(--theme-neutral-text-subtleleast);cursor:not-allowed}
 .funds-filters{display:flex;gap:var(--core-space-4);align-items:flex-end;margin:var(--core-space-0) var(--core-space-0) var(--core-space-4)}
 .funds-field{
@@ -768,3 +769,39 @@ button.opt { width:100%; text-align:left; color:inherit; appearance:none; -webki
   color:var(--neutral-text-subtle);font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height)}
 .inv-risk-card p svg{flex:0 0 auto;margin-top:var(--core-border-width-hairline);color:var(--risk-color, var(--brand-text-primary-default))}
 @media(prefers-reduced-motion:reduce){.inv-risk-card{animation:none}}
+
+/* ---------- Investment election: Manual options (Auto rebalance, SDB) ----------
+   Same bordered surface as the .choice cards above; the switch is the shared
+   .inv-toggle and Yes/No is the shared CORE toggle group (.period). */
+.choice-list.two-up{grid-template-columns:repeat(2,minmax(0,1fr))}
+.inv-options{display:flex;flex-direction:column;gap:var(--core-space-3);margin:var(--core-space-0) var(--core-space-0) var(--core-space-5)}
+.inv-opt{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01);padding:var(--core-space-4)}
+.inv-opt-h{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4)}
+.inv-opt-h b{display:block;font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-line-height);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default)}
+.inv-opt-h small{display:block;margin-top:var(--core-space-1);font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height);color:var(--neutral-text-subtle)}
+.inv-opt-h .inv-toggle{flex:0 0 auto;white-space:nowrap}
+.inv-opt-body{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--core-space-3);
+  margin-top:var(--core-space-4);padding-top:var(--core-space-4);border-top:1px solid var(--neutral-border-light)}
+.inv-opt-q{font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
+.inv-total-error{margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--semantics-critical-text)}
+.sdb-activate{font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold)}
+.sdb-activate-meta{margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.inv-panel .plan-notice b,.success-modal .plan-notice b{display:block;font-weight:var(--typography-font-weight-bold)}
+.success-modal .plan-notice{width:100%;text-align:left;box-sizing:border-box}
+.review-opts{margin-bottom:var(--core-space-3);padding-bottom:var(--core-space-3);border-bottom:1px solid var(--neutral-border-light)}
+
+/* ---------- Auto increase: choose sources ---------- */
+.ai-source-pick{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-3);margin:var(--core-space-0) var(--core-space-0) var(--core-space-3)}
+.ai-source-pick span{font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.ai-source.pickable{display:flex;align-items:flex-start;gap:var(--core-space-3);cursor:pointer}
+.ai-source.pickable input{margin-top:var(--core-space-1);flex:0 0 auto}
+.ai-row.off .ai-source b,.ai-row.off .ai-source small{color:var(--semantics-disabled-text)}
+
+@media(max-width:640px){
+  .choice-list.two-up{grid-template-columns:1fr}
+  .inv-opt-h{flex-direction:column;align-items:flex-start;gap:var(--core-space-2)}
+}
+/* SDB opt-in inside the fund picker: same switch as the Manual options row,
+   pushed to the end of the filter row and aligned with the input baseline. */
+.funds-filters .funds-sdb-toggle{margin-left:auto;align-self:flex-end;min-height:var(--input-min-height, 40px);white-space:nowrap}
+@media(max-width:640px){.funds-filters .funds-sdb-toggle{margin-left:var(--core-space-0)}}

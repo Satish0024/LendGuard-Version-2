@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
 import { faRocket, faBalanceScale, faShieldAlt, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import { INVESTMENT_KEY, readSession, writeSession } from '../data/participants'
-import { PLAN_FUNDS, PLAN_COL_LABELS } from '../data/portfolio'
+import { PLAN_FUNDS, PLAN_COL_LABELS, SDB_FUNDS } from '../data/portfolio'
 import { useEscapeToClose } from '../hooks/useEscapeToClose'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useParticipant } from '../context/ParticipantContext.jsx'
@@ -12,8 +13,11 @@ import FundDetailDialog from '../components/common/FundDetailDialog.jsx'
 import Select, { Option } from '../components/common/Select.jsx'
 import '../styles/portfolio.css'
 
-const ENROLL_FUNDS = PLAN_FUNDS.filter((f) => f.cat !== 'Target-Date')
+const CORE_FUNDS = PLAN_FUNDS.filter((f) => f.cat !== 'Target-Date')
+const ENROLL_FUNDS = [...CORE_FUNDS, ...SDB_FUNDS]
 const FUNDS = ENROLL_FUNDS.map((f) => f.name)
+const isSdbName = (name) => SDB_FUNDS.some((f) => f.name === name)
+const PLAN_ID_LABEL = 'Plan ID 124542 · 401(k)'
 const emptyAlloc = () => Object.fromEntries(FUNDS.map((name) => [name, 0]))
 const PLAN_ALLOC = {
   'Vanguard Institutional Index Fund Admiral Shares': 30,
@@ -56,8 +60,8 @@ const SOURCES = [
 const blankBySource = () => Object.fromEntries(SOURCES.map((s) => [s.id, emptyAlloc()]))
 const fillBySource = (alloc) => Object.fromEntries(SOURCES.map((s) => [s.id, { ...alloc }]))
 const parsePct = (s) => parseFloat(String(s).replace(/[^0-9.-]/g, '')) || 0
-const assetClass = (f) => ((f.cat || '').toLowerCase().includes('bond') ? 'Bond' : 'Equity')
-const ASSET_CLASSES = [...new Set(ENROLL_FUNDS.map(assetClass))]
+const assetClass = (f) => (f.sdb ? 'SDB' : (f.cat || '').toLowerCase().includes('bond') ? 'Bond' : 'Equity')
+const ASSET_CLASSES = [...new Set(CORE_FUNDS.map(assetClass))]
 const byPerformance = (a, b) => parsePct(b.y1) - parsePct(a.y1)
 const fundsFromNames = (names) =>
   ENROLL_FUNDS.filter((f) => names.includes(f.name)).sort(byPerformance)
@@ -99,6 +103,12 @@ export function InvestmentEditor({
   const usingCustom = mode === 'custom'
   const usingPlan = mode === 'plan'
   const usingRisk = mode === 'risk'
+  const usingManaged = mode === 'managed'
+  const [autoRebalance, setAutoRebalance] = useState(!!saved?.autoRebalance)
+  const [sdbOn, setSdbOn] = useState(!!saved?.sdb?.enabled)
+  const [sdbSeparate, setSdbSeparate] = useState(saved?.sdb?.separate !== false)
+  const [pending, setPending] = useState(() => saved?.sdb?.pending || [])
+
   const sharedAlloc = bySource[SOURCES[0].id] || emptyAlloc()
   const customFunds = fundsFromNames(picked)
   const measuredLevel = riskLevelId ? getRiskLevel(riskLevelId) : null
@@ -142,7 +152,6 @@ export function InvestmentEditor({
       setPicked([])
     }
     setMode('custom')
-    setFundsOpen('select')
     setError('')
   }
 
@@ -156,6 +165,26 @@ export function InvestmentEditor({
     navigate(`/risk-check-in?return=${encodeURIComponent(riskReturnPath || here)}`)
   }
 
+  const chooseManaged = () => {
+    setMode('managed')
+    setError('')
+  }
+
+  const toggleSdb = () => {
+    setError('')
+    if (!sdbOn) {
+      setSdbOn(true)
+      return
+    }
+    setSdbOn(false)
+    const remaining = picked.filter((name) => !isSdbName(name))
+    if (remaining.length !== picked.length) applyPicks(remaining, { keepOpen: true })
+  }
+
+  const confirmActivate = (name) => {
+    setPending((prev) => (prev.includes(name) ? prev : [...prev, name]))
+  }
+
   const toggleApplyAll = () => {
     setError('')
     if (!applyAll) {
@@ -166,13 +195,13 @@ export function InvestmentEditor({
     setApplyAll(false)
   }
 
-  const applyPicks = (names) => {
+  const applyPicks = (names, { keepOpen } = {}) => {
     setPicked(names)
     setBySource((prev) => {
       if (applyAll) return fillBySource(pruneAlloc(prev[SOURCES[0].id], names))
       return Object.fromEntries(SOURCES.map((s) => [s.id, pruneAlloc(prev[s.id], names)]))
     })
-    setFundsOpen(false)
+    if (!keepOpen) setFundsOpen(false)
     setError('')
   }
 
@@ -186,6 +215,11 @@ export function InvestmentEditor({
   const continueStep = () => {
     if (!mode) {
       setError('Choose how you want new contributions invested.')
+      return
+    }
+    if (usingManaged) {
+      writeSession(INVESTMENT_KEY, { mode, applyAll: true, picked: [], alloc: {}, bySource: {}, total: 100 })
+      onComplete?.()
       return
     }
     if (usingCustom && !picked.length) {
@@ -210,7 +244,9 @@ export function InvestmentEditor({
       picked: usingCustom ? picked : FUNDS.filter((name) => (usingRisk ? RISK_ALLOC[riskLevelId]?.[name] : PLAN_ALLOC[name])),
       alloc: savedSources[SOURCES[0].id],
       bySource: savedSources,
-      total: 100
+      total: 100,
+      autoRebalance: usingCustom && autoRebalance,
+      sdb: usingCustom && sdbOn ? { enabled: true, separate: sdbSeparate, pending } : { enabled: false }
     })
     onComplete?.()
   }
@@ -227,7 +263,20 @@ export function InvestmentEditor({
         </button>
       </div>
 
-      <div className="choice-list" role="radiogroup" aria-label="Investment election">
+      <div className="choice-list two-up" role="radiogroup" aria-label="Investment election">
+        <button
+          type="button"
+          className={`choice${usingManaged ? ' on' : ''}`}
+          role="radio"
+          aria-checked={usingManaged}
+          onClick={chooseManaged}
+        >
+          <span className="choice-dot" aria-hidden="true" />
+          <span>
+            <b>Managed accounts</b>
+            <small>An advisor helps you choose how much to save and where to invest.</small>
+          </span>
+        </button>
         <button
           type="button"
           className={`choice${usingPlan ? ' on' : ''}`}
@@ -309,8 +358,77 @@ export function InvestmentEditor({
         </div>
       )}
 
+      {usingManaged && (
+        <div className="inv-panel">
+          <div className="plan-notice eligible-notice">
+            <b>An advisor will manage your account</b>
+            <p>
+              A plan advisor selects your investments and keeps them aligned with your goals. You&apos;ll receive an
+              email to schedule your first consultation after you enroll.
+            </p>
+          </div>
+        </div>
+      )}
+
       {usingCustom && (
         <div className="inv-panel">
+          <div className="inv-options">
+            <div className="inv-opt">
+              <div className="inv-opt-h">
+                <span>
+                  <b id="inv-rebalance-label">Auto rebalance</b>
+                  <small>Brings your account back to these percentages each quarter.</small>
+                </span>
+                <label className={`inv-toggle${autoRebalance ? ' on' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={autoRebalance}
+                    onChange={() => setAutoRebalance((v) => !v)}
+                    aria-labelledby="inv-rebalance-label"
+                  />
+                  <span className="switch" aria-hidden="true" />
+                  Opt in
+                </label>
+              </div>
+            </div>
+            <div className="inv-opt">
+              <div className="inv-opt-h">
+                <span>
+                  <b id="inv-sdb-label">Self-Directed Brokerage (SDB)</b>
+                  <small>Choose from a wider range of investments through a brokerage account.</small>
+                </span>
+                <label className={`inv-toggle${sdbOn ? ' on' : ''}`}>
+                  <input type="checkbox" checked={sdbOn} onChange={toggleSdb} aria-labelledby="inv-sdb-label" />
+                  <span className="switch" aria-hidden="true" />
+                  Opt in for SDB
+                </label>
+              </div>
+              {sdbOn && (
+                <div className="inv-opt-body">
+                  <span className="inv-opt-q" id="sdb-separate-q">
+                    Track Traditional and Roth SDB separately
+                  </span>
+                  <div className="period" role="radiogroup" aria-labelledby="sdb-separate-q">
+                    {[
+                      [true, 'Yes'],
+                      [false, 'No']
+                    ].map(([val, label]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        role="radio"
+                        aria-checked={sdbSeparate === val}
+                        className={sdbSeparate === val ? 'on' : ''}
+                        onClick={() => setSdbSeparate(val)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="inv-toolbar">
             <button type="button" className="text-btn" onClick={() => setFundsOpen('select')}>
               {picked.length ? 'Add or edit investments' : 'Add investments'}
@@ -372,6 +490,10 @@ export function InvestmentEditor({
         <FundsModal
           selectable={fundsOpen === 'select'}
           selected={picked}
+          sdbOn={sdbOn}
+          onToggleSdb={toggleSdb}
+          pending={pending}
+          onActivated={confirmActivate}
           onApply={applyPicks}
           onClose={() => setFundsOpen(false)}
         />
@@ -427,7 +549,9 @@ function AllocPanel({ title, funds, alloc, locked, showReset, onChange, onReset 
                 <button type="button" className="text-link fund-link sname" onClick={() => setOpenFund(f)}>
                   {f.name}
                 </button>
-                <span className="shelp">{f.cat}</span>
+                <span className="shelp">
+                  {f.sdb ? `${f.fundType} · Account No. ${f.accounts.join(', ')}` : f.cat}
+                </span>
               </span>
               <span className="sval">
                 <input
@@ -458,6 +582,11 @@ function AllocPanel({ title, funds, alloc, locked, showReset, onChange, onReset 
           </span>
         </div>
       </div>
+      {!locked && total > 0 && total !== 100 && (
+        <p className="inv-total-error" role="alert">
+          The total value of investment election should not exceed or subceed 100%. Currently {total}%.
+        </p>
+      )}
       {openFund && (
         <FundDetailDialog
           name={openFund.name}
@@ -476,25 +605,30 @@ function AllocPanel({ title, funds, alloc, locked, showReset, onChange, onReset 
   )
 }
 
-function FundsModal({ selectable, selected, onApply, onClose }) {
+function FundsModal({ selectable, selected, sdbOn, onToggleSdb, pending = [], onActivated, onApply, onClose }) {
   const [query, setQuery] = useState('')
   const [asset, setAsset] = useState('all')
   const [picks, setPicks] = useState(() => selected || [])
   const [modalError, setModalError] = useState('')
-  useEscapeToClose(true, onClose)
+  const [activating, setActivating] = useState(null)
+  useEscapeToClose(!activating, onClose)
   const trapRef = useFocusTrap(true)
+  const classes = sdbOn ? [...ASSET_CLASSES, 'SDB'] : ASSET_CLASSES
   const funds = useMemo(() => {
     const q = query.trim().toLowerCase()
     return ENROLL_FUNDS.filter((f) => {
+      if (f.sdb && !sdbOn) return false
       if (asset !== 'all' && assetClass(f) !== asset) return false
-      if (q && !f.name.toLowerCase().includes(q)) return false
+      if (q && !f.name.toLowerCase().includes(q) && !(f.cusip || '').toLowerCase().includes(q)) return false
       return true
     }).sort(byPerformance)
-  }, [query, asset])
+  }, [query, asset, sdbOn])
 
-  const toggle = (name) => {
+  const locked = (f) => f.sdb && !f.activated
+  const toggle = (f) => {
+    if (locked(f)) return
     setModalError('')
-    setPicks((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
+    setPicks((prev) => (prev.includes(f.name) ? prev.filter((n) => n !== f.name) : [...prev, f.name]))
   }
 
   const apply = () => {
@@ -527,7 +661,7 @@ function FundsModal({ selectable, selected, onApply, onClose }) {
             Search
             <input
               type="search"
-              placeholder="Investment name"
+              placeholder={sdbOn ? 'Investment name or CUSIP' : 'Investment name'}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -536,13 +670,30 @@ function FundsModal({ selectable, selected, onApply, onClose }) {
             Asset class
             <Select value={asset} onChange={(e) => setAsset(e.target.value)}>
               <Option value="all">All asset classes</Option>
-              {ASSET_CLASSES.map((cls) => (
+              {classes.map((cls) => (
                 <Option key={cls} value={cls}>
                   {cls}
                 </Option>
               ))}
             </Select>
           </label>
+          {selectable && onToggleSdb && (
+            <label className={`inv-toggle funds-sdb-toggle${sdbOn ? ' on' : ''}`}>
+              <input
+                type="checkbox"
+                checked={sdbOn}
+                onChange={() => {
+                  if (sdbOn) {
+                    setPicks((prev) => prev.filter((name) => !isSdbName(name)))
+                    if (asset === 'SDB') setAsset('all')
+                  }
+                  onToggleSdb()
+                }}
+              />
+              <span className="switch" aria-hidden="true" />
+              Opt in for SDB
+            </label>
+          )}
         </div>
         <p>
           Sorted by highest 1-year return.
@@ -587,18 +738,21 @@ function FundsModal({ selectable, selected, onApply, onClose }) {
             <tbody>
               {funds.map((f) => {
                 const on = picks.includes(f.name)
+                const isLocked = locked(f)
+                const isPending = pending.includes(f.name)
                 return (
                   <Fragment key={f.name}>
                     <tr
-                      className={`fund-row${selectable ? ' pickable' : ''}${on ? ' on' : ''}`}
-                      onClick={selectable ? () => toggle(f.name) : undefined}
+                      className={`fund-row${selectable && !isLocked ? ' pickable' : ''}${on ? ' on' : ''}`}
+                      onClick={selectable ? () => toggle(f) : undefined}
                     >
                       {selectable && (
                         <td className="check-col">
                           <input
                             type="checkbox"
                             checked={on}
-                            onChange={() => toggle(f.name)}
+                            disabled={isLocked}
+                            onChange={() => toggle(f)}
                             onClick={(e) => e.stopPropagation()}
                             aria-label={`Select ${f.name}`}
                           />
@@ -607,7 +761,27 @@ function FundsModal({ selectable, selected, onApply, onClose }) {
                       <td className="fund-cell">
                         <div className="fund-title">{f.name}</div>
                         <div className="fund-meta">
-                          <span className="fund-cat">{f.cat}</span>
+                          <span className="fund-cat">{f.sdb ? `${f.fundType} · SDB` : f.cat}</span>
+                          {f.cusip && <span className="fund-cat">CUSIP {f.cusip}</span>}
+                          {f.sdb && f.activated && <span className="fund-cat">Account No. {f.accounts.join(', ')}</span>}
+                          {isLocked &&
+                            (isPending ? (
+                              <span className="badge navy">Activation email sent</span>
+                            ) : (
+                              <>
+                                <span className="badge amber">SDB account not activated</span>
+                                <button
+                                  type="button"
+                                  className="text-link sdb-activate"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setActivating(f)
+                                  }}
+                                >
+                                  Click here to activate
+                                </button>
+                              </>
+                            ))}
                         </div>
                       </td>
                       {[f.ytd, f.y1, f.y5, f.y10, f.si, f.exp, f.perK, f.fees].map((v, i) => (
@@ -657,8 +831,61 @@ function FundsModal({ selectable, selected, onApply, onClose }) {
             </div>
           </div>
         )}
+        {activating && (
+          <SdbActivateModal
+            fund={activating}
+            onClose={() => {
+              onActivated?.(activating.name)
+              setActivating(null)
+            }}
+          />
+        )}
       </div>
     </div>
+  )
+}
+
+// Figma "SDB" confirmation: requesting activation sends the participant an
+// email to open the brokerage account; until then the fund stays locked in
+// the picker and is marked as pending.
+function SdbActivateModal({ fund, onClose }) {
+  useEscapeToClose(true, onClose)
+  const trapRef = useFocusTrap(true)
+  // Portalled: the picker dialog it opens from is a transformed container,
+  // which would otherwise clip this fixed overlay to the picker's own box.
+  return createPortal(
+    <div className="enroll-modal-bg" role="presentation" onClick={onClose}>
+      <div
+        ref={trapRef}
+        className="enroll-modal success-modal sdb-activate-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sdb-activate-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="enroll-success">
+          <div className="success-mark" aria-hidden="true">
+            <svg viewBox="0 0 52 52">
+              <circle className="success-ring" cx="26" cy="26" r="24" />
+              <path className="success-check" d="M15.5 27.2l7.2 7.2 14.6-16" />
+            </svg>
+          </div>
+          <h3 id="sdb-activate-title">SDB activation requested</h3>
+          <p className="success-lead">
+            <b>You opted for Self-Directed Brokerage.</b> You&apos;ll receive an email shortly to activate the account for{' '}
+            {fund.name}.
+          </p>
+          <p className="sdb-activate-meta">{PLAN_ID_LABEL}</p>
+          <div className="success-actions">
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
 

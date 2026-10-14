@@ -61,6 +61,13 @@ export function DeferralEditor({
   const [incRoth, setIncRoth] = useState(Number.isFinite(+savedAi?.incRoth) ? +savedAi.incRoth : DEFAULT_INC)
   const [capRoth, setCapRoth] = useState(Number.isFinite(+savedAi?.capRoth) ? +savedAi.capRoth : DEFAULT_CAP)
   const [cycle, setCycle] = useState(savedAi?.cycle && CYCLES[savedAi.cycle] ? savedAi.cycle : 'calendar')
+  const [aiPick, setAiPick] = useState(!!savedAi?.pick)
+  const [aiSources, setAiSources] = useState(() => ({ pre: true, roth: true, ...(savedAi?.sources || {}) }))
+  const aiIncludes = (src) => !aiPick || aiSources[src]
+  const toggleAiSource = (src) => {
+    setError('')
+    setAiSources((prev) => ({ ...prev, [src]: !prev[src] }))
+  }
   const [error, setError] = useState('')
   const [optOutOpen, setOptOutOpen] = useState(false)
   useEscapeToClose(optOutOpen, () => setOptOutOpen(false))
@@ -105,6 +112,8 @@ export function DeferralEditor({
       skipped: optedOut || skipping || !usingAi,
       mode: optedOut ? 'skip' : aiMode || 'skip',
       cycle,
+      pick: aiPick,
+      sources: { pre: aiIncludes('pre'), roth: aiIncludes('roth') },
       incPre,
       capPre,
       incRoth,
@@ -120,7 +129,11 @@ export function DeferralEditor({
       setError('Choose whether to use auto increase before you continue.')
       return
     }
-    if (usingAi && (capPre <= pre || capRoth <= roth)) {
+    if (usingAi && aiPick && !aiSources.pre && !aiSources.roth) {
+      setError('Select at least one source for auto increase.')
+      return
+    }
+    if (usingAi && ((aiIncludes('pre') && capPre <= pre) || (aiIncludes('roth') && capRoth <= roth))) {
       setError('Each max limit must be greater than its deferral rate before you continue.')
       return
     }
@@ -281,6 +294,23 @@ export function DeferralEditor({
                 </div>
               </div>
 
+              <div className="ai-source-pick">
+                <span>
+                  {aiPick ? 'Select the sources to increase automatically.' : 'Auto increase applies to all sources.'}
+                </span>
+                <label className={`inv-toggle${aiPick ? ' on' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={aiPick}
+                    onChange={() => {
+                      setAiPick((v) => !v)
+                      setError('')
+                    }}
+                  />
+                  <span className="switch" aria-hidden="true" />
+                  Choose source wise
+                </label>
+              </div>
               <div className="ai-source-table">
                 <div className="ai-row head">
                   <span>Source</span>
@@ -289,6 +319,9 @@ export function DeferralEditor({
                 </div>
                 <AiSourceRow
                   label="Pre-Tax"
+                  pickable={aiPick}
+                  included={aiIncludes('pre')}
+                  onToggle={() => toggleAiSource('pre')}
                   current={pre}
                   unit={unit}
                   inc={incPre}
@@ -299,6 +332,9 @@ export function DeferralEditor({
                 />
                 <AiSourceRow
                   label="Roth"
+                  pickable={aiPick}
+                  included={aiIncludes('roth')}
+                  onToggle={() => toggleAiSource('roth')}
                   current={roth}
                   unit={unit}
                   inc={incRoth}
@@ -382,21 +418,34 @@ function SourceRow({ label, help, value, onChange, unit }) {
   )
 }
 
-function AiSourceRow({ label, current, unit, inc, cap, onInc, onCap, nextLabel }) {
+function AiSourceRow({ label, current, unit, inc, cap, onInc, onCap, nextLabel, pickable, included = true, onToggle }) {
   const capMin = Math.min(15, Math.max(1, current + 1))
-  const capInvalid = cap <= current
+  const capInvalid = included && cap <= current
   const nextPct = current >= cap ? current : Math.min(cap, current + inc)
+  const meta = (
+    <span>
+      <b>{label}</b>
+      <small>
+        {included
+          ? `Now ${unit === '$' ? `$${payFromPct(current)}` : pct(current)} · next ${unit === '$' ? `$${payFromPct(nextPct)}` : pct(nextPct)} on ${nextLabel}`
+          : 'Not included in auto increase'}
+      </small>
+    </span>
+  )
   return (
-    <div className="ai-row">
-      <span className="ai-source">
-        <b>{label}</b>
-        <small>
-          Now {unit === '$' ? `$${payFromPct(current)}` : pct(current)} · next {unit === '$' ? `$${payFromPct(nextPct)}` : pct(nextPct)} on {nextLabel}
-        </small>
-      </span>
+    <div className={`ai-row${included ? '' : ' off'}`}>
+      {pickable ? (
+        <label className="ai-source pickable">
+          <input type="checkbox" checked={included} onChange={onToggle} aria-label={`Include ${label} in auto increase`} />
+          {meta}
+        </label>
+      ) : (
+        <span className="ai-source">{meta}</span>
+      )}
       <span className="sval">
         <input
           type="number"
+          disabled={!included}
           value={inc}
           min={1}
           max={5}
@@ -413,6 +462,7 @@ function AiSourceRow({ label, current, unit, inc, cap, onInc, onCap, nextLabel }
           <input
             type="number"
             className={capInvalid ? 'invalid' : ''}
+            disabled={!included}
             value={cap}
             min={capMin}
             max={15}

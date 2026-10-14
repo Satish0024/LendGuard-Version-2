@@ -55,6 +55,8 @@ export default function EnrollmentSummary() {
   const applyAll = investment?.applyAll !== false
   const cycle = CYCLES[autoInc?.cycle] || CYCLES.calendar
   const usingPlan = investment?.mode === 'plan'
+  const usingManaged = investment?.mode === 'managed'
+  const sdb = investment?.sdb?.enabled ? investment.sdb : null
 
   const confirm = () => {
     // Any plan that still offers "Provide elections in advance" should switch
@@ -117,17 +119,25 @@ export default function EnrollmentSummary() {
                       </li>
                       <li>
                         <span>Pre-Tax</span>
-                        <b>
-                          +{pct(autoInc?.incPre ?? autoInc?.inc)}
-                          <small>until {pct(autoInc?.capPre ?? autoInc?.cap)}</small>
-                        </b>
+                        {autoInc?.sources?.pre === false ? (
+                          <b>Not included</b>
+                        ) : (
+                          <b>
+                            +{pct(autoInc?.incPre ?? autoInc?.inc)}
+                            <small>until {pct(autoInc?.capPre ?? autoInc?.cap)}</small>
+                          </b>
+                        )}
                       </li>
                       <li>
                         <span>Roth</span>
-                        <b>
-                          +{pct(autoInc?.incRoth ?? autoInc?.inc)}
-                          <small>until {pct(autoInc?.capRoth ?? autoInc?.cap)}</small>
-                        </b>
+                        {autoInc?.sources?.roth === false ? (
+                          <b>Not included</b>
+                        ) : (
+                          <b>
+                            +{pct(autoInc?.incRoth ?? autoInc?.inc)}
+                            <small>until {pct(autoInc?.capRoth ?? autoInc?.cap)}</small>
+                          </b>
+                        )}
                       </li>
                     </ul>
                   )}
@@ -141,13 +151,30 @@ export default function EnrollmentSummary() {
           <div className="review-h">
             <div className="review-title">
               <h4>Investment election</h4>
-              <small>{usingPlan ? 'Plan-selected investments' : 'Own election'}</small>
+              <small>{usingManaged ? 'Managed account' : usingPlan ? 'Plan-selected investments' : 'Own election'}</small>
             </div>
             <button type="button" className="text-btn" onClick={() => navigate('/enrollment/investments')}>
               Edit
             </button>
           </div>
-          {applyAll ? (
+          {!usingManaged && !usingPlan && (
+            <ul className="review-rows review-opts">
+              <li>
+                <span>Auto rebalance</span>
+                <b>{investment?.autoRebalance ? 'Enabled' : 'Off'}</b>
+              </li>
+              <li>
+                <span>Self-Directed Brokerage</span>
+                <b>
+                  {sdb ? 'Opted in' : 'Not opted in'}
+                  {sdb && <small>{sdb.separate ? 'Traditional and Roth tracked separately' : 'One combined account'}</small>}
+                </b>
+              </li>
+            </ul>
+          )}
+          {usingManaged ? (
+            <p>An advisor will select and manage your investments. You&apos;ll receive an email to schedule a consultation.</p>
+          ) : applyAll ? (
             <FundList alloc={investment?.bySource?.pre || investment?.alloc} />
           ) : (
             <div className="review-sources">
@@ -205,6 +232,13 @@ export default function EnrollmentSummary() {
                   ? "The enrollment preferences have been saved and will take effect once you're eligible for the plan. Take a moment to designate a beneficiary and help ensure your savings go to the right person."
                   : 'Your enrollment preferences are saved. Take a moment to designate a beneficiary and help ensure your savings go to the right person.'}
               </p>
+
+              {sdb && (
+                <div className="plan-notice eligible-notice">
+                  <b>You opted for SDB</b>
+                  <span>You&apos;ll receive an email shortly to activate your brokerage account.</span>
+                </div>
+              )}
 
               <div className="success-next">
                 <div>

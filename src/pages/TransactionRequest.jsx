@@ -14,6 +14,7 @@ import AmortizationScheduleSlideover from '../components/transactions/Amortizati
 import AddInvestmentSlideover from '../components/transactions/AddInvestmentSlideover.jsx'
 import BuySellDetailsSlideover from '../components/transactions/BuySellDetailsSlideover.jsx'
 import InvestmentAllocationTable from '../components/transactions/InvestmentAllocationTable.jsx'
+import TransferFlow, { blankTransfer } from '../components/transactions/TransferFlow.jsx'
 import { useParticipant } from '../context/ParticipantContext.jsx'
 import { formatMoney, planBalance, planVested } from '../lib/accountSummary'
 import Select, { Option } from '../components/common/Select.jsx'
@@ -74,8 +75,8 @@ const WIZARDS = {
   transfer: {
     title: 'New Transfer Request',
     steps: [
-      { id: 'details', title: 'Source Selection' },
-      { id: 'summary', title: 'Transfer Request Summary' }
+      { id: 'details', title: 'Investments to move' },
+      { id: 'summary', title: 'Review and submit' }
     ]
   },
   rebalance: {
@@ -151,7 +152,8 @@ function blankForm(type) {
       docs: {}
     }
   }
-  // transfer + rebalance
+  if (type === 'transfer') return { transfer: blankTransfer() }
+  // rebalance
   return {
     selectedSources: [],
     allocations: {},
@@ -311,7 +313,18 @@ function TransactionRequestWizard() {
                 onEdit={goTo}
               />
             )}
-            {(type === 'transfer' || type === 'rebalance') && (
+            {type === 'transfer' && (
+              <TransferFlow
+                step={step.id}
+                plan={plan}
+                form={form}
+                set={set}
+                onNext={next}
+                onBack={back}
+                onSubmit={submit}
+              />
+            )}
+            {type === 'rebalance' && (
               <AllocationSteps
                 mode={type}
                 step={step.id}

@@ -99,3 +99,32 @@ export const PLAN_COL_LABELS = [
   'Per $1,000',
   'Shareholder-type fees'
 ]
+
+// Self-Directed Brokerage (SDB) investments. Same shape as PLAN_FUNDS so the
+// fund picker, detail dialog and allocation panels render them unchanged;
+// the extra fields carry the brokerage account each one settles into and
+// whether that account has been activated yet.
+export const SDB_FUNDS = [
+  { name: 'Franklin Managed Income Fund - SDB', cat: 'Self-Directed Brokerage', fundType: 'Large Cap', sdb: true, cusip: '354026106', accounts: ['ENROLL04456', 'ENROLL34354'], activated: true, ytd: '5.84%', y1: '9.12%', y5: '6.48%', y10: '5.91%', si: '6.20%', exp: '0.62%', perK: '$6.20', fees: '0.00%', bench: 'Benchmark - Morningstar Moderate Allocation', b: ['5.20%', '8.75%', '6.10%', '5.70%', '6.00%'] },
+  { name: 'Columbia Mid Cap Index Fund (NTIAX) - SDB', cat: 'Self-Directed Brokerage', fundType: 'Mid Cap', sdb: true, cusip: '19765P489', accounts: ['ENROLL3456'], activated: true, ytd: '6.71%', y1: '11.40%', y5: '9.86%', y10: '8.92%', si: '9.10%', exp: '0.20%', perK: '$2.00', fees: '0.00%', bench: 'Benchmark - S&P MidCap 400 Index', b: ['6.90%', '11.62%', '10.01%', '9.05%', '9.20%'] },
+  { name: 'Fidelity Mid Cap Index Fund (FSMDX) - SDB', cat: 'Self-Directed Brokerage', fundType: 'Mid Cap', sdb: true, cusip: '316146489', accounts: [], activated: false, ytd: '6.92%', y1: '11.88%', y5: '10.12%', y10: '9.40%', si: '9.55%', exp: '0.03%', perK: '$0.30', fees: '0.00%', bench: 'Benchmark - Russell Midcap Index', b: ['7.00%', '12.00%', '10.20%', '9.50%', '9.60%'] },
+  { name: 'BNY Mellon Mid Cap Index Shares (PESPX) - SDB', cat: 'Self-Directed Brokerage', fundType: 'Mid Cap', sdb: true, cusip: '05589H107', accounts: [], activated: false, ytd: '6.55%', y1: '11.21%', y5: '9.74%', y10: '8.88%', si: '9.02%', exp: '0.29%', perK: '$2.90', fees: '0.00%', bench: 'Benchmark - S&P MidCap 400 Index', b: ['6.90%', '11.62%', '10.01%', '9.05%', '9.20%'] }
+]
+
+// Brokerage accounts on file, shown on Plan details > SDB details.
+// "Track Traditional and Roth SDB separately" = Yes adds the Roth row.
+export const SDB_ACCOUNTS = [
+  { number: '1276235612', type: 'Traditional', updatedOn: '11/21/2025', through: 'SDB account return file' },
+  { number: '9856453452', type: 'Roth', updatedOn: '12/12/2025', through: 'jordan.hale@email.com' },
+  { number: '1232343122', type: 'Traditional', updatedOn: '01/12/2026', through: 'SDB account return file' },
+  { number: '1233167557', type: 'Roth', updatedOn: '02/15/2026', through: 'SDB API upload' }
+]
+
+// Election change log for Plan details > History.
+export const PLAN_HISTORY = [
+  { date: '02/15/2026', change: 'Investment election', detail: 'Pre-Tax and Roth set to own election', by: 'Participant' },
+  { date: '01/12/2026', change: 'Self-Directed Brokerage', detail: 'Opted in, Traditional and Roth tracked separately', by: 'Participant' },
+  { date: '01/01/2026', change: 'Auto increase', detail: 'Pre-Tax +1% each year until 10%', by: 'Plan rule' },
+  { date: '12/12/2025', change: 'Deferral rate', detail: 'Pre-Tax 6%, Roth 2%', by: 'Participant' },
+  { date: '11/21/2025', change: 'Enrollment', detail: 'Auto enrolled into the plan', by: 'Plan rule' }
+]
