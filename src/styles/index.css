@@ -3316,3 +3316,16 @@ summary:focus-visible {
 .th-sort:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:calc(-1 * var(--core-focusRing-width))}
 
 
+
+/* ---------- Grouped table (no zebra) ----------
+   For tables where one cell spans several rows (e.g. a sell feeding many
+   buys). Zebra shading would cut across the group and imply the rows are
+   unrelated, so rows stay plain and groups are separated by a strong rule. */
+.table-grouped tbody tr,
+.table-grouped tbody tr:nth-child(even),
+.table-grouped tbody tr td,
+.table-grouped tbody tr:nth-child(even):not(.alloc-total) td:not(.alloc-after){background:var(--neutral-surface-layer-01)}
+.table-grouped tbody td{border-bottom:1px solid var(--neutral-border-light)}
+.table-grouped tbody tr.group-end td{border-bottom:1px solid var(--theme-neutral-border-primary-default)}
+.table-grouped tbody td.group-head{vertical-align:top;background:var(--neutral-surface-layer-03);border-right:1px solid var(--theme-neutral-border-primary-default);border-bottom:1px solid var(--theme-neutral-border-primary-default)}
+.table-grouped tbody tr.alloc-total td,.table-grouped tfoot td{background:var(--neutral-surface-layer-03);font-weight:var(--typography-font-weight-bold)}

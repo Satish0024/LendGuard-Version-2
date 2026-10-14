@@ -35,6 +35,7 @@ const NAV = [
     { id: 'nav', label: 'Navigation' },
     { id: 'tabs', label: 'Tabs & steps' },
     { id: 'table', label: 'Tables (zebra)' },
+    { id: 'table-grouped', label: 'Grouped table' },
     { id: 'dialog', label: 'Dialogs & modals' },
     { id: 'legend', label: 'Chart legend' },
     { id: 'a11y-toolbar', label: 'Accessibility toolbar' },
@@ -1141,6 +1142,26 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             </table>}
             code={`tbody tr:nth-child(even){ background: var(--neutral-surface-layer-03); }`}
             colors={[['Zebra row', '--core-color-surface-sunken'], ['Row border', '--neutral-border-light'], ['Positive value', '--semantics-success-text']]}
+          />
+
+          {/* ---------------- GROUPED TABLE ---------------- */}
+          <Component
+            id="table-grouped" title="Grouped table (no zebra)"
+            desc="Use when one cell spans several rows, e.g. a transfer where one sell feeds many buys. Zebra shading would cut across the group and make the rows look unrelated, so rows stay plain, the spanning cell is shaded, and a strong rule separates groups."
+            demo={<table className="ds-table table-grouped" style={{ width: '100%' }}>
+              <thead><tr><th>Sell investment</th><th>Buy investment(s)</th><th className="num">Allocation</th><th className="num">Amount</th></tr></thead>
+              <tbody>
+                <tr><td rowSpan={2} className="group-head"><b>Pre-Tax</b><br />$600.00 moving</td><td>PIMCO Total Return</td><td className="num">50%</td><td className="num">$300.00</td></tr>
+                <tr className="group-end"><td>Vanguard Small-Cap Index</td><td className="num">50%</td><td className="num">$300.00</td></tr>
+                <tr><td rowSpan={1} className="group-head"><b>Roth</b><br />$200.00 moving</td><td>iShares Emerging Markets</td><td className="num">100%</td><td className="num">$200.00</td></tr>
+                <tr className="alloc-total"><td colSpan={3}>Total</td><td className="num">$800.00</td></tr>
+              </tbody>
+            </table>}
+            code={`<table className="table-grouped">
+  <tr><td rowSpan={n} className="group-head">…</td>…</tr>
+  <tr className="group-end">…</tr>   {/* last row of each group */}
+</table>`}
+            colors={[['Row', '--neutral-surface-layer-01'], ['Group cell / total', '--neutral-surface-layer-03'], ['Group rule', '--theme-neutral-border-primary-default'], ['Row rule', '--neutral-border-light']]}
           />
 
           {/* ---------------- DIALOG ---------------- */}
