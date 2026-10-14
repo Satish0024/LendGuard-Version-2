@@ -210,7 +210,7 @@ function RequestsPanel({ participant, planId, onPlanChange }) {
                       label/value pair, so it goes full width on mobile. */}
                   <td className="num">
                     {r.type === 'loan' && r.status === 'Approved' && (
-                      <button type="button" className="tx-calc-link" onClick={() => setCalcLoan(r)}>
+                      <button type="button" className="text-link tx-calc-link" onClick={() => setCalcLoan(r)}>
                         Calculate
                       </button>
                     )}
@@ -286,7 +286,7 @@ function HistoryPanel({ participant }) {
             className="text-link"
             onClick={() => navigate('/reports', { state: { openStatement: true } })}
           >
-            Download periodic statement
+            Generate statement
           </button>
         </div>
       </div>

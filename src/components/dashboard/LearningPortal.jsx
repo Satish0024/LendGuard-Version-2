@@ -29,7 +29,7 @@ export default function LearningPortal() {
             Learn how saving, spending, investing, and retirement planning can work together to support your
             financial goals.
           </p>
-          <Link className="learn2-link" to="/enrich">
+          <Link className="text-link learn2-link" to="/enrich">
             Know More
           </Link>
         </div>
@@ -44,7 +44,7 @@ export default function LearningPortal() {
         <span className="learn2-tag">Learning</span>
         <h3 className="learn2-title">Financial Wellness</h3>
         <p className="learn2-desc">Learn about planning, saving, investing wisely</p>
-        <Link className="learn2-link" to="/enrich">
+        <Link className="text-link learn2-link" to="/enrich">
           Know More
         </Link>
       </div>

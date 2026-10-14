@@ -1,12 +1,11 @@
 import { useEffect } from 'react'
 import { Icon } from '../../lib/icons'
-import { faCheck, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
 import '../../styles/toast.css'
 
-// tone: 'success' (default) or 'error' -- each reads its icon/color through
-// the app's existing --green/--red theme tokens, so it recolors with the
-// palette automatically instead of a hardcoded hex.
-export default function Toast({ message, tone = 'success', onDismiss, duration = 3500 }) {
+// CORE .cds-toast: 28px tinted icon badge, bold title with optional body
+// text, and a dismiss button. tone: 'success' (default) or 'error'.
+export default function Toast({ message, body, tone = 'success', onDismiss, duration = 3500 }) {
   useEffect(() => {
     if (!message) return undefined
     const id = window.setTimeout(() => onDismiss?.(), duration)
@@ -15,12 +14,25 @@ export default function Toast({ message, tone = 'success', onDismiss, duration =
 
   if (!message) return null
 
+  const isError = tone === 'error'
   return (
-    <div className={`toast toast-${tone}`} role={tone === 'error' ? 'alert' : 'status'} aria-live={tone === 'error' ? 'assertive' : 'polite'}>
+    <div
+      className={`toast ${isError ? 'toast--danger' : 'toast--success'}`}
+      role={isError ? 'alert' : 'status'}
+      aria-live={isError ? 'assertive' : 'polite'}
+    >
       <span className="toast-ico" aria-hidden="true">
-        <Icon icon={tone === 'error' ? faTriangleExclamation : faCheck} size={12} />
+        <Icon icon={isError ? faCircleExclamation : faCircleCheck} size={16} />
       </span>
-      {message}
+      <div className="toast-content">
+        <strong className="toast-title">{message}</strong>
+        {body ? <div className="toast-body">{body}</div> : null}
+      </div>
+      <button type="button" className="toast-close" aria-label="Dismiss notification" onClick={() => onDismiss?.()}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
     </div>
   )
 }

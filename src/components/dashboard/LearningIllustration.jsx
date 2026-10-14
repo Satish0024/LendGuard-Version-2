@@ -31,11 +31,11 @@ export default function LearningIllustration() {
 
       <g className="learn-illo-books">
         <rect x="70" y="88" width="66" height="16" rx="4" fill="var(--semantics-success-text)" />
-        <rect x="70" y="88" width="66" height="4" rx="2" fill="var(--surface-default)" opacity="0.35" />
+        <rect x="70" y="88" width="66" height="4" rx="2" fill="var(--neutral-surface-layer-01)" opacity="0.35" />
         <g transform="rotate(-6 100 76)">
           <rect x="66" y="66" width="68" height="20" rx="5" fill="url(#learn-book-a)" />
-          <rect x="66" y="66" width="68" height="5" rx="2.5" fill="var(--surface-default)" opacity="0.4" />
-          <rect x="72" y="76" width="30" height="3" rx="1.5" fill="var(--surface-default)" opacity="0.55" />
+          <rect x="66" y="66" width="68" height="5" rx="2.5" fill="var(--neutral-surface-layer-01)" opacity="0.4" />
+          <rect x="72" y="76" width="30" height="3" rx="1.5" fill="var(--neutral-surface-layer-01)" opacity="0.55" />
         </g>
       </g>
     </svg>

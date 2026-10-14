@@ -33,7 +33,7 @@ export default function EnrollmentLayout() {
       <div className="layout">
         <Sidebar />
         <aside className="steps">
-          <Link to={returnTo || '/'} className="back">
+          <Link to={returnTo || '/'} className="text-link back">
             ‹ {returnTo ? 'Back to plan' : 'Back'}
           </Link>
           <h1>{returnTo ? 'Update elections' : 'Plan enrollment'}</h1>

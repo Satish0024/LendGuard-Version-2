@@ -80,7 +80,7 @@ export default function RiskQuestionnaire() {
             reader users had no real page-level heading at all (flagged by
             axe-core's page-has-heading-one rule). This restores one
             without duplicating the side panel's visible copy. */}
-        <h1 className="sr-only">Investment style questionnaire</h1>
+        <h2 className="sr-only">Investment style questionnaire</h2>
         <div className="rqp-main-head">
           <button type="button" className="rqp-leave" onClick={leave}>
             Back

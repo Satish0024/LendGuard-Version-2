@@ -100,7 +100,7 @@ function Confetti() {
           // index.css --chart-1..7) -- var() resolves fine in inline
           // style values, same as in CSS, so this stays in sync with
           // --brand on any tenant.
-          color: ['var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'][i % 4],
+          color: ['var(--semantics-success-text)', 'var(--semantics-warning-text)', 'var(--semantics-critical-text)', 'var(--chart-5)'][i % 4],
           size: 6 + (i % 4) * 2,
           round: i % 3 === 0,
           spin: (i % 2 === 0 ? 1 : -1) * (200 + (i % 7) * 36),
@@ -610,7 +610,7 @@ export default function RetirementGoal() {
           </dl>
           <p className="rg-disc">
             <span className="rr-foot-note">*Not guaranteed results.</span>
-            <button type="button" className="rr-disclaimer-link rg-disc-top" onClick={() => setOpen(true)}>
+            <button type="button" className="text-link rr-disclaimer-link rg-disc-top" onClick={() => setOpen(true)}>
               Disclaimer
             </button>
           </p>

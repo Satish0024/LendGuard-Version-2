@@ -1,10 +1,13 @@
-import { Fragment, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
+import { faRocket, faBalanceScale, faShieldAlt, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import { INVESTMENT_KEY, readSession, writeSession } from '../data/participants'
 import { PLAN_FUNDS, PLAN_COL_LABELS } from '../data/portfolio'
 import { useEscapeToClose } from '../hooks/useEscapeToClose'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useParticipant } from '../context/ParticipantContext.jsx'
+import { RISK_LEVELS, getRiskLevel, getRiskProfileId } from '../lib/riskProfile'
 import FundDetailDialog from '../components/common/FundDetailDialog.jsx'
 import Select, { Option } from '../components/common/Select.jsx'
 import '../styles/portfolio.css'
@@ -19,6 +22,31 @@ const PLAN_ALLOC = {
   'Fidelity U.S. Bond Index Fund Institutional Premium': 20
 }
 const PLAN_FUNDS_LIST = ENROLL_FUNDS.filter((f) => PLAN_ALLOC[f.name])
+// One preset fund mix per measured risk level — same four-fund lineup as
+// PLAN_ALLOC, just weighted toward bonds or equities to match the level's
+// stated split (see RISK_LEVELS' insights copy in lib/riskProfile.js).
+const RISK_ALLOC = {
+  conservative: {
+    'Vanguard Institutional Index Fund Admiral Shares': 15,
+    'Fidelity 500 Index Fund Institutional Class': 15,
+    'Vanguard Total Bond Market Index Fund Admiral Shares': 35,
+    'Fidelity U.S. Bond Index Fund Institutional Premium': 35
+  },
+  moderate: {
+    'Vanguard Institutional Index Fund Admiral Shares': 25,
+    'Fidelity 500 Index Fund Institutional Class': 25,
+    'Vanguard Total Bond Market Index Fund Admiral Shares': 25,
+    'Fidelity U.S. Bond Index Fund Institutional Premium': 25
+  },
+  aggressive: {
+    'Vanguard Institutional Index Fund Admiral Shares': 45,
+    'Fidelity 500 Index Fund Institutional Class': 45,
+    'Vanguard Total Bond Market Index Fund Admiral Shares': 5,
+    'Fidelity U.S. Bond Index Fund Institutional Premium': 5
+  }
+}
+const RISK_LEVEL_ICON = { conservative: faShieldAlt, moderate: faBalanceScale, aggressive: faRocket }
+const riskAlloc = (levelId) => ({ ...emptyAlloc(), ...RISK_ALLOC[levelId] })
 const planAlloc = () => ({ ...emptyAlloc(), ...PLAN_ALLOC })
 const sumAlloc = (alloc, names = FUNDS) => names.reduce((sum, name) => sum + (+alloc?.[name] || 0), 0)
 const SOURCES = [
@@ -45,11 +73,17 @@ const pruneAlloc = (alloc, names) => {
 export function InvestmentEditor({
   embedded = false,
   saveLabel = 'Continue',
+  riskReturnPath = '/enrollment/investments',
   onComplete,
   onCancel
 }) {
+  const { participant } = useParticipant()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [params] = useSearchParams()
   const saved = useMemo(() => readSession(INVESTMENT_KEY), [])
   const [mode, setMode] = useState(() => (embedded ? saved?.mode || 'plan' : ''))
+  const [riskLevelId, setRiskLevelId] = useState(() => saved?.riskLevelId || '')
   const [applyAll, setApplyAll] = useState(saved?.applyAll !== false)
   const [bySource, setBySource] = useState(() => ({
     ...blankBySource(),
@@ -58,11 +92,31 @@ export function InvestmentEditor({
   const [picked, setPicked] = useState(() => saved?.picked || [])
   const [error, setError] = useState('')
   const [fundsOpen, setFundsOpen] = useState(false)
+  const [riskConsentOpen, setRiskConsentOpen] = useState(false)
+  useEscapeToClose(riskConsentOpen, () => setRiskConsentOpen(false))
+  const riskConsentTrapRef = useFocusTrap(riskConsentOpen)
 
   const usingCustom = mode === 'custom'
   const usingPlan = mode === 'plan'
+  const usingRisk = mode === 'risk'
   const sharedAlloc = bySource[SOURCES[0].id] || emptyAlloc()
   const customFunds = fundsFromNames(picked)
+  const measuredLevel = riskLevelId ? getRiskLevel(riskLevelId) : null
+
+  // Returning from the risk questionnaire (?riskDone=1): read back the level
+  // it just measured and apply that level's fund mix, then strip the query
+  // param so refreshing this page doesn't re-trigger it.
+  useEffect(() => {
+    if (params.get('riskDone') !== '1') return
+    const levelId = getRiskProfileId(participant)
+    setMode('risk')
+    setRiskLevelId(levelId)
+    setApplyAll(true)
+    setBySource(fillBySource(riskAlloc(levelId)))
+    setError('')
+    navigate(location.pathname, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params])
 
   const setPct = (src, name, val) => {
     const next = Math.max(0, Math.min(100, Math.round(+val || 0)))
@@ -90,6 +144,16 @@ export function InvestmentEditor({
     setMode('custom')
     setFundsOpen('select')
     setError('')
+  }
+
+  // Clicking "Not sure? Take our risk questionnaire" (or "Retake
+  // questionnaire") asks for confirmation first — only navigates to the
+  // questionnaire once the participant agrees to proceed.
+  const chooseRisk = () => setRiskConsentOpen(true)
+  const confirmChooseRisk = () => {
+    setRiskConsentOpen(false)
+    const here = `${location.pathname}${location.search}`
+    navigate(`/risk-check-in?return=${encodeURIComponent(riskReturnPath || here)}`)
   }
 
   const toggleApplyAll = () => {
@@ -129,7 +193,7 @@ export function InvestmentEditor({
       return
     }
     const names = usingCustom ? picked : FUNDS
-    if (usingPlan || applyAll) {
+    if (usingPlan || usingRisk || applyAll) {
       if (sumAlloc(sharedAlloc, names) !== 100) {
         setError('Allocations must add up to 100% before you continue.')
         return
@@ -138,11 +202,12 @@ export function InvestmentEditor({
       setError('Each source must add up to 100% before you continue.')
       return
     }
-    const savedSources = usingPlan || applyAll ? fillBySource(sharedAlloc) : bySource
+    const savedSources = usingPlan || usingRisk || applyAll ? fillBySource(sharedAlloc) : bySource
     writeSession(INVESTMENT_KEY, {
       mode,
-      applyAll: usingPlan ? true : applyAll,
-      picked: usingCustom ? picked : FUNDS.filter((name) => PLAN_ALLOC[name]),
+      riskLevelId: usingRisk ? riskLevelId : '',
+      applyAll: usingPlan || usingRisk ? true : applyAll,
+      picked: usingCustom ? picked : FUNDS.filter((name) => (usingRisk ? RISK_ALLOC[riskLevelId]?.[name] : PLAN_ALLOC[name])),
       alloc: savedSources[SOURCES[0].id],
       bySource: savedSources,
       total: 100
@@ -157,7 +222,7 @@ export function InvestmentEditor({
           <h3 className="section-title">{embedded ? 'Edit investments' : 'Investment election'}</h3>
           <p className="section-sub">Choose how the deferrals are invested. The allocations must total to 100%.</p>
         </div>
-        <button type="button" className="optout-link" onClick={() => setFundsOpen('view')}>
+        <button type="button" className="text-link optout-link" onClick={() => setFundsOpen('view')}>
           View plan investments
         </button>
       </div>
@@ -189,11 +254,58 @@ export function InvestmentEditor({
             <small>Select preferred investments and set the allocation.</small>
           </span>
         </button>
+        <button
+          type="button"
+          className={`choice${usingRisk ? ' on' : ''}`}
+          role="radio"
+          aria-checked={usingRisk}
+          onClick={chooseRisk}
+        >
+          <span className="choice-dot" aria-hidden="true" />
+          <span>
+            <b>Match my investments to my risk style</b>
+            <small>Answer a few questions and we&apos;ll set your allocation to match your risk tolerance.</small>
+          </span>
+        </button>
       </div>
 
       {usingPlan && (
         <div className="inv-panel">
           <AllocPanel title="All sources" funds={PLAN_FUNDS_LIST} alloc={sharedAlloc} locked />
+        </div>
+      )}
+
+      {usingRisk && measuredLevel && (
+        <div className="inv-panel">
+          {/* Item #77's banner copy: this used to live in RiskMeterV2.jsx,
+              a component with no remaining render call-sites (removed
+              from the Dashboard per item #77b) -- so the message was
+              never actually visible to anyone. This is the real place a
+              participant sees their measured investment style, so the
+              badge and the banner were merged into one card instead of
+              two stacked, visually disconnected boxes. */}
+          <div className="inv-risk-card" style={{ '--risk-color': measuredLevel.color }}>
+            <div className="inv-risk-card-head">
+              <span className="inv-risk-card-ico" aria-hidden="true">
+                <Icon icon={RISK_LEVEL_ICON[measuredLevel.id]} size={20} />
+              </span>
+              <span className="inv-risk-card-label">{measuredLevel.label}</span>
+              <button type="button" className="text-btn" onClick={chooseRisk}>
+                View/Edit questionnaire
+              </button>
+            </div>
+            <p>
+              <Icon icon={faCircleInfo} size={14} aria-hidden="true" />
+              Your investment style is based on your questionnaire responses. View or edit your responses to
+              reassess your style.
+            </p>
+          </div>
+          <AllocPanel
+            title="All sources"
+            funds={fundsFromNames(FUNDS.filter((name) => RISK_ALLOC[measuredLevel.id]?.[name] > 0))}
+            alloc={sharedAlloc}
+            locked
+          />
         </div>
       )}
 
@@ -265,6 +377,33 @@ export function InvestmentEditor({
         />
       )}
 
+      {riskConsentOpen && (
+        <div className="enroll-modal-bg" role="presentation" onClick={() => setRiskConsentOpen(false)}>
+          <div
+            ref={riskConsentTrapRef}
+            className="enroll-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="risk-consent-title"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 id="risk-consent-title">Consent to take the risk questionnaire</h4>
+            <p>
+              A few quick questions will match you to a Conservative, Moderate, or Aggressive investment style, and
+              set your election to that mix. Do you consent to continue?
+            </p>
+            <div className="enroll-modal-actions">
+              <button type="button" className="btn btn-primary" onClick={confirmChooseRisk}>
+                I consent, continue
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setRiskConsentOpen(false)}>
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -285,7 +424,7 @@ function AllocPanel({ title, funds, alloc, locked, showReset, onChange, onReset 
           <div className="source" key={f.name}>
             <div className="srow">
               <span className="smeta">
-                <button type="button" className="fund-link sname" onClick={() => setOpenFund(f)}>
+                <button type="button" className="text-link fund-link sname" onClick={() => setOpenFund(f)}>
                   {f.name}
                 </button>
                 <span className="shelp">{f.cat}</span>
@@ -329,7 +468,7 @@ function AllocPanel({ title, funds, alloc, locked, showReset, onChange, onReset 
             { label: '1 yr. return', value: openFund.y1 },
             { label: '5 yr. return', value: openFund.y5 },
             { label: '10 yr. return', value: openFund.y10 },
-            { label: 'Total annual operating expenses', value: openFund.exp }
+            { label: 'Total expense ratio', value: openFund.exp }
           ]}
         />
       )}
@@ -428,7 +567,7 @@ function FundsModal({ selectable, selected, onApply, onClose }) {
                   Average annual total return
                 </th>
                 <th scope="col" className="group-h" colSpan={2}>
-                  Total annual operating expenses
+                  Total expense ratio
                 </th>
                 <th scope="col" rowSpan={2}>
                   Shareholder-

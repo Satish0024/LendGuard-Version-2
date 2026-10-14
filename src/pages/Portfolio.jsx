@@ -1,6 +1,6 @@
 import { useMemo, useState, Fragment } from 'react'
 import { Icon } from '../lib/icons'
-import { faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons'
+import SortIconCore from '../components/common/SortIcon.jsx'
 import {
   CategoryScale,
   Chart as ChartJS,
@@ -17,6 +17,8 @@ import { useTheme } from '../context/ThemeContext.jsx'
 import FundDetailDialog from '../components/common/FundDetailDialog.jsx'
 import ChartLegend from '../components/common/ChartLegend.jsx'
 import Select, { Option } from '../components/common/Select.jsx'
+import { exportCsv } from '../lib/exportCsv.js'
+import '../styles/documents.css'
 import '../styles/portfolio.css'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
@@ -26,27 +28,27 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 const PERIODS = ['1m', '3m', '6m', 'ytd', '1y', '3y', '5y', '10y']
 const PERIOD_LABELS = { '1m': '1M', '3m': '3M', '6m': '6M', ytd: 'YTD', '1y': '1Y', '3y': '3Y', '5y': '5Y', '10y': '10Y' }
 
-// Each series carries its own dash pattern and point shape, not just a
-// color — a color-blind or low-vision reader (or a black-and-white
-// printout) can still tell the lines apart. Chart.js applies `dash` as
-// `borderDash` and `pointStyle` as-is; the legend swatches below draw the
-// same dash pattern in CSS so the key matches the chart.
+// Each series carries its own dash pattern, not just a color — a
+// color-blind or low-vision reader (or a black-and-white printout) can
+// still tell the lines apart. Chart.js applies `dash` as `borderDash`; the
+// legend draws the same colour + dash as a line sample so the key matches.
 // Color is resolved from the live CSS custom properties at render time
 // (see the `chartOptions`-style useMemo below) instead of being a fixed
 // hex here -- Chart.js/canvas can't read var() directly, so it needs the
 // browser-resolved value, but the value itself still tracks --brand/
 // --green/--red/--amber like everything else in the app.
-const POINT_STYLES = ['circle', 'triangle', 'rect', 'star']
-const DASHES = [[], [7, 4], [2, 3], [9, 3, 2, 3], [4, 3], [1, 3], [6, 3], [8, 4], [3, 2, 1, 2], [5, 4], [10, 3]]
+// Asset-class lines are told apart by colour + a dash pattern that is unique
+// per series (and never solid, which is reserved for Total portfolio). Only
+// Total draws point markers: 4 marker shapes across 12 lines had to repeat.
+const DASHES = [[12, 3], [7, 4], [2, 3], [9, 3, 2, 3], [4, 3], [1, 3], [6, 3], [8, 4], [3, 2, 1, 2], [5, 4], [10, 3]]
 
 const SERIES_META = [
-  { key: 'total', label: 'Total portfolio', token: '--neutral-text-default', dash: [], pointStyle: 'circle' },
+  { key: 'total', label: 'Total portfolio', token: '--neutral-text-default', dash: [], markers: true },
   ...ASSET_CLASS_ORDER.map((label, i) => ({
     key: `ac-${i}`,
     label,
     token: chartTokenForAsset(label, i),
     dash: DASHES[i] || [4, 3],
-    pointStyle: POINT_STYLES[i % POINT_STYLES.length],
     endScale: [1, 0.78, 0.92, 1.08, 0.95, 0.34, 0.28, 0.41, 0.68, 0.55, 0.18][i],
     seed: 11 + i * 3
   }))
@@ -71,6 +73,8 @@ export default function Portfolio() {
   const [planId, setPlanId] = useState('lendguard-401k')
   const [sort, setSort] = useState({ key: null, dir: 1 })
   const [ytdDir, setYtdDir] = useState(null)
+  const [holdingsQuery, setHoldingsQuery] = useState('')
+  const [planQuery, setPlanQuery] = useState('')
   const [visible, setVisible] = useState(() =>
     Object.fromEntries(SERIES_META.map((s) => [s.key, s.key === 'total' || s.key === 'ac-0' || s.key === 'ac-5' || s.key === 'ac-8']))
   )
@@ -82,9 +86,9 @@ export default function Portfolio() {
   const chartOptions = useMemo(() => {
     const css = getComputedStyle(document.documentElement)
     return buildChartOptions({
-      axisTitle: css.getPropertyValue('--neutral-text-subtle').trim() || '#5c6078',
-      gridLine: css.getPropertyValue('--neutral-border-light').trim() || '#e8eaf2',
-      tick: css.getPropertyValue('--neutral-text-subtle-light').trim() || '#8a8da3'
+      axisTitle: css.getPropertyValue('--neutral-text-subtle').trim() || '#5C5C6B',
+      gridLine: css.getPropertyValue('--neutral-border-light').trim() || '#787887',
+      tick: css.getPropertyValue('--neutral-text-subtle-light').trim() || '#5C5C6B'
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme])
@@ -92,12 +96,14 @@ export default function Portfolio() {
   // Same brand-derived-not-fixed-hex reasoning as chartOptions above.
   const SERIES = useMemo(() => {
     const css = getComputedStyle(document.documentElement)
-    return SERIES_META.map((s) => ({ ...s, color: css.getPropertyValue(s.token).trim() || '#666' }))
+    return SERIES_META.map((s) => ({ ...s, color: css.getPropertyValue(s.token).trim() || '#5C5C6B' }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme])
 
   const holdings = useMemo(() => {
-    const rows = [...HOLDINGS]
+    // #97: live search on investment name or CUSIP, applied before sorting.
+    const q = holdingsQuery.trim().toLowerCase()
+    const rows = HOLDINGS.filter((h) => !q || h.name.toLowerCase().includes(q) || h.cusip.toLowerCase().includes(q))
     if (!sort.key) return rows
     const col = COLS[sort.key]
     rows.sort((a, b) => {
@@ -107,14 +113,32 @@ export default function Portfolio() {
       return String(av).localeCompare(String(bv), undefined, { sensitivity: 'base' }) * sort.dir
     })
     return rows
-  }, [sort])
+  }, [sort, holdingsQuery])
 
   const planFunds = useMemo(() => {
-    const rows = [...PLAN_FUNDS]
+    const q = planQuery.trim().toLowerCase()
+    const rows = PLAN_FUNDS.filter((f) => !q || f.name.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q))
     if (!ytdDir) return rows
     rows.sort((a, b) => (parsePct(a.ytd) - parsePct(b.ytd)) * ytdDir)
     return rows
-  }, [ytdDir])
+  }, [ytdDir, planQuery])
+
+  // #95 / #96: export exactly what the table shows (current search + sort).
+  const exportHoldings = () =>
+    exportCsv(
+      'my-portfolio-investments.csv',
+      ['Investment name', 'Asset class', 'CUSIP', 'Fund return YTD', 'Invested balance', 'Current balance', 'Gain/loss', 'Unit balance'],
+      holdings.map((h) => [h.name, h.asset, h.cusip, `${h.returnPct.toFixed(2)}%`, money(h.invested), money(h.current), money(h.gain), h.units.toFixed(2)])
+    )
+  const exportPlanFunds = () =>
+    exportCsv(
+      'plan-investments.csv',
+      ['Fund name', 'Category', ...PLAN_COL_LABELS],
+      planFunds.flatMap((f) => [
+        [f.name, f.cat, f.ytd, f.y1, f.y5, f.y10, f.si, f.exp, f.perK, f.fees],
+        [f.bench, 'Benchmark', ...f.b, '—', '—', 'N/A']
+      ])
+    )
 
   const chart = useMemo(() => {
     const ends = ENDS[period]
@@ -148,9 +172,7 @@ export default function Portfolio() {
     setSort((s) => (s.key === key ? { key, dir: s.dir * -1 } : { key, dir: 1 }))
   }
 
-  const SortIcon = ({ active, dir }) => (
-    <Icon icon={active ? (dir === 1 ? faSortUp : faSortDown) : faSort} size={12} aria-hidden="true" className="sort-ico" />
-  )
+  const SortIcon = ({ active, dir }) => <SortIconCore direction={active ? (dir === 1 ? 'asc' : 'desc') : null} />
 
   const toggleYtd = () => {
     setYtdDir((d) => (d === 1 ? -1 : 1))
@@ -223,7 +245,7 @@ export default function Portfolio() {
                       <div className="stat-v pos">{plan.gain}</div>
                     </div>
                     <div className="stat-block">
-                      <div className="stat-k">Fund return YTD</div>
+                      <div className="stat-k">YTD return</div>
                       <div className="stat-v pos" aria-label={`${plan.ret} year to date`}>
                         {plan.ret}
                       </div>
@@ -267,7 +289,8 @@ export default function Portfolio() {
                     key: s.key,
                     label: s.label,
                     color: s.color,
-                    pointStyle: s.pointStyle,
+                    dash: s.dash,
+                    stroke: `var(${s.token})`,
                     checked: visible[s.key]
                   }))}
                   onToggle={toggleSeries}
@@ -276,6 +299,24 @@ export default function Portfolio() {
             </div>
             <section className="section">
               <h2>Investments</h2>
+              <div className="table-tools">
+                {/* Same search field + plain secondary button as Documents. */}
+                <div className="doc-field table-search">
+                  <label className="field-label" htmlFor="holdingsQuery-search">
+                    Search
+                  </label>
+                  <input
+                    id="holdingsQuery-search"
+                    type="text"
+                    value={holdingsQuery}
+                    onChange={(e) => setHoldingsQuery(e.target.value)}
+                    placeholder="Search investment name or CUSIP"
+                  />
+                </div>
+                <button type="button" className="btn btn-secondary table-export" onClick={exportHoldings}>
+                  Export
+                </button>
+              </div>
               <div className="table-wrap t-stack-wrap">
                 <table className="holdings-table t-stack">
                   <thead>
@@ -323,13 +364,18 @@ export default function Portfolio() {
                     </tr>
                   </thead>
                   <tbody>
+                    {!holdings.length && (
+                      <tr>
+                        <td colSpan={8} className="table-empty">No record(s) found</td>
+                      </tr>
+                    )}
                     {holdings.map((h) => (
                       <tr key={h.cusip}>
                         {/* The fund name is the card's title on mobile, so it
                             stays unlabelled and full width rather than sitting
                             opposite an "Investment name" label. */}
                         <td className="name">
-                          <button type="button" className="fund-link" onClick={() => setOpenFund(h)}>
+                          <button type="button" className="text-link fund-link" onClick={() => setOpenFund(h)}>
                             {h.name}
                           </button>
                         </td>
@@ -353,6 +399,24 @@ export default function Portfolio() {
             <section className="section">
               <h2>Plan investments</h2>
               <p className="sub">Browse and compare the funds available within the retirement plan.</p>
+              <div className="table-tools">
+                {/* Same search field + plain secondary button as Documents. */}
+                <div className="doc-field table-search">
+                  <label className="field-label" htmlFor="planQuery-search">
+                    Search
+                  </label>
+                  <input
+                    id="planQuery-search"
+                    type="text"
+                    value={planQuery}
+                    onChange={(e) => setPlanQuery(e.target.value)}
+                    placeholder="Search investment name or category"
+                  />
+                </div>
+                <button type="button" className="btn btn-secondary table-export" onClick={exportPlanFunds}>
+                  Export
+                </button>
+              </div>
               <div className="table-wrap t-stack-wrap">
                 <table className="plan-table t-stack">
                   <thead>
@@ -374,7 +438,7 @@ export default function Portfolio() {
                         Average annual total return
                       </th>
                       <th scope="col" className="group-h" colSpan={2}>
-                        Total annual operating expenses
+                        Total expense ratio
                       </th>
                       <th scope="col" rowSpan={2}>
                         Shareholder-
@@ -392,11 +456,16 @@ export default function Portfolio() {
                     </tr>
                   </thead>
                   <tbody>
+                    {!planFunds.length && (
+                      <tr>
+                        <td colSpan={9} className="table-empty">No record(s) found</td>
+                      </tr>
+                    )}
                     {planFunds.map((f) => (
                       <Fragment key={f.name}>
                         <tr className="fund-row">
                           <td className="fund-cell">
-                            <button type="button" className="fund-link fund-title" onClick={() => setOpenFund(f)}>
+                            <button type="button" className="text-link fund-link fund-title" onClick={() => setOpenFund(f)}>
                               {f.name}
                             </button>
                             <div className="fund-meta">
@@ -445,7 +514,7 @@ export default function Portfolio() {
             { label: '1 yr. return', value: openFund.y1 },
             { label: '5 yr. return', value: openFund.y5 },
             { label: '10 yr. return', value: openFund.y10 },
-            { label: 'Total annual operating expenses', value: openFund.exp }
+            { label: 'Total expense ratio', value: openFund.exp }
           ]}
         />
       )}
@@ -467,11 +536,11 @@ function line(series, data, order, hidden) {
     borderColor: series.color,
     backgroundColor: series.color,
     borderDash: series.dash,
-    pointStyle: series.pointStyle,
     tension: 0.3,
-    pointRadius: 4,
-    pointHoverRadius: 6,
-    pointBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--surface-default').trim() || '#fff',
+    pointRadius: series.markers ? 4 : 0,
+    pointHoverRadius: 5,
+    pointHitRadius: 8,
+    pointBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--core-color-surface-default').trim() || '#FFFFFF',
     pointBorderColor: series.color,
     pointBorderWidth: 2,
     borderWidth: 2.5,

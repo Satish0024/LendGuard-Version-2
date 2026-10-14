@@ -21,7 +21,20 @@ function LegendItem({ item, onToggle }) {
         disabled={item.disabled}
         onChange={() => onToggle(item.key)}
       />
-      {item.pointStyle && <span className={`legend-swatch legend-swatch--${item.pointStyle}`} aria-hidden="true" />}
+      {/* A short sample of the series' own line: colour + dash pattern are
+          unique per series, where the 4 marker shapes had to repeat. */}
+      <svg className="legend-line" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
+        <line
+          x1="1"
+          y1="5"
+          x2="23"
+          y2="5"
+          style={{ stroke: item.stroke || item.color }}
+          strokeWidth={item.key === 'total' ? 3 : 2.5}
+          strokeLinecap="round"
+          strokeDasharray={item.dash?.length ? item.dash.join(' ') : undefined}
+        />
+      </svg>
       {item.label}
     </label>
   )

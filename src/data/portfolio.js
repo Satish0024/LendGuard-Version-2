@@ -18,9 +18,9 @@ export const PLAN_STATS = {
 export const HOLDINGS = [
   { name: 'Vanguard Institutional Index Fund Admiral Shares', asset: 'U.S. Equity', cusip: '922908728', returnPct: 14.82, invested: 25000, current: 28705, gain: 3705, units: 74.32 },
   { name: 'Fidelity 500 Index Fund Institutional Class', asset: 'U.S. Equity', cusip: '315911750', returnPct: 14.95, invested: 18000, current: 20691, gain: 2691, units: 52.18 },
-  { name: 'Vanguard Total Bond Market Index Fund Admiral Shares', asset: 'U.S. Bond', cusip: '921937835', returnPct: 5.18, invested: 15000, current: 15777, gain: 777, units: 186.42 },
-  { name: 'Fidelity U.S. Bond Index Fund Institutional Premium', asset: 'U.S. Bond', cusip: '315911727', returnPct: 5.27, invested: 12500, current: 13159, gain: 659, units: 124.63 },
-  { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Target-Date', cusip: '92202E805', returnPct: 10.42, invested: 20000, current: 22084, gain: 2084, units: 168.57 }
+  { name: 'Vanguard Total Bond Market Index Fund Admiral Shares', asset: 'Taxable Bond', cusip: '921937835', returnPct: 5.18, invested: 15000, current: 15777, gain: 777, units: 186.42 },
+  { name: 'Fidelity U.S. Bond Index Fund Institutional Premium', asset: 'Taxable Bond', cusip: '315911727', returnPct: 5.27, invested: 12500, current: 13159, gain: 659, units: 124.63 },
+  { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Allocation', cusip: '92202E805', returnPct: 10.42, invested: 20000, current: 22084, gain: 2084, units: 168.57 }
 ]
 
 export const PLAN_FUNDS = [

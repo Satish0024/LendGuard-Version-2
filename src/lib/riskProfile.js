@@ -19,8 +19,8 @@ export const RISK_LEVELS = [
     badge: 'CONSERVATIVE',
     subtitle: 'Conservative risk',
     score: 15,
-    get color() { return cssVar('--semantics-success-text', '#1a9d63') },
-    get accent() { return cssVar('--semantics-success-background-strong', '#178a4a') },
+    get color() { return cssVar('--semantics-success-text', '#116840') },
+    get accent() { return cssVar('--semantics-success-background-strong', '#178451') },
     copy: "This investment style favors stability, leaning on bonds and cash to help protect what you've saved.",
     outlook: "You'd rather protect what you've saved than chase extra growth.",
     insights: [
@@ -36,8 +36,8 @@ export const RISK_LEVELS = [
     badge: 'MODERATE',
     subtitle: 'Moderate risk',
     score: 50,
-    get color() { return cssVar('--semantics-warning-text', '#d4a017') },
-    get accent() { return cssVar('--brand-text-primary-default', '#4338ca') },
+    get color() { return cssVar('--semantics-warning-text', '#95590A') },
+    get accent() { return cssVar('--brand-text-primary-default', '#1F4F8D') },
     copy: 'We picked this investment style based on how you answered the questionnaire.',
     outlook: "You're comfortable with some ups and downs for potential long-term growth.",
     insights: [
@@ -53,8 +53,8 @@ export const RISK_LEVELS = [
     badge: 'AGGRESSIVE',
     subtitle: 'Aggressive risk',
     score: 85,
-    get color() { return cssVar('--semantics-critical-text', '#c0392b') },
-    get accent() { return cssVar('--semantics-critical-background-strong', '#dc2626') },
+    get color() { return cssVar('--semantics-critical-text', '#8F212A') },
+    get accent() { return cssVar('--semantics-critical-background-strong', '#B72E38') },
     outlook: "You're comfortable with larger swings in pursuit of higher long-term growth.",
     insights: [
       'Growth-focused approach that leans into equities.',

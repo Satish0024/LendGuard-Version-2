@@ -42,17 +42,17 @@ export function hasAccountSummary(participant) {
 // categories it's made up of rather than a single label.
 const ASSET_CATEGORY = {
   'U.S. Equity': ['Stock'],
+  'Sector Equity': ['Stock'],
+  'Allocation': ['Stock', 'Bond'],
   'International Equity': ['Stock'],
-  'Emerging Markets': ['Stock'],
-  'U.S. Small Cap': ['Stock'],
-  'U.S. Mid Cap': ['Stock'],
-  'U.S. Bond': ['Bond'],
-  'International Bond': ['Bond'],
-  'High Yield': ['Bond'],
-  'Target-Date': ['Stock', 'Bond'],
-  Balanced: ['Stock', 'Bond'],
-  'Real Estate': ['Other'],
-  'Cash / Stable Value': ['Other']
+  'Alternative': ['Other'],
+  'Commodities': ['Other'],
+  'Taxable Bond': ['Bond'],
+  'Municipal Bond': ['Bond'],
+  'Money Market': ['Other'],
+  'Miscellaneous': ['Other'],
+  'Nontraditional Equity': ['Stock'],
+  Balanced: ['Stock', 'Bond']
 }
 
 export function assetCategory(asset) {

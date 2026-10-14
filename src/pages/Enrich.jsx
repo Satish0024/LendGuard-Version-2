@@ -23,7 +23,7 @@ export default function Enrich() {
         <div className="brand">
           <img src={theme === 'dark' ? BRAND.logoOnDark || BRAND.logo : BRAND.logo} alt={BRAND.name} />
         </div>
-        <Link className="back" to="/">
+        <Link className="text-link back" to="/">
           Back to dashboard
         </Link>
       </header>
@@ -102,7 +102,7 @@ export default function Enrich() {
                   <p>{a.body}</p>
                   <div className="foot">
                     <span className="time">{a.time}</span>
-                    <span className="link">Read →</span>
+                    <span className="text-link link">Read →</span>
                   </div>
                 </div>
               </a>

@@ -1,78 +1,77 @@
-.as-page{gap:var(--space-4)}
+.as-page{gap:var(--core-space-5)}
 .as-shell{
   display:grid;grid-template-columns:minmax(260px,300px) minmax(0,1fr);
-  gap:var(--space-5);align-items:start}
+  gap:var(--core-space-5);align-items:start}
 .as-plans{
-  display:flex;flex-direction:column;gap:var(--space-4);background:transparent;border:none;
-  border-radius:0;padding:var(--space-0);box-shadow:none;position:sticky;top:var(--space-5)}
+  display:flex;flex-direction:column;gap:var(--core-space-4);background:transparent;border:none;
+  border-radius:0;padding:var(--core-space-0);box-shadow:none;position:sticky;top:var(--core-space-5)}
 .as-plans-empty{
-  margin:var(--space-0);padding:var(--card-padding-sm);background:var(--surface-default);border:1px solid var(--neutral-border-light);border-radius:var(--radius-xl);
-  box-shadow:var(--shadow);font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
+  margin:var(--core-space-0);padding:var(--core-space-4);background:var(--neutral-surface-layer-01);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);
+  box-shadow:var(--core-elevation-1);font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
 .as-plans button{
-  display:flex;flex-direction:column;align-items:stretch;gap:var(--space-2);width:100%;
-  border:1px solid var(--neutral-border-light);background:var(--surface-default);padding:var(--space-3-5) var(--space-3-5) var(--space-3-5) var(--space-4);border-radius:var(--radius-xl);
-  cursor:pointer;text-align:left;font:inherit;color:inherit;position:relative;box-shadow:var(--shadow)}
-.as-plans button:hover{background:var(--surface-muted);border-color:var(--neutral-border-strong)}
+  display:flex;flex-direction:column;align-items:stretch;gap:var(--core-space-2);width:100%;
+  border:1px solid var(--neutral-border-light);background:var(--neutral-surface-layer-01);padding:var(--core-space-4) var(--core-space-4) var(--core-space-4) var(--core-space-4);border-radius:var(--core-radius-sm);
+  cursor:pointer;text-align:left;font:inherit;color:inherit;position:relative;box-shadow:var(--core-elevation-1);
+  transition:box-shadow var(--core-motion-duration-fast),border-color var(--core-motion-duration-fast),background var(--core-motion-duration-fast)}
+/* Same state set as .quick-link (CORE .cds-quicklink): rest / hover /
+   focus-visible, plus the selected "on" state these buttons also carry. */
+.as-plans button:hover{border-color:var(--theme-colors-neutral-300);box-shadow:var(--core-elevation-2)}
+.as-plans button:active{box-shadow:var(--core-elevation-1)}
+.as-plans button:focus-visible{outline:none;border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
 /* Active state: a primary-color border + soft ring around the whole
    card, same convention as .opt.selected -- not a left accent bar. */
 .as-plans button.on{
-  background:var(--brand-background-primary-light);border-color:var(--brand-text-primary-default);
-  box-shadow:0 0 0 3px color-mix(in srgb, var(--brand-text-primary-default) 10%, transparent)}
-.as-plan-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2)}
+  border-color:var(--brand-border-primary-default);background:var(--theme-brand-background-primary-subtle);box-shadow:var(--core-elevation-1)}
+.as-plans button.on:focus-visible{border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
+.as-plan-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--core-space-2)}
 .as-plan-top strong{
-  font-size:var(--text-body-md-size);font-weight:var(--font-weight-extrabold);letter-spacing:var(--ls-snug);color:var(--neutral-text-default);line-height:1.3}
+  font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);line-height:var(--typography-body-md-line-height)}
 .as-plans button.on .as-plan-top strong{color:var(--brand-text-primary-default)}
-.as-plan-top .plan-badge{flex:0 0 auto;margin-top:var(--space-px)}
-.as-plan-meta{font-size:var(--text-body-xs-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle);line-height:1.35}
+.as-plan-top .plan-badge{flex:0 0 auto;margin-top:var(--core-border-width-hairline)}
+.as-plan-meta{font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle);line-height:var(--typography-body-xs-line-height)}
 .as-plan-stats{
-  display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2) var(--space-2-5);padding-top:var(--space-2);
+  display:grid;grid-template-columns:1fr 1fr;gap:var(--core-space-2) var(--core-space-3);padding-top:var(--core-space-2);
   border-top:1px solid var(--neutral-border-light)}
 .as-plans button.on .as-plan-stats{border-top-color:var(--neutral-border-light)}
 .as-plan-stats span{
-  display:block;font-size:var(--text-caption-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-subtle-light);margin-bottom:var(--space-0-5)}
+  display:block;font-size:var(--typography-caption-size);line-height:var(--typography-caption-line-height);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle-light);margin-bottom:var(--core-space-1)}
 .as-plan-stats b{
-  display:block;font-size:var(--text-body-md-size);font-weight:var(--font-weight-extrabold);color:var(--neutral-text-default);
-  font-variant-numeric:tabular-nums;letter-spacing:var(--ls-snug)}
+  display:block;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);
+  font-variant-numeric:tabular-nums;}
 .as-plan-stats b.vested{color:var(--semantics-success-text)}
 
-.as-main{padding:var(--card-padding) var(--card-padding-sm);min-width:0}
+.as-main{padding:var(--core-space-4) var(--core-space-4);min-width:0}
 .as-main-h{
   display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;
-  gap:var(--space-2) var(--space-4);margin:var(--space-0) var(--space-0) var(--space-4);padding:var(--space-0) var(--space-0) var(--space-3-5);border-bottom:1px solid var(--neutral-border-light)}
-.as-main-h h2{margin:var(--space-0);font-size:var(--text-h4-size);font-weight:var(--font-weight-extrabold);line-height:var(--text-h4-lh);letter-spacing:var(--text-h4-ls)}
-.as-main-h p{margin:var(--space-1) var(--space-0) var(--space-0);font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
+  gap:var(--core-space-2) var(--core-space-4);margin:var(--core-space-0) var(--core-space-0) var(--core-space-4);padding:var(--core-space-0) var(--core-space-0) var(--core-space-4);border-bottom:1px solid var(--neutral-border-light)}
+.as-main-h h2{margin:var(--core-space-0);font-size:var(--typography-heading-h4-size);font-weight:var(--typography-font-weight-bold);line-height:var(--typography-heading-h4-line-height);letter-spacing:var(--typography-heading-h4-letter-spacing)}
+.as-main-h p{margin:var(--core-space-1) var(--core-space-0) var(--core-space-0);font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
 
 /* DS Tabs (cds-tabs/cds-tab) treatment — underline style, matches the
    canonical DS tab design used on Portfolio/Transactions (.tabs/.tab).
    Was a pill/segmented-background control; visual change intentional
    per DS reconciliation (icon kept, restyled to sit inline with label). */
 .as-tabs{
-  display:flex;gap:var(--space-1);border-bottom:1px solid var(--neutral-border-light);margin-bottom:var(--space-4)}
-.as-tabs button{
-  display:flex;align-items:center;gap:var(--space-2);border:none;background:transparent;
-  padding:var(--space-2-5) var(--space-1);margin-right:var(--space-5);font:inherit;font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);
-  color:var(--neutral-text-subtle);cursor:pointer;border-bottom:2px solid transparent}
-.as-tabs button:hover{color:var(--neutral-text-default)}
-.as-tabs button.on{color:var(--brand-text-primary-default);border-bottom-color:var(--brand-text-primary-default);font-weight:var(--font-weight-bold)}
-.as-tabs button:focus-visible{outline:2px solid var(--brand-text-primary-default);outline-offset:2px}
+  display:flex;gap:var(--core-space-4);border-bottom:1px solid var(--neutral-border-light);margin-bottom:var(--core-space-4)}
+.as-tabs button{display:flex;align-items:center;gap:var(--core-space-2)}
 .as-tabs .pr-nav-ico{width:18px;height:18px;color:inherit}
 .as-tabs button.on .pr-nav-ico{background:none;color:inherit}
 
 .as-viz{
-  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-3);margin:var(--space-0) var(--space-0) var(--space-5)}
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--core-space-3);margin:var(--core-space-0) var(--core-space-0) var(--core-space-5)}
 
 .as-donut{position:relative;height:260px;width:260px;flex:0 0 260px}
 .as-donut canvas{width:100%!important;height:100%!important}
 .as-donut-center{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;pointer-events:none;padding:var(--space-6);text-align:center}
+  justify-content:center;pointer-events:none;padding:var(--core-space-6);text-align:center}
 .as-donut-center small{
-  font-size:var(--text-caption-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-subtle-light);max-width:190px;
-  white-space:normal;overflow-wrap:break-word;line-height:1.3}
+  font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle-light);max-width:190px;
+  white-space:normal;overflow-wrap:break-word;line-height:var(--typography-caption-line-height)}
 .as-donut-center b{
-  font-size:var(--text-h4-size);font-weight:var(--font-weight-extrabold);letter-spacing:var(--ls-tight);margin:var(--space-1) var(--space-0) var(--space-0-5);
+  font-size:var(--typography-heading-h4-size);font-weight:var(--typography-font-weight-bold);margin:var(--core-space-1) var(--core-space-0) var(--core-space-1);
   font-variant-numeric:tabular-nums;color:var(--neutral-text-default)}
-.as-donut-center em{font-style:normal;font-size:var(--text-caption-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-subtle)}
+.as-donut-center em{font-style:normal;font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle)}
 
 /* Mirrors the DS's own Data Table (.cds-table-wrap / .cds-table in the DS's
    packages/core/src/styles/components.css):
@@ -92,77 +91,78 @@
    left the border un-swapped in dark mode. Matching the app's own tables is
    worth more than matching a palette version this repo doesn't ship. */
 .as-table-wrap{
-  border:1px solid var(--neutral-border-light);border-radius:var(--radius-sm);
-  overflow-x:auto;background:var(--surface-default)}
-.as-table-wrap table{width:100%;border-collapse:collapse;font-size:var(--text-body-md-size);min-width:480px}
+  border:1px solid var(--theme-neutral-border-primary-default);border-radius:var(--core-radius-sm);
+  overflow-x:auto;position:relative;background:var(--neutral-surface-layer-01)}
+.as-table-wrap table{width:100%;border-collapse:collapse;font-size:var(--typography-body-md-size);min-width:480px}
 .as-table-wrap th{
-  text-align:left;font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle);
-  background:var(--surface-muted);padding:var(--space-2-5) var(--space-4);
-  border-bottom:1px solid var(--neutral-border-light);white-space:nowrap}
+  text-align:left;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle);
+  background:var(--neutral-surface-layer-03);padding:var(--core-space-3) var(--core-space-4);
+  border-bottom:1px solid var(--theme-neutral-border-primary-default);white-space:nowrap}
 .as-table-wrap td{
-  padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--neutral-border-light);color:var(--neutral-text-default);
+  padding:var(--core-space-3) var(--core-space-4);border-bottom:1px solid var(--theme-neutral-border-primary-default);color:var(--neutral-text-default);
   font-variant-numeric:tabular-nums}
-.as-table-wrap tbody tr.as-row-alt{background:var(--surface-subtle)}
-.as-table-wrap tbody tr.on{background:var(--brand-background-primary-light)}
+.as-table-wrap tbody tr.as-row-alt{background:var(--neutral-background)}
 .as-table-wrap tbody tr:last-child td{border-bottom:none}
 .as-table-wrap tfoot td{
-  background:var(--surface-muted);font-weight:var(--font-weight-extrabold);border-bottom:none;border-top:1px solid var(--neutral-border-light)}
+  background:var(--neutral-surface-layer-03);font-weight:var(--typography-font-weight-bold);border-bottom:none;border-top:1px solid var(--theme-neutral-border-primary-default)}
 .as-table-wrap .num{text-align:right}
 /* DS table cells are 400 — no per-column weight. The row-name column
    gets its emphasis from being a link/toggle, not from bolding. */
+.as-row-expandable{cursor:pointer}
+/* Legend colour for each source / asset class -- matches its donut slice. */
+.as-row-name-cell{display:inline-flex;align-items:center;gap:var(--core-space-3)}
+.as-swatch{width:var(--core-space-3);height:var(--core-space-3);border-radius:var(--core-radius-full);flex:0 0 auto}
+/* Chevron sits in its own last column, at the row's right edge. */
+.as-chev-col{width:var(--core-space-16)}
+.as-table-wrap td.as-chev-cell{text-align:right;padding-top:var(--core-space-1);padding-bottom:var(--core-space-1)}
 .as-row-toggle{
-  display:flex;align-items:center;width:100%;border:none;background:transparent;padding:var(--space-0);
-  font:inherit;color:var(--neutral-text-default);cursor:pointer;text-align:left;border-radius:var(--radius-sm);gap:var(--space-0)}
-.as-row-toggle:hover{color:var(--brand-text-primary-default)}
-.as-row-toggle:focus-visible{outline:2px solid var(--brand-text-primary-default);outline-offset:2px}
+  display:inline-grid;place-items:center;width:var(--core-size-control-sm);height:var(--core-size-control-sm);border:none;background:transparent;padding:var(--core-space-0);
+  color:var(--neutral-text-subtle);cursor:pointer;border-radius:var(--core-radius-sm)}
+.as-row-toggle:hover{background:color-mix(in srgb,var(--brand-background-primary-strong) 8%,transparent);color:var(--brand-text-primary-hover)}
+.as-row-toggle:active{background:color-mix(in srgb,var(--brand-background-primary-strong) 16%,transparent);color:var(--brand-text-primary-active)}
+.as-row-toggle:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
 .as-row-name{
-  display:inline;min-width:0;margin-right:var(--space-2)}
-.as-asset-cell{font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
+  display:inline;min-width:0;margin-right:var(--core-space-2)}
+.as-asset-cell{font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
 .as-row-chevron{
-  /* Chevron positioned at the right edge of the name cell, after the text.
-     margin-left:auto pushes it to the far right within the flex container. */
-  margin-left:auto;color:var(--neutral-text-subtle);transition:transform var(--motion-base) ease;flex:0 0 auto}
-.as-row-open .as-row-chevron{transform:rotate(180deg);color:var(--brand-text-primary-default)}
-.as-row-detail td{background:var(--surface-muted);padding:var(--space-0);border-bottom:1px solid var(--neutral-border-light)}
+  color:inherit;transition:transform var(--core-motion-duration-base) ease;flex:0 0 auto}
+.as-row-open .as-row-chevron{transform:rotate(180deg);color:var(--brand-text-primary-hover)}
+.as-row-open td:first-child{color:var(--brand-text-primary-default)}   /* CORE expanded trigger */
+/* Expanded content = CORE .cds-accordion-panel: surface-default, 16px padding, body-md relaxed, subtle text. */
+.as-row-detail td{background:var(--neutral-surface-layer-01);padding:var(--core-space-0);border-bottom:1px solid var(--theme-neutral-border-primary-default);font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-relaxed-line-height);color:var(--neutral-text-subtle)}
 .as-row-detail:hover{background:transparent}
 .as-detail-grid{
-  display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:var(--space-3-5);padding:var(--space-3-5) var(--space-4)}
-.as-detail-grid div{display:flex;flex-direction:column;gap:var(--space-0-5)}
-.as-detail-grid span{font-size:var(--text-2xs-size);font-weight:var(--font-weight-bold);letter-spacing:var(--ls-wide);color:var(--neutral-text-subtle)}
-.as-detail-grid b{font-size:var(--text-body-md-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-default);font-variant-numeric:tabular-nums}
-.as-cat-badges{display:flex;flex-wrap:wrap;gap:var(--space-1)}
+  display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-4)}
+.as-detail-grid div{display:flex;flex-direction:column;gap:var(--core-space-1)}
+.as-detail-grid span{font-size:var(--typography-font-size-xs);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle)}
+.as-detail-grid b{font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);font-variant-numeric:tabular-nums}
+.as-cat-badges{display:flex;flex-wrap:wrap;gap:var(--core-space-1)}
 .as-cat-badge{
-  display:inline-flex;align-items:center;border-radius:var(--radius-full);padding:var(--space-0-5) var(--space-2-5);
-  font-size:var(--text-caption-size);font-weight:var(--font-weight-extrabold);width:fit-content}
+  display:inline-flex;align-items:center;border-radius:var(--core-radius-full);padding:var(--core-space-1) var(--core-space-3);
+  font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);width:fit-content}
 .as-cat-badge.is-stock{background:var(--brand-background-primary-light);color:var(--brand-text-primary-default)}
 .as-cat-badge.is-bond{background:var(--semantics-success-background-light);color:var(--semantics-success-text)}
-.as-cat-badge.is-other{background:var(--surface-muted);color:var(--neutral-text-subtle)}
+.as-cat-badge.is-other{background:var(--neutral-surface-layer-03);color:var(--neutral-text-subtle)}
 
 /* Asset class tab — each row expands to list the investments in that
    class, same accordion pattern as the Investments tab's detail grid. */
-.as-class-asof{margin:var(--space-0);padding:var(--space-4) var(--space-4) var(--space-2);font-size:var(--text-caption-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-subtle-light);letter-spacing:var(--ls-wide)}
-.as-class-members{list-style:none;margin:var(--space-0);padding:var(--space-0) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-0-5)}
-.as-class-members li{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-0);border-bottom:1px solid var(--neutral-border-light)}
+.as-class-asof{margin:var(--core-space-0);padding:var(--core-space-4) var(--core-space-4) var(--core-space-2);font-size:var(--typography-body-xs-size);line-height:var(--typography-body-xs-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
+.as-class-members{list-style:none;margin:var(--core-space-0);padding:var(--core-space-0) var(--core-space-4) var(--core-space-4);display:flex;flex-direction:column;gap:var(--core-space-1)}
+.as-class-members li{display:flex;align-items:center;gap:var(--core-space-2);padding:var(--core-space-2) var(--core-space-0);border-bottom:1px solid var(--neutral-border-light)}
 .as-class-members li:last-child{border-bottom:none}
-.as-class-member-name{display:flex;flex-direction:column;gap:var(--space-px);flex:1;min-width:0;font-size:var(--text-caption-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-default)}
-.as-class-member-nav{font-size:var(--text-caption-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
-.as-class-member-units{margin-left:auto;font-size:var(--text-caption-size);color:var(--neutral-text-subtle)}
-.as-class-members li b{font-size:var(--text-caption-size);font-weight:var(--font-weight-extrabold);color:var(--neutral-text-default);font-variant-numeric:tabular-nums}
+.as-class-member-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:1;min-width:0;font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
+.as-class-member-nav{font-size:var(--typography-body-xs-size);line-height:var(--typography-body-xs-line-height);font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-subtle)}
+.as-class-member-units{margin-left:auto;font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-line-height);color:var(--neutral-text-subtle)}
+.as-class-members li b{font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-line-height);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);font-variant-numeric:tabular-nums}
 
 @media(max-width:640px){
   .as-detail-grid{grid-template-columns:repeat(2,1fr)}
-  .as-tabs{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
-  .as-tabs button{min-height:44px}
-}
-@media(max-width:520px){
-  .as-donut{width:200px;height:200px;flex:0 0 200px}
-  .as-main{padding:var(--space-3)}
 }
 
 .as-empty{
-  display:grid;place-items:center;min-height:220px;padding:var(--space-6);text-align:center;
-  background:var(--surface-muted);border-radius:var(--radius-sm)}
-.as-empty p{margin:var(--space-0);font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle)}
+  display:grid;place-items:center;min-height:220px;padding:var(--core-space-6);text-align:center;
+  background:var(--neutral-surface-layer-03);border-radius:var(--core-radius-sm)}
+.as-empty p{margin:var(--core-space-0);font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
 
 @media(max-width:980px){
   .as-shell{grid-template-columns:1fr}

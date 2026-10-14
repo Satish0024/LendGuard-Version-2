@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
-import { faCalendar, faLandmark, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faCalendar, faLandmark, faTriangleExclamation, faUser } from '@fortawesome/free-solid-svg-icons'
 import {
   AUTO_INCREASE_KEY,
   DEFERRAL_KEY,
-  isNotEligibleUser,
+  isEnrolledUser, isNotEligibleUser,
   readSession,
   writeSession
 } from '../data/participants'
@@ -43,6 +43,9 @@ export function DeferralEditor({
 }) {
   const { participant } = useParticipant()
   const notEligible = isNotEligibleUser(participant)
+  // #85: opting out only applies to someone already enrolled (e.g. auto
+  // enrolled) -- not to a participant who is enrolling for the first time.
+  const canOptOut = showOptOut && !notEligible && isEnrolledUser(participant)
   const savedDeferral = useMemo(() => readSession(DEFERRAL_KEY), [])
   const savedAi = useMemo(() => readSession(AUTO_INCREASE_KEY), [])
 
@@ -117,6 +120,10 @@ export function DeferralEditor({
       setError('Choose whether to use auto increase before you continue.')
       return
     }
+    if (usingAi && (capPre <= pre || capRoth <= roth)) {
+      setError('Each max limit must be greater than its deferral rate before you continue.')
+      return
+    }
     saveDeferral(false)
     onComplete?.(false)
   }
@@ -134,8 +141,8 @@ export function DeferralEditor({
           <div>
             <h3 className="section-title">{embedded ? 'Edit deferral' : 'Set my deferral rate'}</h3>
           </div>
-          {showOptOut && !notEligible && (
-            <button type="button" className="optout-link" onClick={() => setOptOutOpen(true)}>
+          {canOptOut && (
+            <button type="button" className="text-link optout-link" onClick={() => setOptOutOpen(true)}>
               Opt out
             </button>
           )}
@@ -230,7 +237,7 @@ export function DeferralEditor({
           {skipping && (
             <div className="warn">
               <div className="warn-head">
-                <span className="warn-ico">!</span>
+                <span className="warn-ico" aria-hidden="true"><Icon icon={faTriangleExclamation} size={20} /></span>
                 <div>
                   <h4>Keep the current deferral rate</h4>
                   <p>
@@ -377,6 +384,7 @@ function SourceRow({ label, help, value, onChange, unit }) {
 
 function AiSourceRow({ label, current, unit, inc, cap, onInc, onCap, nextLabel }) {
   const capMin = Math.min(15, Math.max(1, current + 1))
+  const capInvalid = cap <= current
   const nextPct = current >= cap ? current : Math.min(cap, current + inc)
   return (
     <div className="ai-row">
@@ -397,16 +405,29 @@ function AiSourceRow({ label, current, unit, inc, cap, onInc, onCap, nextLabel }
         />
         <span className="pct">%</span>
       </span>
-      <span className="sval">
-        <input
-          type="number"
-          value={cap}
-          min={1}
-          max={15}
-          onChange={(e) => onCap(Math.min(15, Math.max(capMin, Math.round(+e.target.value || capMin))))}
-          aria-label={`${label} auto increase cap (percent)`}
-        />
-        <span className="pct">%</span>
+      {/* #84: the max limit must be above this source's deferral rate. Typed
+          values are kept (not silently snapped up) and an inline error explains
+          what's wrong; it also re-checks if the deferral rate is raised later. */}
+      <span className="ai-cap-wrap">
+        <span className="sval">
+          <input
+            type="number"
+            className={capInvalid ? 'invalid' : ''}
+            value={cap}
+            min={capMin}
+            max={15}
+            onChange={(e) => onCap(Math.min(15, Math.max(0, Math.round(+e.target.value || 0))))}
+            aria-label={`${label} auto increase cap (percent)`}
+            aria-invalid={capInvalid}
+            aria-describedby={capInvalid ? `${label}-cap-error` : undefined}
+          />
+          <span className="pct">%</span>
+        </span>
+        {capInvalid && (
+          <small id={`${label}-cap-error`} className="ai-cap-error" role="alert">
+            Max limit must be greater than the deferral rate ({pct(current)}).
+          </small>
+        )}
       </span>
     </div>
   )

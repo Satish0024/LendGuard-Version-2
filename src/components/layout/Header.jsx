@@ -64,28 +64,6 @@ export default function Header() {
             <img src={participant.avatar} alt="" />
           </button>
           <div className={`user-dropdown${open ? ' open' : ''}`} role="menu" aria-label="Account">
-            {/* Utility actions at top of dropdown - visible on mobile only */}
-            <div className="user-dropdown-utils">
-              <button
-                type="button"
-                className="user-dropdown-util-btn"
-                role="menuitem"
-                onClick={toggle}
-                aria-pressed={theme === 'dark'}
-              >
-                <Icon icon={theme === 'dark' ? faSun : faMoon} size={16} />
-                <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-              </button>
-              <button
-                type="button"
-                className="user-dropdown-util-btn"
-                role="menuitem"
-                onClick={() => setOpen(false)}
-              >
-                <Icon icon={faQuestionCircle} size={16} />
-                <span>Help</span>
-              </button>
-            </div>
             <div className="user-dropdown-email" role="presentation">
               <span className="label">Username</span>
               <span className="value">{participant.profile?.email}</span>

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faArrowRight, faInfoCircle, faSlidersH } from '@fortawesome/free-solid-svg-icons'
+import { faInfoCircle, faSlidersH } from '@fortawesome/free-solid-svg-icons'
 import { useParticipant } from '../../context/ParticipantContext.jsx'
-import { isNotEligibleUser, isOptedOutUser } from '../../data/participants'
+import { isEligibleNotEnrolledUser, isNotEligibleUser, isOptedOutUser } from '../../data/participants'
 import {
   READINESS_KEY,
   ageFromDob,
@@ -30,19 +30,13 @@ function ScoreRing({ pct }) {
   const dash = (Math.max(0, Math.min(100, pct)) / 100) * RING_C
   return (
     <svg className="rgs-orbit-rings" viewBox="0 0 128 128" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="rgs-arc" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="var(--rgs-arc-1)" />
-          <stop offset="100%" stopColor="var(--rgs-arc-2)" />
-        </linearGradient>
-      </defs>
-      <circle cx="64" cy="64" r={RING_R} fill="none" stroke="var(--rgs-track)" strokeWidth="8" />
+      <circle cx="64" cy="64" r={RING_R} fill="none" stroke="var(--neutral-surface-layer-03)" strokeWidth="8" />
       <circle
         cx="64"
         cy="64"
         r={RING_R}
         fill="none"
-        stroke="url(#rgs-arc)"
+        stroke="var(--brand-text-primary-default)"
         strokeWidth="8"
         strokeLinecap="round"
         strokeDasharray={`${dash} ${RING_C}`}
@@ -61,13 +55,11 @@ function DecorLayers() {
         <path
           d="M-10 220 C 70 190, 130 260, 210 210 S 340 150, 380 190"
           fill="none"
-          stroke="rgba(143,160,255,.18)"
           strokeWidth="1.5"
         />
         <path
           d="M-10 260 C 60 250, 140 300, 220 250 S 330 210, 380 240"
           fill="none"
-          stroke="rgba(123,230,200,.14)"
           strokeWidth="1.5"
         />
       </svg>
@@ -165,36 +157,45 @@ export default function ReadinessScoreCard() {
           </>
         ) : (
           <div className="rgs-intro">
-            <p>
-              This estimates how much of your retirement spending is covered by your savings, using your deferrals, age,
-              and location.
-            </p>
-            <Link className="rgs-cta" to="/retirement-goal">
-              Get started
-              <Icon icon={faArrowRight} size={14} aria-hidden="true" />
-            </Link>
+            {isEligibleNotEnrolledUser(participant) ? (
+              <>
+                <p>Please enroll to get started with your retirement readiness set up.</p>
+                <span className="rgs-primary-cta rgs-primary-cta--disabled" aria-disabled="true">
+                  Get started
+                </span>
+              </>
+            ) : (
+              <>
+                <p>
+                  This estimates how much of your retirement spending is covered by your savings, using your deferrals, age,
+                  and location.
+                </p>
+                <Link className="rgs-primary-cta" to="/retirement-goal">
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         )}
 
         <div className="rgs-foot">
-          <span className="rgs-foot-note">
+          <p className="rgs-foot-note">
             <Icon icon={faInfoCircle} size={13} aria-hidden="true" />
-            Not guaranteed results.
-          </span>
-          {/* Adjust link only shown once the widget is already started —
-              showing it alongside "Get started" duplicated the same CTA. */}
-          <span className="rgs-foot-actions">
-            {started && (
-              <Link className="rgs-foot-link" to="/retirement-goal">
-                <Icon icon={faSlidersH} size={12} aria-hidden="true" />
-                Adjust deferral rate and goal
-              </Link>
-            )}
-            <button type="button" className="rgs-foot-link" onClick={() => setOpen(true)}>
-              Disclaimer
-              <Icon icon={faArrowRight} size={12} aria-hidden="true" />
-            </button>
-          </span>
+            <span>
+              Not guaranteed results.{' '}
+              <button type="button" className="text-link rgs-disclaimer-link" onClick={() => setOpen(true)}>
+                Disclaimer
+              </button>
+            </span>
+          </p>
+          {/* Only once the widget is started -- before that, "Get started"
+              above is the single call to action. */}
+          {started && (
+            <Link className="rgs-foot-link" to="/retirement-goal">
+              <Icon icon={faSlidersH} size={12} aria-hidden="true" />
+              Adjust deferral rate and goal
+            </Link>
+          )}
         </div>
       </div>
 

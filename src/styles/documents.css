@@ -1,13 +1,13 @@
-.doc-page{padding:var(--page-padding-y-sm) var(--card-padding)}
+.doc-page{padding:var(--core-space-4) var(--core-space-4)}
 
 .doc-filters{
-  display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-3-5);margin-bottom:var(--space-4);
-  padding-bottom:var(--space-4);border-bottom:1px solid var(--neutral-border-light)}
-.doc-field{display:flex;flex-direction:column;gap:var(--form-label-gap);min-width:150px}
-.field-label{font-size:var(--text-label-size);font-weight:var(--text-label-weight);line-height:var(--text-label-lh);color:var(--neutral-text-subtle);letter-spacing:var(--text-label-ls)}
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--core-space-4);margin-bottom:var(--core-space-4);
+  padding-bottom:var(--core-space-4);border-bottom:1px solid var(--neutral-border-light)}
+.doc-field{display:flex;flex-direction:column;gap:var(--core-space-2);min-width:150px}
+.field-label{font-size:var(--typography-label-size);font-weight:var(--typography-label-weight);line-height:var(--typography-label-line-height);color:var(--neutral-text-subtle);letter-spacing:var(--typography-label-letter-spacing)}
 .doc-field input,.doc-field .ui-select-btn{
-  min-height:var(--input-min-height);border:1px solid var(--neutral-border-light);border-radius:var(--radius-sm);padding:var(--space-1-5) var(--space-2-5);
-  font:inherit;font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-default);background:var(--surface-default)}
+  min-height:var(--core-size-control-md);border:1px solid var(--core-color-border-control);border-radius:var(--core-radius-sm);padding:var(--core-space-2) var(--core-space-3);
+  font:inherit;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-default);background:var(--neutral-surface-layer-01)}
 /* Text field + dropdown states, tested here first: matches CORE's cds-input/
    cds-select pattern (Field.tsx/FormControls.tsx -- hover uses
    input.borderHover, focus uses input.borderFocus + a 25%-opacity ring,
@@ -18,8 +18,8 @@
    hover/disabled state at all before this; the two dropdowns (Plan Name/ID,
    Document Type) had a hover but no visible focus ring, which is a real
    keyboard-accessibility gap on top of the visual guideline. */
-.doc-field input:hover:not(:disabled),.doc-field .ui-select-btn:hover{border-color:var(--neutral-border-strong)}
-.doc-field input:focus,.doc-field .ui-select-btn:focus-visible{outline:none;border-color:var(--brand-text-primary-default);box-shadow:0 0 0 3px color-mix(in srgb, var(--brand-text-primary-default) 12%, transparent)}
+.doc-field input:hover:not(:disabled),.doc-field .ui-select-btn:hover{border-color:var(--neutral-border-strong);background:color-mix(in srgb,black 8%,var(--neutral-surface-layer-01))}
+.doc-field input:focus,.doc-field .ui-select-btn:focus-visible{outline:none;border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
 /* DS inputs recolour when disabled rather than fading (opacity pinned to 1). */
 .doc-field input:disabled{
   opacity:1;cursor:not-allowed;background:var(--semantics-disabled-background);
@@ -27,49 +27,50 @@
 .doc-field input:disabled::placeholder{color:var(--theme-colors-neutral-400)}
 .doc-field-reset{min-width:0;flex:0 0 auto}
 .doc-field-reset .field-label{visibility:hidden}
-.doc-filter-actions{display:flex;align-items:center;gap:var(--space-3)}
-.doc-reset{min-height:var(--input-min-height);display:inline-flex;align-items:center}
+.doc-filter-actions{display:flex;align-items:center;gap:var(--core-space-3)}
+.doc-reset{min-height:var(--core-size-control-md);display:inline-flex;align-items:center}
 /* Search button states: wired to the CORE design system's dedicated brand
    hover/active/disabled tokens (Core-Design-system-1.1's Button.tsx /
    cds-btn--primary) instead of the app-wide .btn-primary's color-mix()
    approximation -- those exact tokens already exist in
-   core-color-palette.css ("Not yet applied") and are applied here first,
+   core-tokens.css and are applied here first,
    scoped to this one button per the requested change. */
 .doc-search-btn{
-  width:auto;min-height:var(--input-min-height);padding:var(--space-1-5) var(--space-4);
-  border-color:var(--theme-brand-borders-primary-default)}
+  width:auto;min-height:var(--core-size-control-md);padding:var(--core-space-2) var(--core-space-4);
+  border-color:var(--brand-border-primary-default)}
 .doc-search-btn:hover:not(:disabled){
-  background:var(--theme-brand-background-hover);border-color:var(--theme-brand-borders-hover)}
+  background:var(--brand-background-primary-hover);border-color:var(--brand-border-primary-hover)}
 .doc-search-btn:active:not(:disabled){
-  background:var(--theme-brand-background-active);border-color:var(--theme-brand-background-active)}
+  background:var(--brand-background-primary-active);border-color:var(--brand-background-primary-active)}
 .doc-search-btn:disabled,.doc-search-btn[aria-disabled="true"]{
-  background:var(--theme-brand-background-disabled-strong);color:var(--brand-text-primary-oncolor);
-  border-color:var(--theme-brand-borders-primary-disabled);opacity:1}
+  background:var(--brand-background-primary-disabled);color:var(--brand-text-primary-oncolor);
+  border-color:var(--brand-background-primary-disabled);opacity:1}
 
-.multi-select{position:relative;display:flex;flex-direction:column;gap:var(--form-label-gap);min-width:170px}
+.multi-select{position:relative;display:flex;flex-direction:column;gap:var(--core-space-2);min-width:170px}
 .multi-select-btn{
-  display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--input-min-height);
-  border:1px solid var(--neutral-border-light);border-radius:var(--radius-sm);background:var(--surface-default);padding:var(--space-1-5) var(--space-2-5);
-  font:inherit;font-size:var(--text-body-md-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-default);cursor:pointer}
-.multi-select-btn:hover{border-color:var(--neutral-border-strong)}
-.multi-select-btn:focus-visible{outline:none;border-color:var(--brand-text-primary-default);box-shadow:0 0 0 3px color-mix(in srgb, var(--brand-text-primary-default) 12%, transparent)}
+  display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-2);min-height:var(--core-size-control-md);
+  border:1px solid var(--core-color-border-control);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01);padding:var(--core-space-2) var(--core-space-3);
+  font:inherit;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-default);cursor:pointer}
+.multi-select-btn:hover{border-color:var(--neutral-border-strong);background:color-mix(in srgb,black 8%,var(--neutral-surface-layer-01))}
+.multi-select-btn:focus-visible{outline:none;border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
 .multi-select-btn svg{color:var(--neutral-text-subtle);flex:0 0 auto}
 .multi-select-menu{
-  position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:240px;max-width:calc(100vw - var(--space-8));max-height:280px;overflow-y:auto;
-  background:var(--surface-default);border:1px solid var(--neutral-border-light);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);padding:var(--space-1-5)}
+  position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:240px;max-width:calc(100vw - var(--core-space-8));max-height:280px;overflow-y:auto;
+  background:var(--neutral-surface-layer-01);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);box-shadow:var(--core-elevation-3);padding:var(--core-space-1)}
 .multi-select-row{
-  display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-2);border-radius:var(--radius-sm);cursor:pointer;font-size:var(--text-body-sm-size);min-height:44px}
-.multi-select-row:hover{background:var(--brand-background-primary-subtle)}
-.multi-select-row.all{font-weight:var(--font-weight-bold);border-bottom:1px solid var(--neutral-border-light);border-radius:0;margin-bottom:var(--space-1);padding-bottom:var(--space-2-5)}
-.multi-select-row input{margin:var(--space-0);width:16px;height:16px;accent-color:var(--brand-text-primary-default);cursor:pointer;flex:0 0 auto}
-.multi-select-row b{font-weight:var(--font-weight-semibold);color:var(--neutral-text-default);display:block}
-.multi-select-row small{display:block;color:var(--neutral-text-subtle-light);font-size:var(--text-caption-size);font-weight:var(--font-weight-medium)}
+  display:flex;align-items:center;gap:var(--core-space-2);padding:var(--core-space-2) var(--core-space-2);border-radius:var(--core-radius-sm);cursor:pointer;font-size:var(--typography-body-sm-size);min-height:44px}
+.multi-select-row:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:-2px}
+.multi-select-row:hover{background:color-mix(in srgb,var(--brand-text-primary-default) 18%,var(--core-color-surface-overlay))}
+.multi-select-row.all{font-weight:var(--typography-font-weight-bold);border-bottom:1px solid var(--neutral-border-light);border-radius:0;margin-bottom:var(--core-space-1);padding-bottom:var(--core-space-3)}
 
-.doc-results-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
+.multi-select-row b{font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);display:block}
+.multi-select-row small{display:block;color:var(--neutral-text-subtle-light);font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-medium)}
+
+.doc-results-head{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-3);margin-bottom:var(--core-space-3)}
 .doc-results-head .btn{width:auto;flex:0 0 auto}
-.doc-count{font-size:var(--text-body-sm-size);font-weight:var(--font-weight-bold);color:var(--neutral-text-subtle)}
+.doc-count{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle)}
 
-.doc-plan{font-size:var(--text-caption-size);font-weight:var(--font-weight-semibold);color:var(--neutral-text-subtle);white-space:nowrap}
+.doc-plan{font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle);white-space:nowrap}
 
 @media(max-width:760px){
   .doc-filters{flex-direction:column;align-items:stretch}

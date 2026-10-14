@@ -42,6 +42,9 @@ export default function EnrollmentSummary() {
     return !!((benes?.primary?.length || 0) + (benes?.contingent?.length || 0))
   }, [participant])
   const deferral = useMemo(() => readSession(DEFERRAL_KEY), [])
+  // #93: show each deferral only in the unit the participant chose (% or $
+  // per paycheck), not both side by side.
+  const showAmount = (rate) => (deferral?.unit === '$' ? money(payFromPct(rate)) : pct(rate))
   const autoInc = useMemo(() => readSession(AUTO_INCREASE_KEY), [])
   const investment = useMemo(() => readSession(INVESTMENT_KEY), [])
 
@@ -94,17 +97,11 @@ export default function EnrollmentSummary() {
               <ul className="review-rows">
                 <li>
                   <span>Pre-Tax</span>
-                  <b>
-                    {pct(deferral?.pre)}
-                    <small>{money(payFromPct(deferral?.pre))}</small>
-                  </b>
+                  <b>{showAmount(deferral?.pre)}</b>
                 </li>
                 <li>
                   <span>Roth</span>
-                  <b>
-                    {pct(deferral?.roth)}
-                    <small>{money(payFromPct(deferral?.roth))}</small>
-                  </b>
+                  <b>{showAmount(deferral?.roth)}</b>
                 </li>
               </ul>
               <div className="review-sources review-divider">
@@ -211,12 +208,8 @@ export default function EnrollmentSummary() {
 
               <div className="success-next">
                 <div>
-                  <b>{hasBeneficiary ? 'View Beneficiary' : 'Add a beneficiary'}</b>
-                  <span>
-                    {hasBeneficiary
-                      ? 'Recommended to ensure your account passes to someone you choose.'
-                      : 'Recommended so your account can pass to someone you choose.'}
-                  </span>
+                  <b>{hasBeneficiary ? 'View beneficiary' : 'Add a beneficiary'}</b>
+                  <span>Recommended to ensure your account passes to someone you choose.</span>
                 </div>
                 <button
                   type="button"

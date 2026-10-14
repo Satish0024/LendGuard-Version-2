@@ -55,7 +55,7 @@ export default function RiskMeter() {
             </defs>
             <path d="M10 100A90 90 0 0 1 190 100" fill="none" stroke="url(#risk-arc)" strokeWidth="14" strokeLinecap="round" />
             <g className="risk-marker" style={{ transform: `rotate(${angle}deg)` }}>
-              <circle cx="100" cy="14" r="9" fill="var(--surface-default)" stroke={level.color} strokeWidth="4" />
+              <circle cx="100" cy="14" r="9" fill="var(--neutral-surface-layer-01)" stroke={level.color} strokeWidth="4" />
             </g>
           </svg>
           <div className="risk-center">

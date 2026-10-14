@@ -236,7 +236,7 @@ export default function AccountSummary() {
               </div>
 
               <div className="as-table-wrap">
-                <table className={`as-table ${tab === 'investments' || tab === 'assetclass' || tab === 'sources' ? 'as-table-accordion' : ''}`}>
+                <table className={tab === 'investments' || tab === 'assetclass' || tab === 'sources' ? 'as-table-accordion' : ''}>
                   <thead>
                     <tr>
                       <SortTh
@@ -258,6 +258,9 @@ export default function AccountSummary() {
                         onSort={toggleSort}
                         className="num"
                       />
+                      <th scope="col" className="as-chev-col">
+                        <span className="sr-only">Details</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -273,45 +276,48 @@ export default function AccountSummary() {
                       // expanded row injects a detail <tr> into the same tbody, which flips
                       // the parity of every row below it as sources open and close.
                       const zebra = displayIndex % 2 === 1 ? 'as-row-alt' : ''
-                      const nameLabel = tab === 'sources' ? 'Source' : tab === 'assetclass' ? 'Asset class' : 'Investment'
                       return (
                         <Fragment key={row.id}>
                           <tr
-                            className={`${active === i ? 'on' : ''} ${isOpen ? 'as-row-open' : ''} ${zebra}`.trim()}
+                            className={`${active === i ? 'on' : ''} ${isOpen ? 'as-row-open' : ''} ${isExpandable ? 'as-row-expandable' : ''} ${zebra}`.trim()}
                             onMouseEnter={() => setActive(i)}
                             onMouseLeave={() => setActive(null)}
+                            // Whole row is a mouse target; the chevron button in the
+                            // last cell is the keyboard / screen-reader control.
+                            onClick={isExpandable ? () => setExpandedRow(isOpen ? null : row.id) : undefined}
                           >
-                            {/* Name cell has no data-label: it becomes the card title on mobile */}
                             <td>
+                              <span className="as-row-name-cell">
+                                <span className="as-swatch" style={{ background: row.color }} aria-hidden="true" />
+                                {row.name}
+                              </span>
+                            </td>
+                            {isInvestment ? (
+                              <td className="num">{row.units != null ? formatUnits(row.units) : '—'}</td>
+                            ) : null}
+                            <td className="num">{formatMoney(row.amount)}</td>
+                            <td className="num">{formatPct(row.pct)}</td>
+                            <td className="as-chev-cell">
                               {isExpandable ? (
                                 <button
                                   type="button"
                                   className="as-row-toggle"
-                                  onClick={() => setExpandedRow(isOpen ? null : row.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setExpandedRow(isOpen ? null : row.id)
+                                  }}
                                   aria-expanded={isOpen}
                                   aria-controls={`${row.id}-detail`}
+                                  aria-label={`${isOpen ? 'Hide' : 'Show'} holdings for ${row.name}`}
                                 >
-                                  {row.name}
-                                  <Icon
-                                    icon={faChevronDown}
-                                    size={15}
-                                    className="as-row-chevron"
-                                    aria-hidden="true"
-                                  />
+                                  <Icon icon={faChevronDown} size={15} className="as-row-chevron" aria-hidden="true" />
                                 </button>
-                              ) : (
-                                row.name
-                              )}
+                              ) : null}
                             </td>
-                            {isInvestment ? (
-                              <td className="num" data-label="Units">{row.units != null ? formatUnits(row.units) : '—'}</td>
-                            ) : null}
-                            <td className="num" data-label="Balance">{formatMoney(row.amount)}</td>
-                            <td className="num" data-label="Percent">{formatPct(row.pct)}</td>
                           </tr>
                           {isOpen && isInvestment ? (
                             <tr className="as-row-detail" id={`${row.id}-detail`}>
-                              <td colSpan={4}>
+                              <td colSpan={5}>
                                 <div className="as-detail-grid">
                                   <div>
                                     <span>Asset class</span>
@@ -337,7 +343,7 @@ export default function AccountSummary() {
                           ) : null}
                           {showHoldings ? (
                             <tr className="as-row-detail" id={`${row.id}-detail`}>
-                              <td colSpan={3}>
+                              <td colSpan={4}>
                                 {/* Funds used to live only under Investments; Sources now
                                     expands to the same NAV / units / balance rows. */}
                                 <p className="as-class-asof">NAV as of {NAV_AS_OF}</p>
@@ -368,6 +374,7 @@ export default function AccountSummary() {
                       {tab === 'investments' ? <td /> : null}
                       <td className="num">{formatMoney(summary.balance)}</td>
                       <td className="num">100.00%</td>
+                      <td />
                     </tr>
                   </tfoot>
                 </table>

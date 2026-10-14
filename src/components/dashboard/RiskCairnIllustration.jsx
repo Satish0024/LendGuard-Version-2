@@ -39,10 +39,10 @@ export default function RiskCairnIllustration({ levelId, color }) {
         <ellipse cx="70" cy="106" rx="34" ry="15" fill="url(#cairn-stone)" />
         <ellipse cx="70" cy="106" rx="34" ry="15" fill="var(--neutral-text-default)" opacity="0.06" />
         <ellipse cx="70" cy="78" rx="25" ry="13" fill="url(#cairn-stone)" />
-        <ellipse cx="66" cy="73" rx="9" ry="5" fill="var(--surface-default)" opacity="0.18" />
+        <ellipse cx="66" cy="73" rx="9" ry="5" fill="var(--neutral-surface-layer-01)" opacity="0.18" />
         <circle cx="70" cy="52" r="16" fill="url(#cairn-stone)" />
-        <ellipse cx="65" cy="47" rx="5" ry="3.4" fill="var(--surface-default)" opacity="0.22" />
-        <circle className="risk-cairn-badge" cx="70" cy="52" r="11" fill="var(--surface-default)" />
+        <ellipse cx="65" cy="47" rx="5" ry="3.4" fill="var(--neutral-surface-layer-01)" opacity="0.22" />
+        <circle className="risk-cairn-badge" cx="70" cy="52" r="11" fill="var(--neutral-surface-layer-01)" />
         <foreignObject x="59" y="41" width="22" height="22">
           <div style={{ display: 'grid', placeItems: 'center', width: '100%', height: '100%', color }}>
             <Icon icon={levelIcon} size={14} />

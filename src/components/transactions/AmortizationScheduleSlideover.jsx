@@ -8,7 +8,7 @@ export default function AmortizationScheduleSlideover({ principal, termMonths, o
 
   return (
     <Slideover title="Amortization Schedule" width="wide" onClose={onClose}>
-      <p className="hint" style={{ marginTop: 'var(--space-0)' }}>
+      <p className="hint" style={{ marginTop: 'var(--core-space-0)' }}>
         Estimated repayment schedule for {formatMoney(principal)} at {LOAN_INTEREST_RATE}% over {termMonths} month(s).
       </p>
       <div className="table-scroll">

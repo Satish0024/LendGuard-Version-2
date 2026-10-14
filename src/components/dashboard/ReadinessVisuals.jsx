@@ -2,6 +2,7 @@ import { Icon } from '../../lib/icons'
 import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import { ASSUMPTIONS, money } from '../../lib/retirementGoal'
 import { useEscapeToClose } from '../../hooks/useEscapeToClose'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 const R = 42
 const CIRC = 2 * Math.PI * R
@@ -66,13 +67,16 @@ export function SlimDonut(props) {
 
 export function DisclaimerModal({ onClose }) {
   useEscapeToClose(true, onClose)
+  const trapRef = useFocusTrap(true)
   return (
     <div className="enroll-modal-bg" role="presentation" onClick={onClose}>
       <div
+        ref={trapRef}
         className="enroll-modal rr-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="rr-disclaimer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="rr-modal-h">

@@ -156,7 +156,7 @@ export default function RetirementGoalSimulatorV2() {
 
       <p className="rr3-foot">
         <span>*Not guaranteed results.</span>{' '}
-        <button type="button" className="rr3-disclaimer-link" onClick={() => setOpen(true)}>
+        <button type="button" className="text-link rr3-disclaimer-link" onClick={() => setOpen(true)}>
           Disclaimer
         </button>
       </p>

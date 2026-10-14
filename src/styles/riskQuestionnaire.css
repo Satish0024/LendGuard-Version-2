@@ -1,7 +1,7 @@
-.rqp-page{display:grid;grid-template-columns:3fr 7fr;min-height:100dvh;background:var(--surface-default)}
+.rqp-page{display:grid;grid-template-columns:3fr 7fr;min-height:100dvh;background:var(--neutral-surface-layer-01)}
 
 .rqp-side{
-  position:relative;overflow:hidden;background:var(--scene-sky);min-height:100dvh}
+  position:relative;overflow:hidden;background:var(--theme-brand-background-primary-subtle);min-height:100dvh}
 
 /* Static reference image (no text baked in), reused unchanged across every
    questionnaire step — fills the panel edge to edge behind the copy below. */
@@ -13,7 +13,7 @@
    against the balloon once it wrapped to more lines at narrower widths. */
 .rqp-side::before{
   content:"";position:absolute;inset:0 0 auto 0;height:44%;z-index:0;pointer-events:none;
-  background:linear-gradient(180deg,var(--scene-sky) 0%,color-mix(in srgb,var(--scene-sky) 55%,transparent) 65%,transparent 100%)}
+  background:linear-gradient(180deg,var(--theme-brand-background-primary-subtle) 0%,color-mix(in srgb,var(--theme-brand-background-primary-subtle) 55%,transparent) 65%,transparent 100%)}
 
 /* App-owned copy overlaid on top of the image — this is what actually
    varies per step; the image itself never changes. Sizes shrink with
@@ -21,16 +21,16 @@
    of lines (and staying clear of the balloon) as the panel narrows, rather
    than growing taller and colliding with it. */
 .rqp-side-copy{
-  position:relative;z-index:1;max-width:30ch;padding:var(--space-7) var(--space-6) var(--space-0)}
-.rqp-side-tag{display:block;font-size:var(--text-caption-size);font-weight:var(--font-weight-extrabold);letter-spacing:.5px;color:var(--semantics-warning-text);margin-bottom:var(--space-2-5)}
-.rqp-side-copy h1{font-size:var(--text-h2-size);font-weight:var(--font-weight-extrabold);line-height:var(--text-h2-lh);letter-spacing:var(--text-h2-ls);margin:var(--space-0) var(--space-0) var(--space-2-5);color:var(--brand-text-primary-hover)}
-.rqp-side-copy p{font-size:var(--text-body-md-size);line-height:var(--text-body-md-lh);color:var(--neutral-text-subtle);margin:0}
+  position:relative;z-index:1;max-width:30ch;padding:var(--core-space-8) var(--core-space-6) var(--core-space-0)}
+.rqp-side-tag{display:block;font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);color:var(--semantics-warning-text);margin-bottom:var(--core-space-3)}
+.rqp-side-copy h1{font-size:var(--typography-heading-h2-size);font-weight:var(--typography-font-weight-bold);line-height:var(--typography-heading-h2-line-height);letter-spacing:var(--typography-heading-h2-letter-spacing);margin:var(--core-space-0) var(--core-space-0) var(--core-space-3);color:var(--brand-text-primary-hover)}
+.rqp-side-copy p{font-size:var(--typography-body-md-size);line-height:var(--typography-body-md-line-height);color:var(--neutral-text-subtle);margin:0}
 
-.rqp-main{display:flex;flex-direction:column;padding:var(--space-9) var(--space-12);max-width:760px;width:100%;margin:0 auto}
-.rqp-main-head{display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-8)}
+.rqp-main{display:flex;flex-direction:column;padding:var(--core-space-10) var(--core-space-12);max-width:760px;width:100%;margin:0 auto}
+.rqp-main-head{display:flex;align-items:center;gap:var(--core-space-4);margin-bottom:var(--core-space-8)}
 .rqp-leave{
-  display:inline-flex;align-items:center;gap:var(--space-1-5);border:none;background:none;color:var(--neutral-text-subtle);
-  font:inherit;font-size:var(--text-body-md-size);font-weight:var(--font-weight-bold);cursor:pointer;padding:var(--space-0);flex:0 0 auto}
+  display:inline-flex;align-items:center;gap:var(--core-space-2);border:none;background:none;color:var(--neutral-text-subtle);
+  font:inherit;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);cursor:pointer;padding:var(--core-space-0);flex:0 0 auto}
 .rqp-leave:hover{color:var(--neutral-text-default)}
 /* Was flex:1 + justify-content:center -- a short question (a few answer
    rows) got centered inside a box that filled the entire remaining
@@ -41,15 +41,10 @@
    content, so .rqp-actions sits right after the content instead of
    after a viewport-tall gap. */
 .rqp-body{display:flex;flex-direction:column}
-.rqp-actions{margin-top:var(--space-8)}
+.rqp-actions{margin-top:var(--core-space-8)}
 
 @media(max-width:900px){
   .rqp-page{grid-template-columns:1fr}
   .rqp-side{display:none}
-  .rqp-main{padding:var(--space-7) var(--space-5)}
-}
-@media(max-width:480px){
-  .rqp-main{padding:var(--space-5) var(--page-padding-x-sm)}
-  .rqp-main-head{gap:var(--space-2-5);margin-bottom:var(--space-5)}
-  .rqp-actions{margin-top:var(--space-5)}
+  .rqp-main{padding:var(--core-space-8) var(--core-space-5)}
 }

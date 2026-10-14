@@ -124,15 +124,15 @@ export const PARTICIPANTS = [
         investments: [
           { name: 'Vanguard Institutional Index Fund Admiral Shares', asset: 'U.S. Equity', amount: 2100, price: 96.3, units: 21.807 },
           { name: 'Vanguard Total International Stock Index', asset: 'International Equity', amount: 1450, price: 32.4, units: 44.753 },
-          { name: 'iShares Emerging Markets ETF', asset: 'Emerging Markets', amount: 720, price: 41.2, units: 17.476 },
-          { name: 'Vanguard Small-Cap Index Fund', asset: 'U.S. Small Cap', amount: 840, price: 98.1, units: 8.563 },
-          { name: 'Vanguard Mid-Cap Index Fund', asset: 'U.S. Mid Cap', amount: 980, price: 64.5, units: 15.194 },
-          { name: 'Vanguard Total Bond Market Index Fund Admiral Shares', asset: 'U.S. Bond', amount: 1680, price: 10.12, units: 166.008 },
-          { name: 'Vanguard Total International Bond Index', asset: 'International Bond', amount: 760, price: 20.4, units: 37.255 },
-          { name: 'Fidelity High Income Fund', asset: 'High Yield', amount: 540, price: 8.15, units: 66.258 },
-          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Target-Date', amount: 1980, price: 45.18, units: 43.825 },
-          { name: 'Vanguard Real Estate Index Fund', asset: 'Real Estate', amount: 820, price: 18.6, units: 44.086 },
-          { name: 'Vanguard Federal Money Market', asset: 'Cash / Stable Value', amount: 970, price: 1.0, units: 970 }
+          { name: 'iShares Emerging Markets ETF', asset: 'International Equity', amount: 720, price: 41.2, units: 17.476 },
+          { name: 'Vanguard Small-Cap Index Fund', asset: 'U.S. Equity', amount: 840, price: 98.1, units: 8.563 },
+          { name: 'Vanguard Mid-Cap Index Fund', asset: 'U.S. Equity', amount: 980, price: 64.5, units: 15.194 },
+          { name: 'Vanguard Total Bond Market Index Fund Admiral Shares', asset: 'Taxable Bond', amount: 1680, price: 10.12, units: 166.008 },
+          { name: 'Vanguard Total International Bond Index', asset: 'Taxable Bond', amount: 760, price: 20.4, units: 37.255 },
+          { name: 'Fidelity High Income Fund', asset: 'Taxable Bond', amount: 540, price: 8.15, units: 66.258 },
+          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Allocation', amount: 1980, price: 45.18, units: 43.825 },
+          { name: 'Vanguard Real Estate Index Fund', asset: 'Sector Equity', amount: 820, price: 18.6, units: 44.086 },
+          { name: 'Vanguard Federal Money Market', asset: 'Money Market', amount: 970, price: 1.0, units: 970 }
         ]
       },
       {
@@ -147,7 +147,7 @@ export const PARTICIPANTS = [
         details: { status: 'Enrolled', balance: '$4,250.00', vested: '$4,250.00' },
         sources: [{ name: 'Profit Sharing', amount: 4250, vested: 4250 }],
         investments: [
-          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Target-Date', amount: 4250, price: 45.18, units: 94.068 }
+          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Allocation', amount: 4250, price: 45.18, units: 94.068 }
         ]
       },
       {
@@ -347,15 +347,15 @@ export const PARTICIPANTS = [
         investments: [
           { name: 'Vanguard Institutional Index Fund Admiral Shares', asset: 'U.S. Equity', amount: 18500, price: 96.3, units: 192.108 },
           { name: 'Vanguard Total International Stock Index', asset: 'International Equity', amount: 9800, price: 32.4, units: 302.469 },
-          { name: 'iShares Emerging Markets ETF', asset: 'Emerging Markets', amount: 4200, price: 41.2, units: 101.942 },
-          { name: 'Vanguard Small-Cap Index Fund', asset: 'U.S. Small Cap', amount: 5100, price: 98.1, units: 51.988 },
-          { name: 'Vanguard Mid-Cap Index Fund', asset: 'U.S. Mid Cap', amount: 6400, price: 64.5, units: 99.225 },
-          { name: 'Vanguard Total Bond Market Index Fund Admiral Shares', asset: 'U.S. Bond', amount: 12200, price: 10.12, units: 1205.534 },
-          { name: 'Vanguard Total International Bond Index', asset: 'International Bond', amount: 4800, price: 20.4, units: 235.294 },
-          { name: 'Fidelity High Income Fund', asset: 'High Yield', amount: 3100, price: 8.15, units: 380.368 },
-          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Target-Date', amount: 14200, price: 45.18, units: 314.298 },
-          { name: 'Vanguard Real Estate Index Fund', asset: 'Real Estate', amount: 3800, price: 18.6, units: 204.301 },
-          { name: 'Vanguard Federal Money Market', asset: 'Cash / Stable Value', amount: 5066, price: 1.0, units: 5066 }
+          { name: 'iShares Emerging Markets ETF', asset: 'International Equity', amount: 4200, price: 41.2, units: 101.942 },
+          { name: 'Vanguard Small-Cap Index Fund', asset: 'U.S. Equity', amount: 5100, price: 98.1, units: 51.988 },
+          { name: 'Vanguard Mid-Cap Index Fund', asset: 'U.S. Equity', amount: 6400, price: 64.5, units: 99.225 },
+          { name: 'Vanguard Total Bond Market Index Fund Admiral Shares', asset: 'Taxable Bond', amount: 12200, price: 10.12, units: 1205.534 },
+          { name: 'Vanguard Total International Bond Index', asset: 'Taxable Bond', amount: 4800, price: 20.4, units: 235.294 },
+          { name: 'Fidelity High Income Fund', asset: 'Taxable Bond', amount: 3100, price: 8.15, units: 380.368 },
+          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Allocation', amount: 14200, price: 45.18, units: 314.298 },
+          { name: 'Vanguard Real Estate Index Fund', asset: 'Sector Equity', amount: 3800, price: 18.6, units: 204.301 },
+          { name: 'Vanguard Federal Money Market', asset: 'Money Market', amount: 5066, price: 1.0, units: 5066 }
         ]
       },
       {
@@ -370,7 +370,7 @@ export const PARTICIPANTS = [
         details: { status: 'Enrolled', balance: '$13,250.00', vested: '$13,250.00' },
         sources: [{ name: 'Profit Sharing', amount: 13250, vested: 13250 }],
         investments: [
-          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Target-Date', amount: 13250, price: 45.18, units: 293.271 }
+          { name: 'Vanguard Target Retirement 2050 Trust Select', asset: 'Allocation', amount: 13250, price: 45.18, units: 293.271 }
         ]
       }
     ],

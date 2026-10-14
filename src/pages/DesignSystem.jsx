@@ -55,9 +55,9 @@ const NAV = [
 const COLORS = [
   ['Brand', '--brand-text-primary-default'], ['Brand hover', '--brand-text-primary-hover'], ['Brand active', '--brand-text-primary-active'],
   ['Text default', '--neutral-text-default'], ['Text subtle', '--neutral-text-subtle'], ['Text muted', '--neutral-text-subtle-light'],
-  ['Border', '--neutral-border-light'], ['Background', '--surface-subtle'], ['Panel', '--surface-default'],
+  ['Border', '--neutral-border-light'], ['Background', '--theme-colors-neutral-50'], ['Panel', '--core-color-surface-default'],
   ['Active bg', '--brand-background-primary-light'], ['Success', '--semantics-success-text'], ['Warning', '--semantics-warning-text'],
-  ['Danger', '--semantics-critical-text'], ['Surface muted', '--surface-muted'], ['Surface strong', '--surface-strong'],
+  ['Danger', '--semantics-critical-text'], ['Surface muted', '--core-color-surface-sunken'], ['Surface strong', '--theme-colors-neutral-200'],
 ]
 
 // name, var — hex values are resolved live (see useDualThemeTokens) from
@@ -73,8 +73,8 @@ const COLOR_GROUPS = [
   { title: 'Neutrals', tokens: [
     ['Text default', '--neutral-text-default'], ['Text subtle', '--neutral-text-subtle'], ['Text muted', '--neutral-text-subtle-light'],
     ['Border light', '--neutral-border-light'], ['Border strong', '--neutral-border-strong'],
-    ['Background default', '--surface-default'], ['Background subtle', '--surface-subtle'],
-    ['Background muted', '--surface-muted'], ['Background strong', '--surface-strong'],
+    ['Background default', '--core-color-surface-default'], ['Background subtle', '--theme-colors-neutral-50'],
+    ['Background muted', '--core-color-surface-sunken'], ['Background strong', '--theme-colors-neutral-200'],
   ] },
   { title: 'Status — success', tokens: [
     ['Text', '--semantics-success-text'], ['Background light', '--semantics-success-background-light'],
@@ -112,95 +112,89 @@ const BRAND_SCALE = [
 // this table being updated to match.
 /**
  * Single typography catalog for engineering handoff.
- * Floor: 12px. Body / UI text use rem + line-height ≥ 1.5 (WCAG 1.4.12).
+ * Floor: 12px. Values mirror CORE typography tokens (letter-spacing 0 throughout).
  * Do not invent sizes outside this list.
  */
 const TYPE_ROWS = [
-  { group: 'Font family', name: '--font-family-sans', size: '—', weight: '—', lh: '—', ls: '—', case: '—', sample: 'Aa Bb Cc 0123', cls: 'ds-type-body-md', use: 'Inclusive Sans — primary font' },
-  { group: 'Font weight', name: '--font-weight-regular', size: '—', weight: '400', lh: '—', ls: '—', case: '—', sample: 'Regular', cls: 'ds-type-body-md', use: 'Body, placeholder, helper' },
-  { group: 'Font weight', name: '--font-weight-medium', size: '—', weight: '500', lh: '—', ls: '—', case: '—', sample: 'Medium', cls: 'ds-type-caption', use: 'Captions' },
-  { group: 'Font weight', name: '--font-weight-semibold', size: '—', weight: '600', lh: '—', ls: '—', case: '—', sample: 'Semibold', cls: 'ds-type-p3', use: 'Emphasized body' },
-  { group: 'Font weight', name: '--font-weight-bold', size: '—', weight: '700', lh: '—', ls: '—', case: '—', sample: 'Bold', cls: 'ds-type-label', use: 'Headings, labels, buttons, links' },
-  { group: 'Font weight', name: '--font-weight-extrabold', size: '—', weight: '800', lh: '—', ls: '—', case: '—', sample: 'ExtraBold', cls: 'ds-type-eyebrow', use: 'Eyebrows / strong accents' },
-  { group: 'Display', name: '--text-display-xl-*', size: '48px', weight: '800', lh: '60px (1.25)', ls: '-0.8px', case: 'none', sample: '48.2%', cls: 'ds-type-display-xl', use: 'Hero titles' },
-  { group: 'Display', name: '--text-display-sm-*', size: '40px', weight: '800', lh: '48px (1.2)', ls: '-0.8px', case: 'none', sample: '92', cls: 'ds-type-display-sm', use: 'Readiness / large KPI' },
-  { group: 'Display', name: '--text-display-lg-*', size: '32px', weight: '700', lh: '40px (1.25)', ls: '-0.8px', case: 'none', sample: '$248,420', cls: 'ds-type-display-lg', use: 'Primary balance' },
-  { group: 'Display', name: '--text-display-md-*', size: '24px', weight: '700', lh: '32px (1.33)', ls: '-0.4px', case: 'none', sample: '$12,450', cls: 'ds-type-display-md', use: 'Stat tiles' },
-  { group: 'Heading', name: '--text-h1-*', size: '32px', weight: '700', lh: '40px (1.25)', ls: '-0.4px', case: 'none', sample: 'Page title', cls: 'ds-type-h1', use: 'Page title' },
-  { group: 'Heading', name: '--text-h2-*', size: '24px', weight: '700', lh: '32px (1.33)', ls: '-0.3px', case: 'none', sample: 'Section heading', cls: 'ds-type-h2', use: 'Section heading' },
-  { group: 'Heading', name: '--text-h3-*', size: '20px', weight: '700', lh: '28px (1.4)', ls: '-0.2px', case: 'none', sample: 'Card heading', cls: 'ds-type-h3', use: 'Card / subsection' },
-  { group: 'Heading', name: '--text-h4-*', size: '16px', weight: '700', lh: '24px (1.5)', ls: '0', case: 'none', sample: 'Widget title', cls: 'ds-type-h4', use: 'Widget title' },
-  { group: 'Heading', name: '--text-h5-*', size: '16px', weight: '700', lh: '24px (1.5)', ls: '0', case: 'none', sample: 'List title', cls: 'ds-type-h5', use: 'List / step title' },
-  { group: 'Heading', name: '--text-h6-*', size: '14px', weight: '700', lh: '1.5', ls: '0', case: 'none', sample: 'Group label', cls: 'ds-type-h6', use: 'Smallest heading' },
-  { group: 'Body', name: '--text-body-lg-*', size: '16px', weight: '400', lh: '1.5', ls: '0', case: 'none', sample: 'Lead paragraph for introductions.', cls: 'ds-type-body-lg', use: 'Lead paragraph' },
-  { group: 'Body', name: '--text-body-md-*', size: '14px', weight: '400', lh: '1.5', ls: '0', case: 'none', sample: 'Default app body text.', cls: 'ds-type-body-md', use: 'Default body (also --text-body-sm-*)' },
-  { group: 'Body', name: '--text-body-xs-*', size: '12px', weight: '400', lh: '1.5', ls: '0', case: 'none', sample: 'Compact body in dense lists.', cls: 'ds-type-body-xs', use: 'Compact body' },
-  { group: 'Label', name: '--text-label-*', size: '14px', weight: '700', lh: '1.5', ls: '0', case: 'none', sample: 'Email address', cls: 'ds-type-label', use: 'Form labels' },
-  { group: 'Label', name: '--text-eyebrow-*', size: '12px', weight: '800', lh: '1.5', ls: '0.8px', case: 'uppercase', sample: 'Plan type', cls: 'ds-type-eyebrow', use: 'Overline / tags (min size)' },
-  { group: 'Caption / helper', name: '--text-caption-*', size: '12px', weight: '500', lh: '1.5', ls: '0.4px', case: 'none', sample: 'Updated 2 hours ago', cls: 'ds-type-caption', use: 'Meta, timestamps' },
-  { group: 'Caption / helper', name: '--text-helper-*', size: '12px', weight: '400', lh: '1.5', ls: '0', case: 'none', sample: 'Use your work email to sign in.', cls: 'ds-type-helper', use: 'Field help (.text-helper)' },
-  { group: 'Button', name: '--text-button-lg-*', size: '16px', weight: '700', lh: '1.5', ls: '0', case: 'none', sample: 'Sign in', cls: 'ds-type-button-lg', use: '.btn-lg' },
-  { group: 'Button', name: '--text-button-md-*', size: '14px', weight: '700', lh: '1.5', ls: '0', case: 'none', sample: 'Continue', cls: 'ds-type-button-md', use: '.btn (default)' },
-  { group: 'Button', name: '--text-button-sm-*', size: '14px', weight: '700', lh: '1.5', ls: '0', case: 'none', sample: 'Edit', cls: 'ds-type-button-sm', use: '.btn-sm' },
-  { group: 'Link', name: '--text-link-*', size: '14px', weight: '700', lh: '1.5', ls: '0', case: 'none', sample: 'Forgot password?', cls: 'ds-type-link', use: '.text-link' },
-  { group: 'Placeholder', name: '--text-placeholder-*', size: '14px', weight: '400', lh: '1.5', ls: '0', case: 'none', sample: 'Enter your email', cls: 'ds-type-placeholder', use: '::placeholder' },
+  { group: 'Font family', name: '--typography-font-family-sans', size: '—', weight: '—', lh: '—', ls: '—', case: '—', sample: 'Aa Bb Cc 0123', cls: 'ds-type-body-md', use: 'Inclusive Sans — primary font' },
+  { group: 'Font weight', name: '--typography-font-weight-regular', size: '—', weight: '400', lh: '—', ls: '—', case: '—', sample: 'Regular', cls: 'ds-type-body-md', use: 'Body, placeholder, helper' },
+  { group: 'Font weight', name: '--typography-font-weight-medium', size: '—', weight: '500', lh: '—', ls: '—', case: '—', sample: 'Medium', cls: 'ds-type-caption', use: 'Captions' },
+  { group: 'Font weight', name: '--typography-font-weight-semibold', size: '—', weight: '600', lh: '—', ls: '—', case: '—', sample: 'Semibold', cls: 'ds-type-p3', use: 'Emphasized body' },
+  { group: 'Font weight', name: '--typography-font-weight-bold', size: '—', weight: '700', lh: '—', ls: '—', case: '—', sample: 'Bold', cls: 'ds-type-label', use: 'Headings, labels, buttons, links' },
+  { group: 'Font weight', name: '--typography-font-weight-extrabold', size: '—', weight: '800', lh: '—', ls: '—', case: '—', sample: 'ExtraBold', cls: 'ds-type-eyebrow', use: 'Eyebrows only (CORE)' },
+  { group: 'Display', name: '--text-display-xl-*', size: '48px', weight: '700', lh: '60px (1.25)', ls: '0', case: 'none', sample: '48.2%', cls: 'ds-type-display-xl', use: 'Hero titles' },
+  { group: 'Display', name: '--text-display-sm-*', size: '40px', weight: '700', lh: '48px (1.2)', ls: '0', case: 'none', sample: '92', cls: 'ds-type-display-sm', use: 'Readiness / large KPI' },
+  { group: 'Display', name: '--text-display-lg-*', size: '32px', weight: '700', lh: '40px', ls: '0', case: 'none', sample: '$248,420', cls: 'ds-type-display-lg', use: 'Primary balance' },
+  { group: 'Display', name: '--text-display-md-*', size: '24px', weight: '700', lh: '32px', ls: '0', case: 'none', sample: '$12,450', cls: 'ds-type-display-md', use: 'Stat tiles' },
+  { group: 'Heading', name: '--text-h1-*', size: '32px', weight: '700', lh: '40px', ls: '0', case: 'none', sample: 'Page title', cls: 'ds-type-h1', use: 'Page title' },
+  { group: 'Heading', name: '--text-h2-*', size: '28px', weight: '700', lh: '36px', ls: '0', case: 'none', sample: 'Section heading', cls: 'ds-type-h2', use: 'Section heading' },
+  { group: 'Heading', name: '--text-h3-*', size: '24px', weight: '700', lh: '32px', ls: '0', case: 'none', sample: 'Card heading', cls: 'ds-type-h3', use: 'Card / subsection' },
+  { group: 'Heading', name: '--text-h4-*', size: '20px', weight: '700', lh: '28px', ls: '0', case: 'none', sample: 'Widget title', cls: 'ds-type-h4', use: 'Widget title' },
+  { group: 'Heading', name: '--text-h5-*', size: '16px', weight: '700', lh: '24px', ls: '0', case: 'none', sample: 'List title', cls: 'ds-type-h5', use: 'List / step title' },
+  { group: 'Heading', name: '--text-h6-*', size: '14px', weight: '700', lh: '20px', ls: '0', case: 'none', sample: 'Group label', cls: 'ds-type-h6', use: 'Smallest heading' },
+  { group: 'Body', name: '--text-body-lg-*', size: '16px', weight: '400', lh: '24px', ls: '0', case: 'none', sample: 'Lead paragraph for introductions.', cls: 'ds-type-body-lg', use: 'Lead paragraph' },
+  { group: 'Body', name: '--text-body-md-*', size: '14px', weight: '400', lh: '20px', ls: '0', case: 'none', sample: 'Default app body text.', cls: 'ds-type-body-md', use: 'Default body (also --text-body-sm-*)' },
+  { group: 'Body', name: '--text-body-xs-*', size: '12px', weight: '400', lh: '16px', ls: '0', case: 'none', sample: 'Compact body in dense lists.', cls: 'ds-type-body-xs', use: 'Compact body' },
+  { group: 'Label', name: '--text-label-*', size: '14px', weight: '700', lh: '20px', ls: '0', case: 'none', sample: 'Email address', cls: 'ds-type-label', use: 'Form labels' },
+  { group: 'Label', name: '--text-eyebrow-*', size: '12px', weight: '800', lh: '16px', ls: '0', case: 'uppercase', sample: 'Plan type', cls: 'ds-type-eyebrow', use: 'Overline / tags (min size)' },
+  { group: 'Caption / helper', name: '--text-caption-*', size: '12px', weight: '500', lh: '16px', ls: '0', case: 'none', sample: 'Updated 2 hours ago', cls: 'ds-type-caption', use: 'Meta, timestamps' },
+  { group: 'Caption / helper', name: '--text-helper-*', size: '12px', weight: '400', lh: '16px', ls: '0', case: 'none', sample: 'Use your work email to sign in.', cls: 'ds-type-helper', use: 'Field help (.text-helper)' },
+  { group: 'Button', name: '--text-button-lg-*', size: '16px', weight: '700', lh: '24px', ls: '0', case: 'none', sample: 'Sign in', cls: 'ds-type-button-lg', use: '.btn-lg' },
+  { group: 'Button', name: '--text-button-md-*', size: '14px', weight: '700', lh: '20px', ls: '0', case: 'none', sample: 'Continue', cls: 'ds-type-button-md', use: '.btn (default)' },
+  { group: 'Button', name: '--text-button-sm-*', size: '12px', weight: '700', lh: '16px', ls: '0', case: 'none', sample: 'Edit', cls: 'ds-type-button-sm', use: '.btn-sm' },
+  { group: 'Link', name: '--text-link-*', size: '14px', weight: '700', lh: '20px', ls: '0', case: 'none', sample: 'Forgot password?', cls: 'ds-type-link', use: '.text-link' },
+  { group: 'Placeholder', name: '--text-placeholder-*', size: '14px', weight: '400', lh: '20px', ls: '0', case: 'none', sample: 'Enter your email', cls: 'ds-type-placeholder', use: '::placeholder' },
 ]
 
 /** Spacing token catalog — scale + semantic usage. */
 const SPACE_SCALE = [
-  { name: '--space-0', px: '0', use: 'Reset margin/padding' },
-  { name: '--space-px', px: '1px', use: 'Hairline offsets' },
-  { name: '--space-0-5', px: '2px', use: 'Micro gap' },
-  { name: '--space-1', px: '4px', use: 'Tight inset' },
-  { name: '--space-1-5', px: '6px', use: 'Label→input gap (--form-label-gap)' },
-  { name: '--space-2', px: '8px', use: 'Compact padding / btn-sm y' },
-  { name: '--space-2-5', px: '10px', use: 'Default btn y / input y' },
-  { name: '--space-3', px: '12px', use: 'Stack gap / btn-sm x' },
-  { name: '--space-3-5', px: '14px', use: 'Form field gap' },
-  { name: '--space-4', px: '16px', use: 'Card-sm / form→submit / btn md x' },
-  { name: '--space-4-5', px: '18px', use: 'Rare mid step' },
-  { name: '--space-5', px: '20px', use: 'Default card / page gap' },
-  { name: '--space-6', px: '24px', use: 'Page y / card-lg / btn-lg x' },
-  { name: '--space-7', px: '28px', use: 'Large stack' },
-  { name: '--space-8', px: '32px', use: 'Page x (desktop)' },
-  { name: '--space-9', px: '36px', use: 'Large layout step' },
-  { name: '--space-10', px: '40px', use: 'Section breathing room' },
-  { name: '--space-12', px: '48px', use: 'Page bottom padding' },
-  { name: '--space-14', px: '56px', use: 'Extra-large section' },
-  { name: '--space-16', px: '64px', use: 'Hero / major layout' },
+  { name: '--core-space-0', px: '0', use: 'Reset margin/padding' },
+  { name: '--core-border-width-hairline', px: '1px', use: 'Hairline offsets' },
+  { name: '--core-space-1', px: '4px', use: 'Tight inset / btn-sm y' },
+  { name: '--core-space-2', px: '8px', use: 'Compact padding / btn y / input y' },
+  { name: '--core-space-3', px: '12px', use: 'Stack gap / btn x / input x' },
+  { name: '--core-space-4', px: '16px', use: 'Card, modal and drawer padding' },
+  { name: '--core-space-5', px: '20px', use: 'Page gap' },
+  { name: '--core-space-6', px: '24px', use: 'Header / footer x' },
+  { name: '--core-space-8', px: '32px', use: 'Page x (desktop)' },
+  { name: '--core-space-10', px: '40px', use: 'Section breathing room' },
+  { name: '--core-space-12', px: '48px', use: 'Page bottom padding' },
+  { name: '--core-space-16', px: '64px', use: 'Hero / major layout' },
+  { name: '--core-space-20', px: '80px', use: 'Major layout' },
+  { name: '--core-space-24', px: '96px', use: 'Rail width' },
 ]
 
 const SPACE_SEMANTIC = [
   { group: 'Margin / padding (component)', rows: [
-    { name: '--btn-padding-y-sm / --btn-padding-x-sm', px: '8 × 12', use: 'Small button padding' },
-    { name: '--btn-padding-y-md / --btn-padding-x-md', px: '10 × 16', use: 'Default .btn padding' },
-    { name: '--btn-padding-y-lg / --btn-padding-x-lg', px: '12 × 24', use: 'Large / login CTA padding' },
-    { name: '--icon-btn-size-sm / md / lg', px: '32 / 36 / 44', use: 'Icon-only button hit targets' },
-    { name: '--input-padding-y / --input-padding-x', px: '10 × 12', use: 'Default .form-control padding' },
-    { name: '--input-min-height / sm / lg', px: '40 / 36 / 48', use: 'Input min heights' },
-    { name: '--card-padding-sm', px: '16', use: 'Compact card / section-card' },
-    { name: '--card-padding', px: '20', use: 'Default panel / card' },
-    { name: '--card-padding-lg', px: '24', use: 'Spacious card' },
+    { name: '--core-space-1 / --btn-padding-x-sm', px: '8 × 12', use: 'Small button padding' },
+    { name: '--core-space-2 / --btn-padding-x-md', px: '10 × 16', use: 'Default .btn padding' },
+    { name: '--core-space-2 / --btn-padding-x-lg', px: '12 × 24', use: 'Large / login CTA padding' },
+    { name: '--core-size-control-sm / md / lg', px: '32 / 36 / 44', use: 'Icon-only button hit targets' },
+    { name: '--core-space-2 / --input-padding-x', px: '10 × 12', use: 'Default .form-control padding' },
+    { name: '--core-size-control-md / sm / lg', px: '40 / 36 / 48', use: 'Input min heights' },
+    { name: '--core-space-4', px: '16', use: 'Compact card / section-card' },
+    { name: '--core-space-4', px: '20', use: 'Default panel / card' },
+    { name: '--core-space-4', px: '24', use: 'Spacious card' },
   ]},
   { group: 'Gap', rows: [
-    { name: '--btn-gap', px: '8', use: 'Icon + label inside buttons' },
+    { name: '--core-space-1', px: '8', use: 'Icon + label inside buttons' },
     { name: '--inline-gap-sm', px: '6', use: 'Tight chip / icon rows' },
     { name: '--inline-gap', px: '8', use: 'Inline clusters' },
-    { name: '--actions-gap', px: '10', use: 'Button groups / action rows' },
+    { name: '--core-space-3', px: '10', use: 'Button groups / action rows' },
     { name: '--stack-gap-sm', px: '8', use: 'Tight vertical stack' },
-    { name: '--stack-gap', px: '12', use: 'Related item stacks' },
-    { name: '--form-label-gap', px: '6', use: 'Label → control' },
-    { name: '--form-field-gap', px: '14', use: 'Between form fields' },
-    { name: '--form-control-gap', px: '16', use: 'Last field → submit' },
+    { name: '--core-space-3', px: '12', use: 'Related item stacks' },
+    { name: '--core-space-2', px: '6', use: 'Label → control' },
+    { name: '--core-space-4', px: '14', use: 'Between form fields' },
+    { name: '--core-space-4', px: '16', use: 'Last field → submit' },
   ]},
   { group: 'Component / section spacing', rows: [
-    { name: '--section-title-mb', px: '12', use: 'Section title → content' },
-    { name: '--section-gap', px: '20', use: 'Between major blocks' },
+    { name: '--core-space-3', px: '12', use: 'Section title → content' },
+    { name: '--core-space-5', px: '20', use: 'Between major blocks' },
   ]},
   { group: 'Layout spacing', rows: [
-    { name: '--page-padding-y / --page-padding-x', px: '24 / 32', use: 'Desktop page body' },
-    { name: '--page-padding-bottom', px: '48', use: 'Page bottom clearance' },
-    { name: '--page-gap', px: '20', use: 'Primary page column gap' },
+    { name: '--core-space-6 / --page-padding-x', px: '24 / 32', use: 'Desktop page body' },
+    { name: '--core-space-12', px: '48', use: 'Page bottom clearance' },
+    { name: '--core-space-5', px: '20', use: 'Primary page column gap' },
     { name: '--page-padding-*-md', px: '20 / 16 / 40', use: 'Tablet page padding (y/x/bottom)' },
     { name: '--page-padding-*-sm', px: '16 / 16 / 32', use: 'Mobile page padding (y/x/bottom)' },
   ]},
@@ -813,13 +807,13 @@ export default function DesignSystem() {
                 ))}
               </div>
               <div className="ds-type-group-title">Sizing guidelines</div>
-              <div className="ds-demo" style={{ gap: 'var(--space-6)' }}>
+              <div className="ds-demo" style={{ gap: 'var(--core-space-6)' }}>
                 <div className="ds-icon-size-demo">
-                  <FontAwesomeIcon icon={faCog} style={{ fontSize: '0.875rem' }} />
+                  <FontAwesomeIcon icon={faCog} style={{ fontSize: 'var(--typography-body-md-size)' }} />
                   <span>xs (0.875rem) — inline with caption text</span>
                 </div>
                 <div className="ds-icon-size-demo">
-                  <FontAwesomeIcon icon={faCog} style={{ fontSize: '1rem' }} />
+                  <FontAwesomeIcon icon={faCog} style={{ fontSize: 'var(--typography-body-lg-size)' }} />
                   <span>sm (1rem) — inline with body text</span>
                 </div>
                 <div className="ds-icon-size-demo">
@@ -864,7 +858,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
                   )
                 })}
               </div>
-              <div className="ds-token-scroll" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+              <div className="ds-token-scroll" style={{ padding: 'var(--core-space-4) var(--core-space-5)' }}>
                 <table className="ds-token-table">
                   <thead>
                     <tr>
@@ -887,7 +881,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
               {SPACE_SEMANTIC.map((block) => (
                 <div key={block.group}>
                   <div className="ds-type-group-title">{block.group}</div>
-                  <div className="ds-token-scroll" style={{ padding: 'var(--space-2) var(--space-5) var(--space-4)' }}>
+                  <div className="ds-token-scroll" style={{ padding: 'var(--core-space-2) var(--core-space-5) var(--core-space-4)' }}>
                     <table className="ds-token-table">
                       <thead>
                         <tr>
@@ -910,7 +904,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
                 </div>
               ))}
               <div className="ds-panel">
-                <div className="ds-panel-row"><b>Radius — </b>8px (--radius-sm) buttons/inputs, 14px (--radius-lg) cards, 999px pills.</div>
+                <div className="ds-panel-row"><b>Radius — </b>8px (--radius-sm) buttons, inputs, cards, modals; 4px (--radius-xs) checkboxes; 9999px (--radius-full) badges and avatars. Scale: xs 4 · sm 8 · md 12 · lg 16 · xl 20.</div>
               </div>
             </div>
           </section>
@@ -918,15 +912,23 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
           {/* ---------------- ELEVATION ---------------- */}
           <section id="elevation" className="ds-section">
             <h2>Elevation</h2>
-            <p className="ds-lede">Core Design System ships exactly two elevation levels. Use elevation-1 for resting surfaces and elevation-2 for overlays.</p>
-            <div className="ds-demo" style={{ display: 'grid', gap: 'var(--space-4)', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
-              <div style={{ padding: 'var(--space-4-5) var(--space-6)', borderRadius: 'var(--radius-sm)', background: 'var(--surface-default)', boxShadow: 'var(--core-elevation-1)', border: '1px solid var(--neutral-border-light)' }}>
+            <p className="ds-lede">CORE ships four elevation levels: 1 resting surfaces, 2 hover and the account menu, 3 menus, listboxes and toasts, 4 modals and drawers.</p>
+            <div className="ds-demo" style={{ display: 'grid', gap: 'var(--core-space-4)', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
+              <div style={{ padding: 'var(--core-space-4) var(--core-space-6)', borderRadius: 'var(--core-radius-sm)', background: 'var(--neutral-surface-layer-01)', boxShadow: 'var(--core-elevation-1)', border: '1px solid var(--neutral-border-light)' }}>
                 <strong>--core-elevation-1</strong>
-                <div className="hint" style={{ marginTop: 'var(--space-2)' }}>Subtle raise — resting cards, table rows, segmented controls</div>
+                <div className="hint" style={{ marginTop: 'var(--core-space-2)' }}>Subtle raise — resting cards, accordions</div>
               </div>
-              <div style={{ padding: 'var(--space-4-5) var(--space-6)', borderRadius: 'var(--radius-sm)', background: 'var(--surface-default)', boxShadow: 'var(--core-elevation-2)', border: '1px solid var(--neutral-border-light)' }}>
+              <div style={{ padding: 'var(--core-space-4) var(--core-space-6)', borderRadius: 'var(--core-radius-sm)', background: 'var(--neutral-surface-layer-01)', boxShadow: 'var(--core-elevation-2)', border: '1px solid var(--neutral-border-light)' }}>
                 <strong>--core-elevation-2</strong>
-                <div className="hint" style={{ marginTop: 'var(--space-2)' }}>Medium raise — dropdowns, popovers, modals, sticky headers</div>
+                <div className="hint" style={{ marginTop: 'var(--core-space-2)' }}>Medium raise — interactive-card hover, account menu</div>
+              </div>
+              <div style={{ padding: 'var(--core-space-4) var(--core-space-6)', borderRadius: 'var(--core-radius-sm)', background: 'var(--neutral-surface-layer-01)', boxShadow: 'var(--core-elevation-3)', border: '1px solid var(--neutral-border-light)' }}>
+                <strong>--core-elevation-3</strong>
+                <div className="hint" style={{ marginTop: 'var(--core-space-2)' }}>Floating — menus, listboxes, popovers, toasts</div>
+              </div>
+              <div style={{ padding: 'var(--core-space-4) var(--core-space-6)', borderRadius: 'var(--core-radius-sm)', background: 'var(--neutral-surface-layer-01)', boxShadow: 'var(--core-elevation-4)', border: '1px solid var(--neutral-border-light)' }}>
+                <strong>--core-elevation-4</strong>
+                <div className="hint" style={{ marginTop: 'var(--core-space-2)' }}>Overlay — modals, drawers</div>
               </div>
             </div>
           </section>
@@ -975,7 +977,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             colors={[['Brand fill', '--brand-background-primary-strong'], ['Brand hover', '--brand-text-primary-hover'], ['Border', '--neutral-border-light'], ['Text subtle', '--neutral-text-subtle'], ['Danger', '--semantics-critical-text']]}
             extra={
               <div className="ds-panel">
-                <div style={{ padding: 'var(--space-1) var(--space-5)' }}>
+                <div style={{ padding: 'var(--core-space-1) var(--core-space-5)' }}>
                   <table className="ds-table">
                     <thead><tr><th>Name</th><th>Class</th><th>Padding / size</th><th>Font</th><th>Status</th></tr></thead>
                     <tbody>
@@ -1001,7 +1003,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             id="forms" title="Forms & inputs"
             desc="Shared .form-field / .form-label / .form-control primitives. Default height 40px; text never below 14px on controls."
             tags={['WCAG 2.2 AA']}
-            demo={<div style={{ display: 'grid', gap: 'var(--form-field-gap)', width: '100%', maxWidth: 360 }}>
+            demo={<div style={{ display: 'grid', gap: 'var(--core-space-4)', width: '100%', maxWidth: 360 }}>
               <div className="form-field">
                 <label className="form-label" htmlFor="ds-nick">Account nickname</label>
                 <input id="ds-nick" className="form-control" placeholder="e.g. My 401(k)" />
@@ -1014,7 +1016,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
                 </select>
               </div>
               <p className="form-error" role="alert"><AlertTriangle size={14} /> Target percentages must add up to 100%.</p>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 'var(--core-space-2)', flexWrap: 'wrap' }}>
                 <input className="form-control form-control-sm" style={{ maxWidth: 120 }} defaultValue="Small" aria-label="Small input" />
                 <input className="form-control" style={{ maxWidth: 140 }} defaultValue="Medium" aria-label="Medium input" />
                 <input className="form-control form-control-lg" style={{ maxWidth: 160 }} defaultValue="Large" aria-label="Large input" />
@@ -1028,10 +1030,10 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
   <span className="form-helper">Optional helper</span>
 </div>
 {error && <p className="form-error" role="alert">{error}</p>}`}
-            colors={[['Border', '--neutral-border-light'], ['Focus ring', '--brand-text-primary-default'], ['Error text', '--semantics-critical-text'], ['Panel bg', '--surface-default']]}
+            colors={[['Border', '--neutral-border-light'], ['Focus ring', '--brand-text-primary-default'], ['Error text', '--semantics-critical-text'], ['Panel bg', '--core-color-surface-default']]}
             extra={
               <div className="ds-panel">
-                <div style={{ padding: 'var(--space-1) var(--space-5)' }}>
+                <div style={{ padding: 'var(--core-space-1) var(--core-space-5)' }}>
                   <table className="ds-table">
                     <thead><tr><th>Size</th><th>Class</th><th>Min height</th><th>Padding</th><th>Font</th><th>Status</th></tr></thead>
                     <tbody>
@@ -1053,10 +1055,10 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             id="selection" title="Checkbox, radio & switch"
             desc="Custom-styled but backed by real <input> elements for native keyboard and screen-reader support."
             tags={['WCAG 2.2 AA']}
-            demo={<div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', fontSize: 'var(--text-body-md-size)' }}><input type="checkbox" defaultChecked /> Email statements</label>
-              <label style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', fontSize: 'var(--text-body-md-size)' }}><input type="radio" name="ds-r" defaultChecked /> Direct deposit</label>
-              <label style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', fontSize: 'var(--text-body-md-size)' }}><input type="radio" name="ds-r" /> Mailed check</label>
+            demo={<div style={{ display: 'flex', gap: 'var(--core-space-6)', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-body-md-size)' }}><input type="checkbox" defaultChecked /> Email statements</label>
+              <label style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-body-md-size)' }}><input type="radio" name="ds-r" defaultChecked /> Direct deposit</label>
+              <label style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-body-md-size)' }}><input type="radio" name="ds-r" /> Mailed check</label>
               <label className="a11y-switch" style={{ display: 'inline-flex' }}>
                 <input type="checkbox" defaultChecked /><span className="a11y-switch-track"><span className="a11y-switch-thumb" /></span>
               </label>
@@ -1067,7 +1069,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
   <input type="checkbox" checked={on} onChange={toggle} />
   <span className="a11y-switch-track"><span className="a11y-switch-thumb" /></span>
 </label>`}
-            colors={[['Checked / on', '--brand-text-primary-default'], ['Track (off)', '--surface-strong'], ['Border', '--neutral-border-strong']]}
+            colors={[['Checked / on', '--brand-text-primary-default'], ['Track (off)', '--theme-colors-neutral-200'], ['Border', '--neutral-border-strong']]}
           />
 
           {/* ---------------- BADGES / ALERTS ---------------- */}
@@ -1094,7 +1096,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             id="nav" title="Navigation"
             desc="Left rail (frozen, scrollable) and top bar. Focus rings are drawn inset so a scrolling nav never clips them."
             tags={['WCAG 2.2 AA', 'Keyboard']}
-            demo={<div className="ds-nav-demo" style={{ display: 'flex', gap: 'var(--space-1-5)' }}>
+            demo={<div className="ds-nav-demo" style={{ display: 'flex', gap: 'var(--core-space-2)' }}>
               {['Dashboard', 'Portfolio', 'Transactions'].map((l, i) => (
                 <a key={l} href="#nav" className={`ds-nav-link${i === 0 ? ' on' : ''}`} onClick={(e) => e.preventDefault()}>{l}</a>
               ))}
@@ -1111,7 +1113,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             id="tabs" title="Tabs & step navigator"
             desc="Tabs for switching views in place; the step navigator drives multi-step flows (enrollment, transaction requests)."
             tags={['Keyboard']}
-            demo={<div style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--neutral-border-light)' }}>
+            demo={<div style={{ display: 'flex', gap: 'var(--core-space-1)', borderBottom: '1px solid var(--neutral-border-light)' }}>
               {['Summary', 'Activity', 'Documents'].map((t, i) => (
                 <button key={t} type="button" className={`tab ${i === 0 ? 'on' : ''}`}>{t}</button>
               ))}
@@ -1137,8 +1139,8 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
                 <tr><td>Bond Index</td><td>15%</td><td>-1.3%</td></tr>
               </tbody>
             </table>}
-            code={`tbody tr:nth-child(even){ background: var(--surface-muted); }`}
-            colors={[['Zebra row', '--surface-muted'], ['Row border', '--neutral-border-light'], ['Positive value', '--semantics-success-text']]}
+            code={`tbody tr:nth-child(even){ background: var(--neutral-surface-layer-03); }`}
+            colors={[['Zebra row', '--core-color-surface-sunken'], ['Row border', '--neutral-border-light'], ['Positive value', '--semantics-success-text']]}
           />
 
           {/* ---------------- DIALOG ---------------- */}
@@ -1164,7 +1166,7 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
   <h3 id="dlg-title">Confirm rollover request</h3>
   ...
 </div>`}
-            colors={[['Panel bg', '--surface-default'], ['Shadow', '--shadow-lg'], ['Border', '--neutral-border-light']]}
+            colors={[['Panel bg', '--core-color-surface-default'], ['Shadow', '--core-elevation-2'], ['Border', '--neutral-border-light']]}
           />
 
           {/* ---------------- LEGEND ---------------- */}
@@ -1172,9 +1174,9 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             id="legend" title="Chart legend (dropdown)"
             desc="The Asset class performance chart always uses a dropdown multi-select — not an inline row. The trigger shows how many of the 11 series are on; the panel is a scrollable checklist. Click outside or press Escape to close."
             tags={['New pattern']}
-            demo={<div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', border: '1px solid var(--neutral-border-light)', borderRadius: 8, padding: 'var(--space-1) var(--space-2-5)', fontSize: 'var(--text-caption-size)', fontWeight: 700 }}>
+            demo={<div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--core-space-2)', border: '1px solid var(--neutral-border-light)', borderRadius: 'var(--core-radius-sm)', padding: 'var(--core-space-1) var(--core-space-3)', fontSize: 'var(--typography-caption-size)', fontWeight: 'var(--typography-font-weight-bold)' }}>
               Asset classes
-              <span style={{ display: 'inline-flex', alignItems: 'center', minWidth: 36, justifyContent: 'center', height: 18, borderRadius: 999, background: 'var(--surface-muted)', fontSize: 'var(--text-2xs-size)', fontWeight: 800 }}>4/12</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', minWidth: 'var(--core-space-10)', justifyContent: 'center', height: 'var(--core-space-5)', borderRadius: 'var(--core-radius-full)', background: 'var(--neutral-surface-layer-03)', fontSize: 'var(--typography-font-size-xs)', fontWeight: 'var(--typography-font-weight-bold)' }}>4/12</span>
             </div>}
             code={`<ChartLegend label="Asset classes" items={series} onToggle={toggleSeries} />`}
           />
@@ -1184,18 +1186,18 @@ import { faHome, faCog, faUser } from '@fortawesome/free-solid-svg-icons'
             id="a11y-toolbar" title="Accessibility toolbar"
             desc="Header-level menu (next to theme toggle) offering profiles, screen-reader read-aloud, voice navigation, and display adjustments — entirely on-device via the native Web Speech API, no network calls."
             tags={['WCAG 2.2 AA', 'main branch']}
-            demo={<div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 'var(--space-1-5)', alignItems: 'center', fontSize: 'var(--text-caption-size)' }}><Eye size={15} /> Vision profile</div>
-              <div style={{ display: 'flex', gap: 'var(--space-1-5)', alignItems: 'center', fontSize: 'var(--text-caption-size)' }}><Volume2 size={15} /> Read aloud</div>
-              <div style={{ display: 'flex', gap: 'var(--space-1-5)', alignItems: 'center', fontSize: 'var(--text-caption-size)' }}><Mic size={15} /> Voice navigation</div>
-              <div style={{ display: 'flex', gap: 'var(--space-1-5)', alignItems: 'center', fontSize: 'var(--text-caption-size)' }}><TypeIcon size={15} /> Bigger text</div>
+            demo={<div style={{ display: 'flex', gap: 'var(--core-space-4)', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-caption-size)' }}><Eye size={15} /> Vision profile</div>
+              <div style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-caption-size)' }}><Volume2 size={15} /> Read aloud</div>
+              <div style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-caption-size)' }}><Mic size={15} /> Voice navigation</div>
+              <div style={{ display: 'flex', gap: 'var(--core-space-2)', alignItems: 'center', fontSize: 'var(--typography-caption-size)' }}><TypeIcon size={15} /> Bigger text</div>
             </div>}
             dos={[]}
             donts={[]}
             code={`const { speaking, speakPage, stop } = useReadAloud()
 const { listening, start, stop: stopListening } = useVoiceNav(navigate)
 <AccessibilityMenu />  // dropdown next to the theme toggle in Header.jsx`}
-            colors={[['Panel bg', '--surface-default'], ['Active row', '--brand-background-primary-light'], ['Switch on', '--brand-text-primary-default']]}
+            colors={[['Panel bg', '--core-color-surface-default'], ['Active row', '--brand-background-primary-light'], ['Switch on', '--brand-text-primary-default']]}
           />
 
           {/* ---------------- WCAG CHECKLIST ---------------- */}
@@ -1256,7 +1258,7 @@ const { listening, start, stop: stopListening } = useVoiceNav(navigate)
             <h2>Screen reader & NVDA</h2>
             <p className="ds-lede">Tested with NVDA (Windows/Chrome) and VoiceOver (macOS/Safari) against these baseline expectations.</p>
             <div className="ds-card">
-              <div style={{ padding: 'var(--space-1) var(--space-5)' }}>
+              <div style={{ padding: 'var(--core-space-1) var(--core-space-5)' }}>
                 {[
                   ['Landmarks', 'Header, nav, and main are marked with real <header>/<nav>/<main> elements so AT users can jump between regions.'],
                   ['Form errors', 'role="alert" on validation messages triggers an immediate NVDA announcement without moving focus.'],
@@ -1310,8 +1312,8 @@ const { listening, start, stop: stopListening } = useVoiceNav(navigate)
             <p className="ds-lede">Every control defines these states explicitly — none are left to browser defaults alone.</p>
             <div className="ds-token-grid">
               {['Default', 'Hover', 'Focus-visible', 'Active/pressed', 'Disabled', 'Loading', 'Error', 'Empty'].map((s) => (
-                <div key={s} className="ds-swatch" style={{ padding: 'var(--space-3)', textAlign: 'center' }}>
-                  <b style={{ fontSize: 'var(--text-caption-size)' }}>{s}</b>
+                <div key={s} className="ds-swatch" style={{ padding: 'var(--core-space-3)', textAlign: 'center' }}>
+                  <b style={{ fontSize: 'var(--typography-caption-size)' }}>{s}</b>
                 </div>
               ))}
             </div>
@@ -1329,8 +1331,8 @@ const { listening, start, stop: stopListening } = useVoiceNav(navigate)
             </div>
           </section>
 
-          <div style={{ borderTop: '1px solid var(--neutral-border-light)', paddingTop: 'var(--space-6)', fontSize: 'var(--text-caption-size)', color: 'var(--neutral-text-subtle-light)', maxWidth: 'var(--ds-content-max)' }}>
-            <MousePointerClick size={14} style={{ verticalAlign: -2, marginRight: 'var(--space-1-5)' }} />
+          <div style={{ borderTop: '1px solid var(--neutral-border-light)', paddingTop: 'var(--core-space-6)', fontSize: 'var(--typography-caption-size)', color: 'var(--neutral-text-subtle-light)', maxWidth: 'var(--ds-content-max)' }}>
+            <MousePointerClick size={14} style={{ verticalAlign: -2, marginRight: 'var(--core-space-2)' }} />
             Generated from the live application codebase. Available at <code>/design-system</code> on every brand build.
           </div>
         </main>

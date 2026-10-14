@@ -160,7 +160,17 @@ function blankForm(type) {
   }
 }
 
+// Keyed by request type: switching between request types without leaving
+// this route (e.g. Loan -> Withdrawal via the New request menu or browser
+// history) must start a fresh wizard -- otherwise the previous type's form,
+// step index and progress carry over and the new wizard reads fields the old
+// form never had (WithdrawalSteps crashed on a Loan form's missing allocations).
 export default function TransactionRequest() {
+  const { type } = useParams()
+  return <TransactionRequestWizard key={type} />
+}
+
+function TransactionRequestWizard() {
   const { type } = useParams()
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -182,7 +192,7 @@ export default function TransactionRequest() {
         <div className="hi-bar">
           <h1>Request not available</h1>
         </div>
-        <p style={{ padding: 'var(--space-0) var(--space-5)' }}>
+        <p style={{ padding: 'var(--core-space-0) var(--core-space-5)' }}>
           <Link to="/transactions" className="text-link">
             Back to Transactions
           </Link>
@@ -218,7 +228,7 @@ export default function TransactionRequest() {
         <Sidebar />
         <div className="txn-wizard">
           <aside className="txn-steps">
-            <Link to="/transactions" className="back">
+            <Link to="/transactions" className="text-link back">
               Back
             </Link>
             <h1>{wizard.title}</h1>
@@ -367,7 +377,7 @@ function SubmittedPanel({ type, transactionId, navigate }) {
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <div className="success-mark" aria-hidden="true" style={{ margin: 'var(--space-0) auto var(--space-3)' }}>
+        <div className="success-mark" aria-hidden="true" style={{ margin: 'var(--core-space-0) auto var(--core-space-3)' }}>
           <svg viewBox="0 0 52 52" width="52" height="52">
             <circle className="success-ring" cx="26" cy="26" r="24" />
             <path className="success-check" d="M15.5 27.2l7.2 7.2 14.6-16" />
@@ -470,8 +480,8 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
         </div>
 
         <div className="txn-card txn-card-nested spaced">
-          <h4 style={{ margin: 'var(--space-0) var(--space-0) var(--space-1)' }}>Loan calculator</h4>
-          <p className="hint" style={{ marginTop: 'var(--space-0)' }}>
+          <h4 style={{ margin: 'var(--core-space-0) var(--core-space-0) var(--core-space-1)' }}>Loan calculator</h4>
+          <p className="hint" style={{ marginTop: 'var(--core-space-0)' }}>
             Enter any two of Loan Request Amount, Periodic Payment, Tenure to auto-compute the third value.
           </p>
 
@@ -481,7 +491,7 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
             </Field>
           </div>
 
-          <div className="txn-row" style={{ marginTop: 'var(--space-3-5)' }}>
+          <div className="txn-row" style={{ marginTop: 'var(--core-space-4)' }}>
             <FieldGroup label="Take entire loan amount" required>
               <div className="txn-radio-row">
                 <label className="txn-radio">
@@ -506,7 +516,7 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
             </FieldGroup>
           </div>
 
-          <div className="txn-row" style={{ marginTop: 'var(--space-3-5)' }}>
+          <div className="txn-row" style={{ marginTop: 'var(--core-space-4)' }}>
             <Field
               label="Loan amount"
               required
@@ -526,8 +536,8 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
             </Field>
           </div>
 
-          <div className="txn-summary-head" style={{ marginTop: 'var(--space-6)' }}>
-            <h4 style={{ margin: 'var(--space-0)' }}>Repayment details</h4>
+          <div className="txn-summary-head" style={{ marginTop: 'var(--core-space-6)' }}>
+            <h4 style={{ margin: 'var(--core-space-0)' }}>Repayment details</h4>
             <button
               type="button"
               className="txn-summary-edit"
@@ -538,7 +548,7 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
             </button>
           </div>
 
-          <div className="txn-row" style={{ marginTop: 'var(--space-2)' }}>
+          <div className="txn-row" style={{ marginTop: 'var(--core-space-2)' }}>
             <FieldGroup label="Loan repayment method" required note={repaymentMethod?.hint}>
               <div className="txn-radio-row txn-radio-col">
                 {LOAN_REPAYMENT_METHODS.map((m) => (
@@ -704,7 +714,7 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
             {/* Scenario 5: no bank on file — show an empty state with an
                 add-bank action instead of the read-only bank card. */}
             {bank ? (
-              <div className="edit-alloc-readcard" style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+              <div className="edit-alloc-readcard" style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--core-space-4)', flexWrap: 'wrap' }}>
                 <div>
                   <b>Bank name</b>
                   <span>{bank.bankName}</span>
@@ -733,7 +743,7 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
         )}
 
         <h4>Fee Details</h4>
-        <div className="wd-fee-card" style={{ marginTop: 'var(--space-0)', marginBottom: 'var(--space-0)' }}>
+        <div className="wd-fee-card" style={{ marginTop: 'var(--core-space-0)', marginBottom: 'var(--core-space-0)' }}>
           <div className="wd-fee-row">
             <span>Net request amount</span>
             <b>{formatMoney(gross.requested)}</b>
@@ -742,11 +752,11 @@ function LoanSteps({ step, plan, participant, form, set, onNext, onBack, onSubmi
             <span>Transaction Fee</span>
             <b>{formatMoney(gross.transactionFee)}</b>
           </div>
-          <div className="wd-fee-row" style={{ paddingLeft: 'var(--space-4)' }}>
+          <div className="wd-fee-row" style={{ paddingLeft: 'var(--core-space-4)' }}>
             <span>TPA Fee</span>
             <b>{formatMoney(gross.tpaFee)}</b>
           </div>
-          <div className="wd-fee-row" style={{ paddingLeft: 'var(--space-4)' }}>
+          <div className="wd-fee-row" style={{ paddingLeft: 'var(--core-space-4)' }}>
             <span>EFT Fee</span>
             <b>{formatMoney(gross.eftFee)}</b>
           </div>
@@ -858,7 +868,7 @@ function AddBankDialog({ bank, onCancel, onSave }) {
         onClick={(e) => e.stopPropagation()}
         style={{ textAlign: 'left' }}
       >
-        <h3 id="add-bank-title" style={{ marginTop: 'var(--space-0)' }}>
+        <h3 id="add-bank-title" style={{ marginTop: 'var(--core-space-0)' }}>
           Add bank account
         </h3>
         <Field label="Bank name" required>
@@ -936,7 +946,7 @@ function WithdrawalSteps({ step, plan, participant, form, set, onNext, onBack, o
           </Field>
         </div>
 
-        <div className="txn-row" style={{ marginTop: 'var(--space-3-5)' }}>
+        <div className="txn-row" style={{ marginTop: 'var(--core-space-4)' }}>
           <FieldGroup label="Withdraw" required>
             <div className="txn-radio-row txn-radio-col">
               <label className="txn-radio">
@@ -1022,7 +1032,7 @@ function WithdrawalSteps({ step, plan, participant, form, set, onNext, onBack, o
       <div className="txn-card">
         <div className="txn-summary-head">
           <h3>Withdrawal Allocation</h3>
-          <button type="button" className="btn btn-secondary alloc-add-btn" onClick={() => setAddingAllocation(true)}>
+          <button type="button" className="btn btn-secondary btn-sm alloc-add-btn" onClick={() => setAddingAllocation(true)}>
             Add allocation
           </button>
         </div>
@@ -1108,7 +1118,7 @@ function WithdrawalSteps({ step, plan, participant, form, set, onNext, onBack, o
 
         {allocations.some((a) => a.addressChanged) && (
           <div className="address-banner">
-            <Icon icon={faInfoCircle} size={16} />
+            <Icon icon={faExclamationTriangle} size={20} />
             <div>
               <b>Custom address on this request</b>
               This request will be flagged for admin review, noting the address was changed within the last 3 days.
@@ -1190,7 +1200,7 @@ function WithdrawalSteps({ step, plan, participant, form, set, onNext, onBack, o
         return null
       })}
 
-      <div className="wd-fee-card" style={{ marginTop: 'var(--space-5)' }}>
+      <div className="wd-fee-card" style={{ marginTop: 'var(--core-space-5)' }}>
         <FeeAndTaxPanel fees={fees} title="Fee Details" />
       </div>
 
@@ -1295,7 +1305,7 @@ function AllocationSteps({ mode, step, plan, form, set, onNext, onBack, onSubmit
             </button>
           ) : (
             step === 'details' && (
-              <button type="button" className="btn btn-secondary alloc-add-btn" onClick={() => setAddingTo(source)}>
+              <button type="button" className="btn btn-secondary btn-sm alloc-add-btn" onClick={() => setAddingTo(source)}>
                 Add investment
               </button>
             )
@@ -1453,8 +1463,8 @@ function rolloverPct(form, investments, name) {
 function RolloverSourcesTable({ form, set, editable }) {
   const total = rolloverTotal(form)
   return (
-    <div className="table-wrap rollover-table-wrap">
-      <table className="alloc-table rollover-table">
+    <div className="table-wrap">
+      <table className="alloc-table">
         <thead>
           <tr>
             <th scope="col">Sources Mapping</th>
@@ -1470,35 +1480,34 @@ function RolloverSourcesTable({ form, set, editable }) {
               set((f) => ({ sources: { ...f.sources, [s.id]: { ...f.sources[s.id], [field]: val } } }))
             return (
               <tr key={s.id}>
-                {/* Source name has no data-label: it becomes the card title on mobile */}
                 <td>{s.label}</td>
-                <td className="num" data-label="Contribution(s)">
+                <td className="num">
                   {editable ? (
                     <input
                       type="number"
                       min={0}
                       value={row.contribution}
                       onChange={(e) => setField('contribution', e.target.value)}
-                      className="rollover-input"
+                      style={{ width: 100, textAlign: 'right' }}
                     />
                   ) : (
                     formatMoney(+row.contribution || 0)
                   )}
                 </td>
-                <td className="num" data-label="Earning(s)">
+                <td className="num">
                   {editable ? (
                     <input
                       type="number"
                       min={0}
                       value={row.earning}
                       onChange={(e) => setField('earning', e.target.value)}
-                      className="rollover-input"
+                      style={{ width: 100, textAlign: 'right' }}
                     />
                   ) : (
                     formatMoney(+row.earning || 0)
                   )}
                 </td>
-                <td className="num" data-label="Amount">{formatMoney(rolloverSourceAmount(form, s.id))}</td>
+                <td className="num">{formatMoney(rolloverSourceAmount(form, s.id))}</td>
               </tr>
             )
           })}
@@ -1506,7 +1515,7 @@ function RolloverSourcesTable({ form, set, editable }) {
             <td>Total rollover amount</td>
             <td />
             <td />
-            <td className="num" data-label="Total">{formatMoney(total)}</td>
+            <td className="num">{formatMoney(total)}</td>
           </tr>
         </tbody>
       </table>
@@ -1523,8 +1532,8 @@ function RolloverInvestmentTable({ plan, form, set, editable }) {
       {!investments.length ? (
         <p className="hint">No investment lineup on file for this plan yet.</p>
       ) : (
-        <div className="table-wrap rollover-table-wrap">
-          <table className="alloc-table rollover-table">
+        <div className="table-wrap">
+          <table className="alloc-table">
             <thead>
               <tr>
                 <th scope="col">Investment names</th>
@@ -1534,9 +1543,8 @@ function RolloverInvestmentTable({ plan, form, set, editable }) {
             <tbody>
               {investments.map((inv) => (
                 <tr key={inv.name}>
-                  {/* Investment name has no data-label: it becomes the card title on mobile */}
                   <td>{inv.name}</td>
-                  <td className="num" data-label="Percentage">
+                  <td className="num">
                     {editable ? (
                       <input
                         type="number"
@@ -1546,7 +1554,7 @@ function RolloverInvestmentTable({ plan, form, set, editable }) {
                         onChange={(e) =>
                           set((f) => ({ investmentPct: { ...f.investmentPct, [inv.name]: e.target.value } }))
                         }
-                        className="rollover-input"
+                        style={{ width: 80, textAlign: 'right' }}
                       />
                     ) : (
                       `${rolloverPct(form, investments, inv.name)}%`
@@ -1556,7 +1564,7 @@ function RolloverInvestmentTable({ plan, form, set, editable }) {
               ))}
               <tr className="alloc-total">
                 <td>Total Percentage</td>
-                <td className="num" data-label="Total" style={Math.round(pctTotal) !== 100 ? { color: 'var(--semantics-warning-text)' } : undefined}>
+                <td className="num" style={Math.round(pctTotal) !== 100 ? { color: 'var(--semantics-warning-text)' } : undefined}>
                   {Math.round(pctTotal * 10) / 10}%
                 </td>
               </tr>
@@ -1600,7 +1608,7 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
             </Select>
           </Field>
         </div>
-        <div className="txn-row" style={{ marginTop: 'var(--space-3-5)' }}>
+        <div className="txn-row" style={{ marginTop: 'var(--core-space-4)' }}>
           <Field label="Distributing account number" required>
             <input
               type="text"
@@ -1610,7 +1618,7 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
           </Field>
         </div>
 
-        <h4 style={{ marginTop: 'var(--space-6)' }}>Trustee / Custodian details</h4>
+        <h4 style={{ marginTop: 'var(--core-space-6)' }}>Trustee / Custodian details</h4>
         <div className="txn-row">
           <Field label="Trustee / Custodian name" required>
             <input type="text" value={form.trusteeName} onChange={(e) => set({ trusteeName: e.target.value })} />
@@ -1619,7 +1627,7 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
             <input type="tel" value={form.trusteePhone} onChange={(e) => set({ trusteePhone: e.target.value })} />
           </Field>
         </div>
-        <div className="txn-row" style={{ marginTop: 'var(--space-3-5)' }}>
+        <div className="txn-row" style={{ marginTop: 'var(--core-space-4)' }}>
           <Field label="Trustee address" required>
             <input type="text" value={form.trusteeAddress} onChange={(e) => set({ trusteeAddress: e.target.value })} />
           </Field>
@@ -1653,8 +1661,8 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
         <h4>Sources Mapping</h4>
         <RolloverSourcesTable form={form} set={set} editable />
 
-        <h4 style={{ marginTop: 'var(--space-6)' }}>Investment Mapping</h4>
-        <p className="hint" style={{ marginTop: 'var(--space-0)' }}>
+        <h4 style={{ marginTop: 'var(--core-space-6)' }}>Investment Mapping</h4>
+        <p className="hint" style={{ marginTop: 'var(--core-space-0)' }}>
           Investment mapping has been allocated already. You can configure the investment details below.
         </p>
         <RolloverInvestmentTable plan={plan} form={form} set={set} editable />
@@ -1718,7 +1726,7 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
           <>
             <h4>Select bank</h4>
             {bank ? (
-              <div className="edit-alloc-readcard" style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+              <div className="edit-alloc-readcard" style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--core-space-4)', flexWrap: 'wrap' }}>
                 <div>
                   <b>Bank name</b>
                   <span>{bank.bankName}</span>
@@ -1848,7 +1856,7 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
       </div>
       <RolloverSourcesTable form={form} set={set} editable={false} />
       {investments.length > 0 && (
-        <div style={{ marginTop: 'var(--space-3-5)' }}>
+        <div style={{ marginTop: 'var(--core-space-4)' }}>
           <RolloverInvestmentTable plan={plan} form={form} set={set} editable={false} />
         </div>
       )}
@@ -1904,7 +1912,7 @@ function DocumentsStep({ type, extraDocs = [], form, set, onNext, onBack }) {
 function DocumentUploadBlock({ doc, uploaded, onUploaded }) {
   const [mode, setMode] = useState('manual')
   return (
-    <div style={{ marginBottom: 'var(--space-4)' }}>
+    <div style={{ marginBottom: 'var(--core-space-4)' }}>
       <span className="txn-doc-required">{doc.required ? 'Required' : 'Not required'}</span>
       <div className="txn-upload">
         <div className="tabs2">
@@ -1963,7 +1971,7 @@ function SummaryStep({ title, children, onBack, onSubmit, submitDisabled }) {
 // last remaining allocation — there must always be at least one recipient).
 function AllocationTable({ allocations, withdrawalTypeId, onEdit, onRemove }) {
   return (
-    <div className="table-wrap wd-alloc-table-wrap">
+    <div className="table-wrap">
       <table className="wd-alloc-table">
         <thead>
           <tr>
@@ -1981,7 +1989,6 @@ function AllocationTable({ allocations, withdrawalTypeId, onEdit, onRemove }) {
             const rowFees = computeWithdrawalFees(a.amount, withdrawalTypeId, a.paymentMethod)
             return (
               <tr key={a.id} className={incomplete ? 'wd-alloc-incomplete' : undefined}>
-                {/* Recipient name has no data-label: it becomes the card title on mobile */}
                 <td>{a.name || (a.recipientType === 'self' ? 'Self' : 'Beneficiary')}</td>
                 {incomplete ? (
                   <td className="num wd-alloc-incomplete-cell" colSpan={4}>
@@ -1989,10 +1996,10 @@ function AllocationTable({ allocations, withdrawalTypeId, onEdit, onRemove }) {
                   </td>
                 ) : (
                   <>
-                    <td className="num" data-label="Tax">{formatMoney(rowFees.federalTax)}</td>
-                    <td className="num" data-label="Fee">{formatMoney(rowFees.feeAndTax - rowFees.federalTax)}</td>
-                    <td className="num" data-label="Penalty">{formatMoney(rowFees.penalty)}</td>
-                    <td className="num" data-label="Amount">{formatMoney(rowFees.requested)}</td>
+                    <td className="num">{formatMoney(rowFees.federalTax)}</td>
+                    <td className="num">{formatMoney(rowFees.feeAndTax - rowFees.federalTax)}</td>
+                    <td className="num">{formatMoney(rowFees.penalty)}</td>
+                    <td className="num">{formatMoney(rowFees.requested)}</td>
                   </>
                 )}
                 <td className="num wd-alloc-actions">
@@ -2021,7 +2028,7 @@ function SummaryRow({ label, value, onEdit }) {
       <b>
         {value}
         {onEdit && (
-          <button type="button" className="txn-summary-edit" onClick={onEdit} style={{ marginLeft: 'var(--space-2-5)' }}>
+          <button type="button" className="txn-summary-edit" onClick={onEdit} style={{ marginLeft: 'var(--core-space-3)' }}>
             Edit
           </button>
         )}

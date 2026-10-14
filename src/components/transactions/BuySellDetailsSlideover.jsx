@@ -25,7 +25,7 @@ export default function BuySellDetailsSlideover({ sourceName, rows, sourceTotal,
       }
     >
       <div className="buysell-banner">
-        <Icon icon={faExclamationTriangle} size={15} />
+        <Icon icon={faExclamationTriangle} size={20} />
         <span>{NAV_DISCLAIMER}</span>
       </div>
 
