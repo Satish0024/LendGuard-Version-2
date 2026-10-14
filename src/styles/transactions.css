@@ -591,3 +591,7 @@
 .wd2-table th:last-child,.wd2-table td:last-child{padding-right:var(--core-space-3);width:72px}
 .wd2-table thead th{white-space:normal;vertical-align:bottom}
 .wd2-table .tf-actions{gap:0}
+.wd2 .tf-notice{margin-top:var(--core-space-4)}
+.wd2 .alloc-warn{margin-top:var(--core-space-3)}
+.wd2-doc .txn-doc-required{display:inline;margin-left:var(--core-space-1);font-weight:var(--typography-font-weight-regular)}
+.wd2-sum .detail-rows + .hint{margin-top:var(--core-space-3)}

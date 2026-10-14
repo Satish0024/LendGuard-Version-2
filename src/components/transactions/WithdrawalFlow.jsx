@@ -88,7 +88,8 @@ export function wdPersona(participant) {
   } catch {
     /* ignore */
   }
-  return p === 'retired' ? { age: 80, status: 'Terminated' } : { age: ageFrom(participant.dob), status: 'Active' }
+  const dob = participant.profile?.dob || participant.dob
+  return p === 'retired' ? { age: 80, status: 'Terminated', dob: ANNUITANT.dob } : { age: ageFrom(dob), status: 'Active', dob }
 }
 
 export function blankWithdrawal() {
@@ -207,6 +208,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
   const [schedule, setSchedule] = useState(false)
   const [notice, setNotice] = useState(null)
   const [tried, setTried] = useState(false)
+  const [triedDocs, setTriedDocs] = useState(false)
 
   const type = TYPES.find((t) => t.id === w.type)
   const isRmd = w.type === 'RMD'
@@ -402,7 +404,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                 </div>
               </FieldGroup>
               {!periodic && (
-                <FieldGroup label="Withdraw Entire Balance">
+                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : undefined} noteClass="err">
                   <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
                     {[
                       ['yes', 'Yes'],
@@ -508,7 +510,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                           <input type="text" value={persona.age} readOnly disabled />
                         </Field>
                         <Field label="Date of birth">
-                          <input type="text" value={participant.dob || ANNUITANT.dob} readOnly disabled />
+                          <input type="text" value={persona.dob} readOnly disabled />
                         </Field>
                       </div>
                     )}
@@ -564,7 +566,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!detailsOk}
+            disabled={!w.type || blocked || balance <= 0}
             onClick={() => {
               setTried(true)
               if (detailsOk) onNext()
@@ -697,14 +699,14 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
         <h3>Required Documents</h3>
         <p className="hint">Accepted file: PDF · Max file size: {MAX_FILE_MB} MB</p>
         {docs.map((d) => (
-          <DocBlock key={d.id} doc={d} state={w.docs[d.id] || { method: 'docusign' }} error={tried ? docErr(d) : ''} onChange={(s) => setW((cur) => ({ docs: { ...cur.docs, [d.id]: s } }))} />
+          <DocBlock key={d.id} doc={d} state={w.docs[d.id] || { method: 'docusign' }} error={triedDocs ? docErr(d) : ''} onChange={(s) => setW((cur) => ({ docs: { ...cur.docs, [d.id]: s } }))} />
         ))}
         <div className="txn-actions">
           <button
             type="button"
             className="btn btn-primary"
             onClick={() => {
-              setTried(true)
+              setTriedDocs(true)
               if (ok) onNext()
             }}
           >
