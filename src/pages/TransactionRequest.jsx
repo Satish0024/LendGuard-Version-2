@@ -8,21 +8,19 @@ import Header from '../components/layout/Header.jsx'
 import Sidebar from '../components/layout/Sidebar.jsx'
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../components/common/Field.jsx'
-import EditAllocationSlideover, { FeeAndTaxPanel } from '../components/transactions/EditAllocationSlideover.jsx'
 import LegalCopySlideover from '../components/transactions/LegalCopySlideover.jsx'
 import AmortizationScheduleSlideover from '../components/transactions/AmortizationScheduleSlideover.jsx'
 import AddInvestmentSlideover from '../components/transactions/AddInvestmentSlideover.jsx'
 import BuySellDetailsSlideover from '../components/transactions/BuySellDetailsSlideover.jsx'
 import InvestmentAllocationTable from '../components/transactions/InvestmentAllocationTable.jsx'
 import TransferFlow, { blankTransfer } from '../components/transactions/TransferFlow.jsx'
+import WithdrawalFlow, { blankWithdrawal } from '../components/transactions/WithdrawalFlow.jsx'
 import { useParticipant } from '../context/ParticipantContext.jsx'
 import { formatMoney, planBalance, planVested } from '../lib/accountSummary'
 import Select, { Option } from '../components/common/Select.jsx'
 import DatePicker from '../components/common/DatePicker.jsx'
 import {
-  AVAILABLE_INVESTMENTS,
   BANK_ON_FILE,
-  DISTRIBUTION_MODES,
   LOAN_INTEREST_RATE,
   LOAN_PAYMENT_METHODS,
   LOAN_POLICY_COPY,
@@ -36,9 +34,7 @@ import {
   ROLLOVER_PLAN_TYPES,
   ROLLOVER_SOURCES,
   SPOUSAL_CONSENT_DOC,
-  WITHDRAWAL_TYPES,
   activeLoanFor,
-  blankWithdrawalAllocation,
   computeGrossLoanAmount,
   computeWithdrawalFees,
   estimatePeriodicPayment,
@@ -47,7 +43,6 @@ import {
   investmentsForSource,
   loanLimits,
   sourcesFor,
-  sumWithdrawalFees,
   transactablePlans
 } from '../data/transactions.js'
 import '../styles/transactions.css'
@@ -67,9 +62,8 @@ const WIZARDS = {
     steps: [
       { id: 'details', title: 'Withdrawal Details' },
       { id: 'allocation', title: 'Withdrawal Allocation' },
-      { id: 'fee', title: 'Fee Details' },
-      { id: 'documents', title: 'Upload Documents' },
-      { id: 'summary', title: 'Withdrawal Request Summary' }
+      { id: 'documents', title: 'Required Documents' },
+      { id: 'summary', title: 'Review and submit' }
     ]
   },
   transfer: {
@@ -119,19 +113,7 @@ function blankForm(type) {
       termsAccepted: false
     }
   }
-  if (type === 'withdrawal') {
-    return {
-      withdrawalType: '',
-      withdrawAs: 'onetime',
-      entireBalance: '',
-      // One allocation per recipient — starts with the participant's own
-      // ("Self"); "Add allocation" appends more (e.g. a beneficiary).
-      allocations: [blankWithdrawalAllocation()],
-      addressChanged: false,
-      docUploaded: false,
-      termsAccepted: false
-    }
-  }
+  if (type === 'withdrawal') return { withdrawal: blankWithdrawal() }
   if (type === 'rollover') {
     return {
       distributingPlanName: '',
@@ -267,7 +249,7 @@ function TransactionRequestWizard() {
 
           {/* Transfer and rebalance render wide current-vs-target tables, so
               they get more room than the form-style loan/withdrawal steps. */}
-          <main className={`txn-main${type === 'transfer' || type === 'rebalance' || type === 'rollover' ? ' txn-main-wide' : ''}`}>
+          <main className={`txn-main${type === 'transfer' || type === 'withdrawal' || type === 'rebalance' || type === 'rollover' ? ' txn-main-wide' : ''}`}>
             <div className="txn-plan-head">
               <div>
                 <h2>{plan.name}</h2>
@@ -301,7 +283,7 @@ function TransactionRequestWizard() {
               />
             )}
             {type === 'withdrawal' && (
-              <WithdrawalSteps
+              <WithdrawalFlow
                 step={step.id}
                 plan={plan}
                 participant={participant}
@@ -310,7 +292,7 @@ function TransactionRequestWizard() {
                 onNext={next}
                 onBack={back}
                 onSubmit={submit}
-                onEdit={goTo}
+                onEdit={(id) => goTo(wizard.steps.findIndex((s) => s.id === id))}
               />
             )}
             {type === 'transfer' && (
@@ -917,332 +899,6 @@ function AddBankDialog({ bank, onCancel, onSave }) {
 }
 
 /* ---------------- Withdrawal / Distribution ---------------- */
-
-function WithdrawalSteps({ step, plan, participant, form, set, onNext, onBack, onSubmit, onEdit }) {
-  const [showLoanDialog, setShowLoanDialog] = useState(false)
-  const [editingAllocationId, setEditingAllocationId] = useState(null)
-  const [addingAllocation, setAddingAllocation] = useState(false)
-  const withdrawalType = WITHDRAWAL_TYPES.find((t) => t.id === form.withdrawalType)
-  const legalName = participant.name
-  const originalAddress = `${participant.profile?.address || ''}, ${participant.profile?.city || ''}`.trim()
-  const allocations = form.allocations
-  const fees = sumWithdrawalFees(allocations, form.withdrawalType)
-  const loan = activeLoanFor(participant, plan)
-  const allocationsReady = allocations.length > 0 && allocations.every((a) => a.mode && a.amount)
-  const editingAllocation = editingAllocationId ? allocations.find((a) => a.id === editingAllocationId) : null
-
-  const patchAllocation = (id, patch) =>
-    set((f) => ({ allocations: f.allocations.map((a) => (a.id === id ? { ...a, ...patch } : a)) }))
-
-  const chooseEntireBalance = (value) => {
-    if (value === 'yes' && loan) {
-      setShowLoanDialog(true)
-      return
-    }
-    set({ entireBalance: value })
-  }
-
-  if (step === 'details') {
-    return (
-      <div className="txn-card">
-        <h3>Withdrawal Details</h3>
-        <div className="txn-row">
-          <Field label="Select withdrawal type" required>
-            <Select value={form.withdrawalType} onChange={(e) => set({ withdrawalType: e.target.value })}>
-              <Option value="">Select</Option>
-              {WITHDRAWAL_TYPES.map((t) => (
-                <Option key={t.id} value={t.id}>
-                  {t.label}
-                </Option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-
-        <div className="txn-row" style={{ marginTop: 'var(--core-space-4)' }}>
-          <FieldGroup label="Withdraw" required>
-            <div className="txn-radio-row txn-radio-col">
-              <label className="txn-radio">
-                <input
-                  type="radio"
-                  name="withdraw-as"
-                  checked={form.withdrawAs === 'onetime'}
-                  onChange={() => set({ withdrawAs: 'onetime' })}
-                />
-                As one time payment
-              </label>
-              <label className="txn-radio">
-                <input
-                  type="radio"
-                  name="withdraw-as"
-                  checked={form.withdrawAs === 'periodic'}
-                  onChange={() => set({ withdrawAs: 'periodic' })}
-                />
-                As periodic payment
-              </label>
-            </div>
-          </FieldGroup>
-          <FieldGroup label="Withdraw entire balance" required>
-            <div className="txn-radio-row">
-              <label className="txn-radio">
-                <input
-                  type="radio"
-                  name="withdraw-entire-balance"
-                  checked={form.entireBalance === 'yes'}
-                  onChange={() => chooseEntireBalance('yes')}
-                />
-                Yes
-              </label>
-              <label className="txn-radio">
-                <input
-                  type="radio"
-                  name="withdraw-entire-balance"
-                  checked={form.entireBalance === 'no'}
-                  onChange={() => chooseEntireBalance('no')}
-                />
-                No
-              </label>
-            </div>
-          </FieldGroup>
-        </div>
-
-        {form.entireBalance === 'yes' && loan && (
-          <div className="wd-note">
-            <Icon icon={faInfoCircle} size={15} />
-            <span>Active loan amount is detected and will be converted to a default loan.</span>
-          </div>
-        )}
-
-        <div className="txn-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!form.withdrawalType || !form.withdrawAs || !form.entireBalance}
-            onClick={onNext}
-          >
-            Continue
-          </button>
-        </div>
-
-        {showLoanDialog && (
-          <ConfirmDialog
-            title="Outstanding loan detected!"
-            body={`For the plan ${plan.name}, an outstanding loan is detected. The system will apply the default loan treatment and distribute the remaining balance to you.`}
-            confirmLabel="Okay"
-            onConfirm={() => {
-              set({ entireBalance: 'yes' })
-              setShowLoanDialog(false)
-            }}
-            onCancel={() => setShowLoanDialog(false)}
-          />
-        )}
-      </div>
-    )
-  }
-
-  if (step === 'allocation') {
-    return (
-      <div className="txn-card">
-        <div className="txn-summary-head">
-          <h3>Withdrawal Allocation</h3>
-          <button type="button" className="btn btn-secondary btn-sm alloc-add-btn" onClick={() => setAddingAllocation(true)}>
-            Add allocation
-          </button>
-        </div>
-        <p className="hint">Review how this withdrawal is allocated, then edit the recipient details if needed.</p>
-
-        <AllocationTable
-          allocations={allocations}
-          withdrawalTypeId={form.withdrawalType}
-          onEdit={setEditingAllocationId}
-          onRemove={
-            allocations.length > 1
-              ? (id) => set((f) => ({ allocations: f.allocations.filter((a) => a.id !== id) }))
-              : undefined
-          }
-        />
-
-        {!allocationsReady && (
-          <p className="wd-alloc-incomplete-hint">
-            <Icon icon={faInfoCircle} size={14} />
-            Every recipient needs a distribution mode and amount before you can continue — open "View details" on any
-            row still marked Incomplete.
-          </p>
-        )}
-
-        <div className="txn-actions">
-          <button type="button" className="btn btn-primary" disabled={!allocationsReady} onClick={onNext}>
-            Continue
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={onBack}>
-            Back
-          </button>
-        </div>
-
-        {editingAllocation && (
-          <EditAllocationSlideover
-            allocation={editingAllocation}
-            withdrawalTypeId={form.withdrawalType}
-            legalName={editingAllocation.recipientType === 'self' ? legalName : editingAllocation.name}
-            originalAddress={originalAddress}
-            plan={plan}
-            onClose={() => setEditingAllocationId(null)}
-            onSave={(draft) => {
-              patchAllocation(editingAllocation.id, {
-                ...draft,
-                addressChanged: draft.addressOption === 'custom' && draft.customAddress.trim().length > 0
-              })
-              setEditingAllocationId(null)
-            }}
-          />
-        )}
-        {addingAllocation && (
-          <EditAllocationSlideover
-            isNew
-            allocation={blankWithdrawalAllocation({
-              id: `beneficiary-${Date.now()}`,
-              recipientType: 'beneficiary',
-              name: ''
-            })}
-            withdrawalTypeId={form.withdrawalType}
-            legalName=""
-            originalAddress={originalAddress}
-            plan={plan}
-            onClose={() => setAddingAllocation(false)}
-            onSave={(draft) => {
-              set((f) => ({ allocations: [...f.allocations, draft] }))
-              setAddingAllocation(false)
-            }}
-          />
-        )}
-      </div>
-    )
-  }
-
-  if (step === 'fee') {
-    return (
-      <div className="txn-card">
-        <h3>Fee Details</h3>
-        <p className="hint">This is what your plan will deduct to cover fees, tax withholding, and any penalty.</p>
-
-        <div className="wd-fee-card">
-          <FeeAndTaxPanel fees={fees} title="" />
-        </div>
-
-        {allocations.some((a) => a.addressChanged) && (
-          <div className="address-banner">
-            <Icon icon={faExclamationTriangle} size={20} />
-            <div>
-              <b>Custom address on this request</b>
-              This request will be flagged for admin review, noting the address was changed within the last 3 days.
-            </div>
-          </div>
-        )}
-
-        <div className="txn-actions">
-          <button type="button" className="btn btn-primary" onClick={onNext}>
-            Continue
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={onBack}>
-            Back
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (step === 'documents') {
-    return <DocumentsStep type="withdrawal" form={form} set={set} onNext={onNext} onBack={onBack} />
-  }
-
-  return (
-    <SummaryStep
-      title="Withdrawal Request Summary"
-      onBack={onBack}
-      onSubmit={onSubmit}
-      submitDisabled={!form.termsAccepted}
-    >
-      <h4 className="txn-section-title">Withdrawal details</h4>
-      <SummaryRow label="Withdrawal type" value={withdrawalType?.label || '—'} onEdit={() => onEdit(0)} />
-      <SummaryRow label="Withdraw" value={form.withdrawAs === 'periodic' ? 'As periodic payment' : 'As one time payment'} onEdit={() => onEdit(0)} />
-      <SummaryRow label="Withdraw entire balance" value={form.entireBalance === 'yes' ? 'Yes' : 'No'} onEdit={() => onEdit(0)} />
-      <div className="wd-note">
-        <Info size={15} strokeWidth={2.2} />
-        <span>The processing time for your withdrawal is 10 days.</span>
-      </div>
-
-      <h4 className="txn-section-title spaced">Withdrawal allocation</h4>
-      <AllocationTable allocations={allocations} withdrawalTypeId={form.withdrawalType} onEdit={() => onEdit(1)} />
-
-      {allocations.map((a) => {
-        const m = DISTRIBUTION_MODES.find((d) => d.id === a.mode)
-        if (m?.id !== 'direct') return null
-        if (a.paymentMethod === 'check') {
-          return (
-            <div key={a.id}>
-              <SummaryRow
-                label={`Mail check payable to (${a.name})`}
-                value={a.recipientType === 'self' ? legalName : a.name}
-              />
-              <SummaryRow label="Address" value={a.customAddress || originalAddress} onEdit={() => onEdit(1)} />
-            </div>
-          )
-        }
-        if (a.paymentMethod === 'eft') {
-          const bank =
-            a.bankOption === 'custom'
-              ? {
-                  accountHolder: a.accountHolder || (a.recipientType === 'self' ? legalName : a.name),
-                  bankName: a.bankName,
-                  routingNo: a.routingNo,
-                  accountNumber: a.accountNumber
-                }
-              : {
-                  ...BANK_ON_FILE,
-                  accountHolder: a.recipientType === 'self' ? legalName : a.name || BANK_ON_FILE.accountHolder
-                }
-          return (
-            <div key={a.id}>
-              <SummaryRow label={`EFT bank (${a.name})`} value={bank.bankName || '—'} onEdit={() => onEdit(1)} />
-              <SummaryRow label="Account holder" value={bank.accountHolder || '—'} />
-              <SummaryRow label="Routing number" value={bank.routingNo || '—'} />
-              <SummaryRow label="Account number" value={bank.accountNumber || `•••• ${bank.last4 || ''}`} />
-            </div>
-          )
-        }
-        return null
-      })}
-
-      <div className="wd-fee-card" style={{ marginTop: 'var(--core-space-5)' }}>
-        <FeeAndTaxPanel fees={fees} title="Fee Details" />
-      </div>
-
-      <SummaryRow label="Distribution form" value={form.docUploaded ? 'Uploaded' : 'Not uploaded'} onEdit={() => onEdit(3)} />
-
-      <label className="wd-terms">
-        <input
-          type="checkbox"
-          checked={form.termsAccepted}
-          onChange={(e) => set({ termsAccepted: e.target.checked })}
-        />
-        <span>
-          By checking this box, I declare that I have read{' '}
-          <a href="#terms" className="text-link" onClick={(e) => e.preventDefault()}>
-            the terms and conditions
-          </a>
-          .
-        </span>
-      </label>
-    </SummaryStep>
-  )
-}
-
-/* ---------------- Transfer ---------------- */
-
-/* ---------------- Transfer / Rebalance ----------------
-   Both flows are the same two-step shape — pick sources, retarget the
-   investments inside them, review — so they share one implementation and
-   differ only in labels and the per-source side panel. */
 
 function AllocationSteps({ mode, step, plan, form, set, onNext, onBack, onSubmit }) {
   const [addingTo, setAddingTo] = useState(null)

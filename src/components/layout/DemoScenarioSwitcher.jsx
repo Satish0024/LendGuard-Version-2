@@ -4,6 +4,7 @@ import { Icon } from '../../lib/icons'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
 import { useParticipant } from '../../context/ParticipantContext.jsx'
 import { getSdb, setSdbDemo } from '../../data/sdb'
+import { WD_PERSONA_KEY } from '../transactions/WithdrawalFlow.jsx'
 
 // Prototype-only: switching between demo participants/scenarios. Kept
 // deliberately separate from the real account menu (Settings/Help/Sign out
@@ -17,6 +18,13 @@ export default function DemoScenarioSwitcher() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [sdbOn, setSdbOn] = useState(() => !!getSdb().enabled)
+  const [persona, setPersona] = useState(() => {
+    try {
+      return sessionStorage.getItem(WD_PERSONA_KEY) || 'active'
+    } catch {
+      return 'active'
+    }
+  })
   const ref = useRef(null)
 
   useEffect(() => {
@@ -84,6 +92,34 @@ export default function DemoScenarioSwitcher() {
                 setSdbDemo(val)
                 setSdbOn(val)
                 setOpen(false)
+              }}
+            >
+              <span className="demo-switcher-text">
+                <strong>{label}</strong>
+                <small>{hint}</small>
+              </span>
+            </button>
+          ))}
+          <div className="demo-switcher-label">Withdrawal eligibility</div>
+          {[
+            ['active', 'Active employee', 'Your real age · RMD and Separation blocked'],
+            ['retired', 'Retired, age 80', 'Terminated · RMD and Separation allowed']
+          ].map(([val, label, hint]) => (
+            <button
+              key={val}
+              type="button"
+              className={`demo-switcher-row${persona === val ? ' on' : ''}`}
+              role="option"
+              aria-selected={persona === val}
+              onClick={() => {
+                try {
+                  sessionStorage.setItem(WD_PERSONA_KEY, val)
+                } catch {
+                  /* ignore */
+                }
+                setPersona(val)
+                setOpen(false)
+                window.dispatchEvent(new Event('lg-wd-persona'))
               }}
             >
               <span className="demo-switcher-text">
