@@ -723,6 +723,7 @@ function EditSell({ holding, sell, t, buyOptions, onClose, onSave }) {
       title="Investment transfer"
       width="full"
       onClose={requestClose}
+      closeButton={false}
       actions={
         <>
           <button type="button" className="btn btn-primary" disabled={!canSave} onClick={save}>
@@ -1035,6 +1036,7 @@ function TransferDetails({ holding, sell, t, onClose, onEdit, onRemove }) {
       title="Transfer details"
       width="wide"
       onClose={onClose}
+      closeButton={false}
       actions={
         <>
           <button type="button" className="btn btn-primary" onClick={onEdit}>

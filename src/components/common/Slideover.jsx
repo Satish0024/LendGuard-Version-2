@@ -9,7 +9,8 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 // `width`: 'narrow' (~420px, e.g. calculators) or 'wide' (~640px, e.g.
 // tables/allocation editors). `actions` renders in the header, to the right
 // of the title (e.g. Cancel + Save, or just a Close button).
-export default function Slideover({ title, width = 'narrow', onClose, actions, children }) {
+// closeButton={false} drops the X when the actions already include Cancel.
+export default function Slideover({ title, width = 'narrow', onClose, actions, closeButton = true, children }) {
   useEscapeToClose(true, onClose)
   const trapRef = useFocusTrap(true)
   const titleId = useId()
@@ -29,9 +30,11 @@ export default function Slideover({ title, width = 'narrow', onClose, actions, c
           <h3 id={titleId}>{title}</h3>
           <div className="slideover-head-actions">
             {actions}
-            <button type="button" className="slideover-close" onClick={onClose} aria-label="Close">
-              <Icon icon={faTimes} size={18} />
-            </button>
+            {closeButton && (
+              <button type="button" className="slideover-close" onClick={onClose} aria-label="Close">
+                <Icon icon={faTimes} size={18} />
+              </button>
+            )}
           </div>
         </div>
         <div className="slideover-body">{children}</div>
