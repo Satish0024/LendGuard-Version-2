@@ -595,3 +595,125 @@
 .wd2 .alloc-warn{margin-top:var(--core-space-3)}
 .wd2-doc .txn-doc-required{display:inline;margin-left:var(--core-space-1);font-weight:var(--typography-font-weight-regular)}
 .wd2-sum .detail-rows + .hint{margin-top:var(--core-space-3)}
+
+/* ---------- Transfer flow: updated Figma (Census · Final) ---------- */
+.tf-page-head{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);flex-wrap:wrap;padding-bottom:var(--core-space-3);border-bottom:1px solid var(--neutral-border-light)}
+.tf-page-head h3{margin:0}
+.tf-page-actions{display:flex;gap:var(--core-space-2);margin-left:auto}
+.tf-info{display:flex;align-items:flex-start;gap:var(--core-space-1);margin:var(--core-space-3) var(--core-space-0) var(--core-space-4)}
+.tf-info svg{margin-top:3px;flex:0 0 auto}
+.tf-controls{justify-content:flex-start;gap:var(--core-space-6)}
+.tf-controls .inv-toggle{min-height:40px;align-self:flex-start}
+/* main table */
+.tf-table .alloc-name-col{display:table-cell}
+.tf-sell-tag{display:inline-flex;margin-bottom:var(--core-space-1)}
+.tf-fund-link{display:block;text-align:left;font-weight:var(--typography-font-weight-bold)}
+.tf-table .tf-meta{display:block;margin-top:var(--core-space-1)}
+.tf-mc-h{gap:var(--core-space-1)}
+.tf-chip{display:inline-flex;align-items:center;gap:var(--core-space-2);max-width:220px}
+.tf-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tf-chips{align-items:center}
+/* edit panel */
+.tf-col + .tf-col{border-left:1px solid var(--neutral-border-light)}
+.tf-col-title{margin:0;font-size:var(--typography-body-lg-size);font-weight:var(--typography-font-weight-bold)}
+.tf-src-card{display:flex;flex-direction:column;gap:var(--core-space-2);padding:var(--core-space-3) var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01);cursor:default}
+.tf-src-card.on{cursor:pointer}
+.tf-src-card.active{border-color:var(--brand-text-primary-default);background:var(--semantics-highlight-background-light)}
+.tf-src-pick{display:flex;align-items:center;gap:var(--core-space-2);cursor:pointer}
+.tf-src-name{font-weight:var(--typography-font-weight-bold);font-size:var(--typography-body-md-size)}
+.tf-src-card.active .tf-src-name{color:var(--brand-text-primary-default);text-decoration:underline;text-underline-offset:3px}
+.tf-src-card:not(.on):not(.active) .tf-src-name{color:var(--neutral-text-default)}
+.tf-src-meta{font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
+.tf-src-meta b{color:var(--neutral-text-default)}
+.tf-from-done{margin:0;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);color:var(--semantics-success-text)}
+.tf-lock{margin:0}
+.tf-fund-cards{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--core-space-2)}
+.tf-fund-card{display:flex;flex-direction:column;gap:var(--core-space-2);padding:var(--core-space-3);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01)}
+.tf-fund-card.restricted{opacity:.75}
+.tf-fund-meta{display:flex;justify-content:space-between;gap:var(--core-space-2);flex-wrap:wrap;font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
+.tf-fund-meta b{color:var(--neutral-text-default)}
+.tf-fund-row{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-2)}
+.tf-fund-name{font-size:var(--typography-body-md-size);min-width:0;overflow-wrap:anywhere}
+.tf-restricted{display:flex;align-items:center;gap:var(--core-space-1);color:var(--semantics-warning-text);font-size:var(--typography-body-xs-size)}
+.tf-alloc-group{display:flex;flex-direction:column;gap:var(--core-space-2)}
+.tf-alloc-group + .tf-alloc-group{margin-top:var(--core-space-3)}
+.tf-group-title{margin:0;font-weight:var(--typography-font-weight-bold);font-size:var(--typography-body-sm-size)}
+.tf-alloc-bar{display:flex;justify-content:space-between;align-items:center;font-size:var(--typography-body-sm-size)}
+.tf-alloc-row{display:flex;align-items:center;gap:var(--core-space-3)}
+.tf-alloc-row .alloc-pct-input{width:120px}
+.tf-fund-foot{display:flex;justify-content:space-between;align-items:center;font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
+.tf-fund-foot b{color:var(--neutral-text-default)}
+.tf-trash{color:var(--semantics-critical-text);border:1px solid currentColor;border-radius:var(--core-radius-full);width:28px;height:28px}
+.text-link.danger{color:var(--semantics-critical-text)}
+/* details + summary */
+.tf-detail-src{color:var(--brand-text-primary-default);text-decoration:underline;text-underline-offset:3px}
+.tf-detail-arrow.static{position:static;transform:none}
+.tf-sell-top{display:flex;justify-content:space-between;align-items:center;width:100%}
+.tf-review{grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:0;padding:0;overflow:hidden}
+.tf-review .tf-sell{border-radius:0;height:100%;border-right:1px solid var(--neutral-border-light)}
+.tf-review .tf-buys{padding:var(--core-space-4);align-items:flex-start}
+.tf-review .tf-buy-table{width:100%}
+.tf-dl-title{margin:0 0 var(--core-space-1);font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold)}
+.tf-buy-title{margin:0 0 var(--core-space-2);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.tf-buy-title b{color:var(--neutral-text-default)}
+.tf-toast .toast{position:fixed}
+@media (max-width:767px){
+  .tf-page-actions{width:100%;justify-content:flex-end}
+  .tf-col + .tf-col{border-left:0;border-top:1px solid var(--neutral-border-light)}
+  .tf-review{grid-template-columns:1fr}
+  .tf-review .tf-sell{border-right:0;border-bottom:1px solid var(--neutral-border-light)}
+  .tf-controls{gap:var(--core-space-3)}
+}
+.tf-fund-link{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+.tf-table td.alloc-name-col{white-space:normal}
+.icon-btn.tf-trash,.icon-btn.tf-trash svg{color:var(--semantics-critical-text)}
+.icon-btn.tf-trash{border:1px solid var(--semantics-critical-text);background:transparent}
+.icon-btn.tf-trash:hover{background:var(--semantics-critical-background-light)}
+/* Transfer by on the left, Source wise on the right; labels share a baseline
+   and the switch is centred on the segmented control's height. */
+.tf-controls{justify-content:space-between;align-items:flex-start}
+.tf-controls .tf-control{gap:var(--core-space-2)}
+.tf-controls .tf-control:last-child{align-items:flex-end}
+.tf-controls .tf-label{line-height:var(--typography-label-line-height);margin:0}
+.tf-controls .inv-toggle{display:flex;align-items:center;min-height:0;height:var(--tf-seg-h, 44px);align-self:flex-end;margin:0}
+@media (max-width:767px){.tf-controls .tf-control:last-child{align-items:flex-start}.tf-controls .inv-toggle{align-self:flex-start;height:auto}}
+/* Transfer flow type scale: counts 14/400 with bold number, names 14/700,
+   meta 12/400 with semibold values, hints 14/400 -- one rule per role. */
+.tf-cols .add-inv-count,.tf-cols .tf-alloc-bar,.tf-count{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-sm-line-height, 20px);color:var(--neutral-text-subtle);margin:0}
+.tf-cols .add-inv-count b,.tf-cols .tf-alloc-bar b,.tf-count b{font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default)}
+.tf-fund-name,.tf-src-name,.tf-group-title{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-bold);line-height:var(--typography-body-sm-line-height, 20px)}
+.tf-fund-meta,.tf-src-meta,.tf-fund-foot,.tf-table .tf-meta,.tf-detail-table .tf-meta,.tf-detail-sell small{font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);line-height:16px;color:var(--neutral-text-subtle)}
+.tf-fund-meta b,.tf-src-meta b,.tf-fund-foot b,.tf-table .tf-meta b{font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
+.tf-lock,.tf-info{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-subtle)}
+.tf-from-done{font-size:var(--typography-body-sm-size)}
+/* Transfer % / $ / units field (Figma): input fills the box, suffix is a
+   full-height block flush to the right edge, value starts at the left. */
+.tf-cols .alloc-pct-input{align-items:stretch}
+.tf-cols .alloc-pct-input input{flex:1 1 auto;min-width:0;width:auto;text-align:left;padding:var(--core-space-2) var(--core-space-3)}
+.tf-cols .alloc-pct-input i{display:flex;align-items:center;justify-content:center;min-width:36px;padding:0 var(--core-space-2)}
+.tf-cols .alloc-pct-input i:first-child{border-left:0;border-right:1px solid var(--core-color-border-control)}
+.tf-amount .alloc-pct-input{width:140px}
+.tf-alloc-row .alloc-pct-input{width:140px}
+.tf-detail-sell .tf-sell-top{margin-bottom:var(--core-space-1)}
+/* Transfer to: one line only -- fund chips shrink and truncate, the Buy tag,
+   +N and View details never wrap or shrink. */
+.tf-mc .tf-chips{flex-wrap:nowrap;min-width:0;overflow:hidden}
+.tf-mc .tf-chips > *{flex:0 0 auto;white-space:nowrap}
+.tf-mc .tf-chips > .tf-chip{flex:0 1 auto;min-width:56px;max-width:200px}
+.tf-mc .tf-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-mc .tf-chip b{flex:0 0 auto}
+.tf-table td:has(.tf-mc){max-width:0}
+.tf-mc .tf-chips{overflow:visible;gap:var(--core-space-1)}
+.tf-mc .tf-chip-track{display:flex;flex:0 1 auto;min-width:0;gap:var(--core-space-1);overflow:hidden}
+.tf-mc .tf-chip-track > .tf-chip{flex:0 1 auto;min-width:72px;max-width:200px}
+.tf-table .tf-c-name{width:32%}
+.tf-table .tf-c-act{width:96px}
+/* Single-line, truncated names in the transfer table (full name on hover). */
+.tf-table .tf-fund-link{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tf-table td.alloc-name-col{max-width:0}
+/* Chip track absorbs the squeeze so View details is never clipped. */
+.tf-mc .tf-chips{width:100%}
+.tf-mc .tf-chip-track{flex:1 1 auto}
+.tf-mc .tf-chip-track > .tf-chip{min-width:48px}
+.tf-mc .tf-chips > .text-link,.tf-mc .tf-chips > .badge{flex:0 0 auto}
+@media (min-width:768px){.table-wrap .alloc-table.tf-table{min-width:0}}

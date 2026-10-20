@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationTriangle, faPrint, faSearch, faArrowRight, faCheck } from '@fortawesome/free-solid-svg-icons'
+import { faExclamationTriangle, faSearch, faArrowRight, faInfoCircle, faTrash } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
+import Toast from '../common/Toast.jsx'
 import { formatMoney } from '../../lib/accountSummary'
 import { AVAILABLE_INVESTMENTS, sourcesFor } from '../../data/transactions.js'
 import { HOLDINGS } from '../../data/portfolio.js'
@@ -12,7 +13,6 @@ import { HOLDINGS } from '../../data/portfolio.js'
 // more funds to sell, say how much (by %, units or $ -- whole fund or per
 // money source), choose the funds it buys and their split, then review.
 
-const DRAFT_KEY = 'lg-transfer-draft'
 const BY = [
   ['pct', 'Percentage'],
   ['units', 'Units'],
@@ -94,7 +94,6 @@ function maxFor(by, available, nav) {
   if (by === 'units') return floor4(available / (nav || 1))
   return floor2(available)
 }
-const maxText = (by, max) => (by === 'pct' ? pctText(max) : by === 'units' ? `${unitsText(max)} units` : formatMoney(max))
 
 // Keep only digits and one dot, limit decimals (4 for units, 2 otherwise) and
 // never let a percentage go over 100 -- the previous value is kept instead.
@@ -108,14 +107,8 @@ function cleanNumber(raw, prev, by) {
   return v
 }
 
-// Funds with trading rules the review has to call out before submitting.
-const BUY_RULES = {
-  'zetex-equity': 'Zetex Equity has a 30-day round-trip rule: money moved in can\'t be moved out again for 30 days.'
-}
-const SELL_FEE_PCT = 0.5 // short-term redemption fee some funds charge on a sell
-
 export function blankTransfer() {
-  return { by: 'pct', sourceWise: false, sells: {}, ack: false }
+  return { by: 'pct', sourceWise: false, sells: {} }
 }
 
 // Dollars a configured sell moves, overall and per source.
@@ -201,12 +194,7 @@ function movedTargets(sell, holding, t, total, bySource) {
   return Object.values(acc).sort((a, b) => b.amount - a.amount)
 }
 
-function sellStatus(sell, errs) {
-  if (!sell) return null
-  return errs.length ? { cls: 'amber', label: 'Needs attention' } : { cls: 'green', label: 'Ready' }
-}
-
-export default function TransferFlow({ step, plan, form, set, onNext, onBack, onSubmit }) {
+export default function TransferFlow({ step, plan, form, set, onNext }) {
   const navigate = useNavigate()
   const holdings = useMemo(() => holdingsFor(plan), [plan])
   const buyOptions = useMemo(() => buyOptionsFor(plan), [plan])
@@ -214,63 +202,11 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
   const setT = (patch) => set((f) => ({ transfer: { ...(f.transfer || blankTransfer()), ...(typeof patch === 'function' ? patch(f.transfer || blankTransfer()) : patch) } }))
   const [editing, setEditing] = useState(null)
   const [confirm, setConfirm] = useState(null)
-  const [notice, setNotice] = useState(null)
   const [details, setDetails] = useState(null)
-  // Short-lived status line (cleared transfers, removed fund + Undo).
-  const flash = (text, undo) => setNotice({ text, undo, at: Date.now() })
-  useEffect(() => {
-    if (!notice) return undefined
-    const id = setTimeout(() => setNotice(null), 6000)
-    return () => clearTimeout(id)
-  }, [notice])
-  const [resume, setResume] = useState(() => {
-    try {
-      const d = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null')
-      return d && d.planId === plan.id && Object.keys(d.transfer?.sells || {}).length ? d.transfer : null
-    } catch {
-      return null
-    }
-  })
-
-  // Draft: keep the in-progress request so leaving the page doesn't lose it.
-  useEffect(() => {
-    if (resume) return
-    try {
-      if (Object.keys(t.sells).length) sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ planId: plan.id, transfer: t }))
-    } catch {
-      /* storage unavailable: draft is a convenience only */
-    }
-  }, [t, plan.id, resume])
 
   const configured = holdings.filter((h) => t.sells[h.id])
   const errorsById = Object.fromEntries(configured.map((h) => [h.id, sellErrors(t.sells[h.id], h, t.by, t.sourceWise)]))
   const ready = configured.length > 0 && configured.every((h) => !errorsById[h.id].length)
-  const totalMoving = configured.reduce((s, h) => s + sellBreakdown(t.sells[h.id], h, t.by, t.sourceWise).total, 0)
-  const buyingInto = new Set(
-    configured.flatMap((h) => {
-      const sell = t.sells[h.id]
-      return Object.values(sell.buys || {}).flat().map((b) => b.id)
-    })
-  ).size
-
-  // Review-time warnings: redemption fee on every sell, trading rules on buys.
-  const feeTotal = r2((totalMoving * SELL_FEE_PCT) / 100)
-  const warnings = configured.length
-    ? [
-        `Some investments charge a short-term redemption fee of up to ${SELL_FEE_PCT}% when sold. Up to ${formatMoney(feeTotal)} may be deducted from the amount moved.`,
-        ...[
-          ...new Set(
-            configured.flatMap((h) =>
-              Object.values(t.sells[h.id].buys || {})
-                .flat()
-                .map((b) => BUY_RULES[b.id])
-                .filter(Boolean)
-            )
-          )
-        ]
-      ]
-    : []
-
   // Projected balances once the saved transfers run: money out of each sold
   // fund, money into any held fund that is also bought.
   const flow = {}
@@ -282,13 +218,11 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
   })
 
   const removeSell = (h) => {
-    const prev = t.sells[h.id]
     setT((cur) => {
       const sells = { ...cur.sells }
       delete sells[h.id]
       return { sells }
     })
-    flash(`Transfer from ${h.name} removed`, () => setT((cur) => ({ sells: { ...cur.sells, [h.id]: prev } })))
   }
 
   const changeMode = (patch) => {
@@ -298,165 +232,82 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
     }
     setConfirm({
       title: 'Change transfer settings?',
-      body: `Changing this clears the ${configured.length} transfer${configured.length > 1 ? 's' : ''} you have set up, because amounts and sources are entered differently.`,
-      confirmLabel: 'Change and clear',
-      cancelLabel: 'Keep current',
+      body: 'Changing these settings will clear the transfer you have setup. Do you wish to continue?',
+      confirmLabel: 'Okay',
+      cancelLabel: 'Cancel',
       onConfirm: () => {
-        setT({ ...patch, sells: {}, ack: false })
+        setT({ ...patch, sells: {} })
         setConfirm(null)
-        flash(`${configured.length} saved transfer${configured.length > 1 ? 's' : ''} cleared`)
       }
     })
   }
 
-  const clearDraft = () => {
-    try {
-      sessionStorage.removeItem(DRAFT_KEY)
-    } catch {
-      /* ignore */
-    }
-  }
 
-  const discard = () => {
-    if (!configured.length) {
-      clearDraft()
-      navigate('/transactions')
-      return
-    }
-    setConfirm({
-      title: 'Discard this transfer request?',
-      body: `The ${configured.length} transfer${configured.length > 1 ? 's' : ''} you have set up will be removed.`,
-      confirmLabel: 'Discard request',
-      cancelLabel: 'Keep editing',
-      onConfirm: () => {
-        clearDraft()
-        navigate('/transactions')
-      }
-    })
-  }
-
-  const overview = (
-    <div className="tf-overview" aria-live="polite">
-      <div>
-        <span>Investments selling</span>
-        <b>
-          {String(configured.length).padStart(2, '0')} of {String(holdings.length).padStart(2, '0')}
-        </b>
-      </div>
-      <div>
-        <span>Total moving</span>
-        <b>{formatMoney(totalMoving)}</b>
-      </div>
-      <div>
-        <span>Buying into</span>
-        <b>{String(buyingInto).padStart(2, '0')} investments</b>
-      </div>
-      <div>
-        <span>Transfer by</span>
-        <b>
-          {BY.find(([id]) => id === t.by)[1]}
-          {t.sourceWise ? ' · source wise' : ''}
-        </b>
-      </div>
-    </div>
-  )
+  const discard = () => navigate('/transactions')
 
   const dialogs = (
     <>
-      {resume && (
-        <ConfirmDialog
-          title="Continue your saved transfer?"
-          body="You have a transfer request in progress for this plan. Continue where you left off, or start over."
-          confirmLabel="Continue"
-          cancelLabel="Start over"
-          onConfirm={() => {
-            set({ transfer: resume })
-            setResume(null)
-          }}
-          onCancel={() => {
-            clearDraft()
-            setResume(null)
-          }}
-        />
-      )}
       {confirm && <ConfirmDialog {...confirm} onCancel={() => setConfirm(null)} />}
     </>
   )
 
+  const [submitted, setSubmitted] = useState(false)
+  const infoLine = (
+    <p className="hint tf-info">
+      <Icon icon={faInfoCircle} size={13} /> The available amount is reported as of {new Date().toLocaleDateString('en-US')} and may change due
+      to market fluctuations.
+    </p>
+  )
+
   if (step === 'summary') {
     return (
-      <div className="txn-card">
-        <div className="txn-summary-head">
-          <h3>Review your transfer</h3>
-          <button type="button" className="icon-btn" data-tip="Print" aria-label="Print" onClick={() => window.print()}>
-            <Icon icon={faPrint} size={17} />
-          </button>
+      <div className="txn-card tf-page">
+        <div className="tf-page-head">
+          <h3>Transfer Summary</h3>
+          <div className="tf-page-actions">
+            <button type="button" className="btn btn-ghost" onClick={discard} disabled={submitted}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={submitted}
+              onClick={() => {
+                setSubmitted(true)
+              }}
+            >
+              {submitted ? 'Submitted' : 'Submit'}
+            </button>
+          </div>
         </div>
-        <p className="hint">Check what you are selling and where the money goes. Values are estimates until the trades are placed.</p>
-        {overview}
+        {infoLine}
         {configured.map((h) => (
-          <SellReview
-            key={h.id}
-            holding={h}
-            sell={t.sells[h.id]}
-            t={t}
-            buyOptions={buyOptions}
-            onEdit={() => {
-              setT({ ack: false })
-              setEditing(h.id)
-              onBack()
-            }}
-          />
+          <SellReview key={h.id} holding={h} sell={t.sells[h.id]} t={t} flowIn={flow[h.id] || 0} />
         ))}
-        {warnings.length > 0 && (
-          <div className="wd-note tf-warnings" role="note">
-            <b>Before you submit</b>
-            <ul>
-              {warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
+        {submitted && (
+          <div className="tf-toast">
+            <Toast message="Transfer request submitted successfully" duration={8000} onDismiss={() => navigate('/transactions')} />
           </div>
         )}
-        <label className="alloc-apply-all tf-ack">
-          <input type="checkbox" checked={!!t.ack} onChange={(e) => setT({ ack: e.target.checked })} />
-          <span>
-            I understand these trades are placed at the next market close, so the final units and amounts may differ from the
-            estimates shown.
-          </span>
-        </label>
-        <div className="txn-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!t.ack}
-            onClick={() => {
-              clearDraft()
-              onSubmit()
-            }}
-          >
-            Submit Request
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => {
-              setT({ ack: false })
-              onBack()
-            }}
-          >
-            Back
-          </button>
-        </div>
         {dialogs}
       </div>
     )
   }
 
   return (
-    <div className="txn-card">
-      <h3>Investments to move</h3>
-      <p className="hint">Sell from one or more investments and choose where the money goes.</p>
+    <div className="txn-card tf-page">
+      <div className="tf-page-head">
+        <h3>New Transfer Request</h3>
+        <div className="tf-page-actions">
+          <button type="button" className="btn btn-ghost" onClick={discard}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-primary" disabled={!ready} onClick={onNext}>
+            Next
+          </button>
+        </div>
+      </div>
+      {infoLine}
 
       <div className="tf-controls">
         <div className="tf-control">
@@ -478,18 +329,28 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
             ))}
           </div>
         </div>
-        <label className={`inv-toggle${t.sourceWise ? ' on' : ''}`}>
-          <input type="checkbox" checked={t.sourceWise} onChange={() => changeMode({ sourceWise: !t.sourceWise })} />
-          <span className="switch" aria-hidden="true" />
-          Source wise transfer
-        </label>
+        <div className="tf-control">
+          <span className="tf-label" id="tf-sw">
+            Source wise transfer
+          </span>
+          <label className={`inv-toggle${t.sourceWise ? ' on' : ''}`}>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-labelledby="tf-sw"
+              checked={t.sourceWise}
+              onChange={() => changeMode({ sourceWise: !t.sourceWise })}
+            />
+            <span className="switch" aria-hidden="true" />
+          </label>
+        </div>
       </div>
 
       <p className="tf-count">
         <b>
-          {String(configured.length).padStart(2, '0')}/{String(holdings.length).padStart(2, '0')}
+          {String(holdings.length).padStart(2, '0')}/{String(holdings.length).padStart(2, '0')}
         </b>{' '}
-        investments set up
+        record(s) found
       </p>
       <div className="table-wrap">
         <table className="alloc-table tf-table">
@@ -505,28 +366,24 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
               const sell = t.sells[h.id]
               const { total, bySource } = sellBreakdown(sell, h, t.by, t.sourceWise)
               const errs = sell ? errorsById[h.id] : []
-              const status = sellStatus(sell, errs)
-              const flowIn = flow[h.id] || 0
-              const bal = h.amount + flowIn
+              const bal = h.amount + (flow[h.id] || 0)
               const targets = sell ? movedTargets(sell, h, t, total, bySource) : []
-              const groups = sell && t.sourceWise ? bySource.filter((s) => buysFor(sell, s.id).length && s.moved > 0) : []
+              // Figma: every buy line counts, so a fund bought from two sources counts twice.
+              const buyCount = sell ? (t.sourceWise ? bySource.reduce((n, s) => n + buysFor(sell, s.id).length, 0) : buysFor(sell).length) : 0
               return (
                 <tr key={h.id} className={sell ? 'tf-on' : undefined}>
                   <td className="alloc-name-col">
-                    <span className="alloc-name">{h.name}</span>
+                    {sell && <span className="badge red tf-sell-tag">Sell</span>}
+                    <button type="button" className="text-link tf-fund-link" title={h.name} onClick={() => setEditing(h.id)}>
+                      {h.name}
+                    </button>
                     <span className="tf-meta">
-                      Account balance <b>{formatMoney(bal)}</b> · Available units <b>{unitsText(bal / h.nav)}</b>
+                      Balance <b>{formatMoney(bal)}</b> and <b>{r2(bal / h.nav).toLocaleString('en-US')}</b> Units
                     </span>
-                    {status && (
-                      <span className="tf-tags">
-                        <span className="badge red">Sell</span>
-                        <span className={`badge ${status.cls}`}>{status.label}</span>
-                      </span>
-                    )}
                   </td>
                   <td className="tf-c-act">
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(h.id)}>
-                      {sell ? 'Edit' : 'Set up transfer'}
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(h.id)} aria-label={`${sell ? 'Edit' : 'Add'} transfer from ${h.name}`}>
+                      {sell ? 'Edit' : 'Add'}
                     </button>
                   </td>
                   <td>
@@ -534,37 +391,26 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
                       <div className="tf-mc">
                         <p className="tf-mc-h">
                           <b>{formatMoney(total)}</b>
-                          <span>{t.sourceWise ? `${groups.length} source${groups.length === 1 ? '' : 's'}` : pctText((total / h.amount) * 100)}</span>
-                          <span>{unitsText(total / h.nav)} units</span>
-                          transfer to {targets.length} investment{targets.length === 1 ? '' : 's'}
+                          <span>| {buyCount} Investment(s)</span>
                         </p>
                         <span className="tf-chips">
-                          {t.sourceWise
-                            ? groups.slice(0, 2).map((g) => (
-                                <span key={g.id} className="badge navy" title={`${g.name} · ${formatMoney(g.moved)}`}>
-                                  {g.name} {formatMoney(g.moved)}
-                                </span>
-                              ))
-                            : targets.slice(0, 2).map((x) => (
-                                <span key={x.id} className="badge navy" title={`${x.name} · ${formatMoney(x.amount)}`}>
-                                  {x.name} {Math.round((x.amount / (total || 1)) * 100)}%
-                                </span>
-                              ))}
-                          {(t.sourceWise ? groups.length : targets.length) > 2 && (
-                            <span className="badge navy">+{(t.sourceWise ? groups.length : targets.length) - 2}</span>
-                          )}
+                          <span className="badge green">Buy</span>
+                          <span className="tf-chip-track">
+                          {targets.slice(0, 2).map((x) => (
+                            <span key={x.id} className="badge navy tf-chip" title={`${x.name} · ${formatMoney(x.amount)}`}>
+                              <span className="tf-chip-name">{x.name}</span>
+                              <b>{Math.round((x.amount / (total || 1)) * 100)}%</b>
+                            </span>
+                          ))}
+                          </span>
+                          {targets.length > 2 && <span className="badge navy">+{targets.length - 2}</span>}
                           <button type="button" className="text-link" onClick={() => setDetails(h.id)}>
                             View details
                           </button>
                         </span>
                       </div>
                     ) : (
-                      '—'
-                    )}
-                    {errs.length > 0 && (
-                      <span className="alloc-warn tf-row-warn">
-                        <Icon icon={faExclamationTriangle} size={12} /> {errs[0]}
-                      </span>
+                      '-'
                     )}
                   </td>
                 </tr>
@@ -574,63 +420,21 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
         </table>
       </div>
 
-      {notice && (
-        <div className="plan-notice eligible-notice tf-notice" role="status">
-          <span>{notice.text}</span>
-          {notice.undo && (
-            <button
-              type="button"
-              className="text-link"
-              onClick={() => {
-                notice.undo()
-                setNotice(null)
-              }}
-            >
-              Undo
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="txn-actions">
-        <button type="button" className="btn btn-primary" disabled={!ready} onClick={onNext}>
-          Review transfer
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={discard}>
-          Cancel
-        </button>
-      </div>
-      {!ready && configured.length > 0 && (
-        <p className="alloc-warn tf-continue-warn">Fix the investments marked "Needs attention" to continue.</p>
-      )}
-
       {details && t.sells[details] && (
-        <TransferDetails
-          holding={holdings.find((h) => h.id === details)}
-          sell={t.sells[details]}
-          t={t}
-          onClose={() => setDetails(null)}
-          onEdit={() => {
-            const id = details
-            setDetails(null)
-            setEditing(id)
-          }}
-          onRemove={() => {
-            const h = holdings.find((x) => x.id === details)
-            setDetails(null)
-            removeSell(h)
-          }}
-        />
+        <TransferDetails holding={holdings.find((h) => h.id === details)} sell={t.sells[details]} t={t} onClose={() => setDetails(null)} />
       )}
       {editing && (
         <EditSell
           holding={holdings.find((h) => h.id === editing)}
           sell={t.sells[editing]}
           t={t}
+          holdings={holdings}
           buyOptions={buyOptions}
           onClose={() => setEditing(null)}
           onSave={(next) => {
-            setT((cur) => ({ sells: { ...cur.sells, [editing]: pruneSell(next, cur.sourceWise) } }))
+            const id = editing
+            if (next) setT((cur) => ({ sells: { ...cur.sells, [id]: pruneSell(next, cur.sourceWise) } }))
+            else removeSell(holdings.find((h) => h.id === id))
             setEditing(null)
           }}
         />
@@ -640,94 +444,88 @@ export default function TransferFlow({ step, plan, form, set, onNext, onBack, on
   )
 }
 
-function ColHead({ n, title, hint, done }) {
-  return (
-    <div className="tf-col-head">
-      <span className={`tf-col-num${done ? ' done' : ''}`} aria-hidden="true">
-        {done ? <Icon icon={faCheck} size={11} /> : n}
-      </span>
-      <span>
-        <b>{title}</b>
-        {hint && <small>{hint}</small>}
-        {done && <span className="sr-only"> (complete)</span>}
-      </span>
-    </div>
-  )
-}
+const valueText = (by, v) => (by === 'pct' ? pctText(v) : by === 'units' ? `${unitsText(v)} units` : formatMoney(v))
 
-function EditSell({ holding, sell, t, buyOptions, onClose, onSave }) {
+// Figma "Investment Transfer" slide-over: 1. Transfer from (fund card, or one
+// checkbox card per source), 2. Choose buy investment(s) as cards with Select,
+// 3. Set allocation as cards grouped per source. Save stays disabled until
+// the transfer is complete; saving an emptied transfer removes it.
+function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
   const [initial] = useState(() =>
-    JSON.stringify({ value: '', sources: {}, sameBuys: true, buys: { all: [] }, ...(sell ? JSON.parse(JSON.stringify(sell)) : {}) })
+    JSON.stringify({
+      value: '',
+      sources: {},
+      buys: { all: [] },
+      ...(sell ? JSON.parse(JSON.stringify(sell)) : {}),
+      sameBuys: !t.sourceWise
+    })
   )
   const [draft, setDraft] = useState(() => JSON.parse(initial))
   const [query, setQuery] = useState('')
   const [addedQuery, setAddedQuery] = useState('')
-  const [leaving, setLeaving] = useState(false)
-  const dirty = JSON.stringify(draft) !== initial
   const unit = { pct: '%', units: 'units', amount: '$' }[t.by]
   const noUnits = t.by === 'units' && !(holding.units > 0)
-  const { total, bySource } = sellBreakdown(draft, holding, t.by, t.sourceWise)
+  const { bySource } = sellBreakdown(draft, holding, t.by, t.sourceWise)
   const errs = noUnits ? ['Units not available. Choose Percentage or Amount.'] : sellErrors(draft, holding, t.by, t.sourceWise)
-  const perSource = t.sourceWise && draft.sameBuys === false
-  const [activeSrc, setActiveSrc] = useState(null)
-  const curSrc = perSource ? bySource.find((s) => s.id === activeSrc) || bySource[0] : null
-  const key = curSrc ? curSrc.id : 'all'
-  const moved = curSrc ? curSrc.moved : total
-  const rows = draft.buys[key] || []
-  const allocTotal = sumPct(rows)
+  const [activeSrc, setActiveSrc] = useState(() => (t.sourceWise ? Object.keys(draft.sources || {}).find((k) => draft.sources[k]?.on) || null : null))
 
-  // Step 1 is valid when every included amount is entered and within limits.
   const overMax = (value, available) => +value > maxFor(t.by, available, holding.nav) + 1e-9
-  const fromDone =
-    !noUnits &&
-    total > 0 &&
-    (t.sourceWise
-      ? bySource.length > 0 && bySource.every((s) => +draft.sources[s.id]?.value > 0 && !overMax(draft.sources[s.id].value, s.amount))
-      : !overMax(draft.value, holding.amount))
-  const pickDone = perSource ? bySource.length > 0 && bySource.every((s) => (draft.buys[s.id] || []).length) : rows.length > 0
-  const allocDone = perSource
-    ? bySource.length > 0 && bySource.every((s) => Math.abs(sumPct(draft.buys[s.id] || []) - 100) < 0.01)
-    : rows.length > 0 && Math.abs(allocTotal - 100) < 0.01
-  const canSave = !errs.length
+  // Which money pot columns 2 and 3 are working on right now.
+  const key = t.sourceWise ? activeSrc : 'all'
+  const keyValue = t.sourceWise ? draft.sources[activeSrc]?.value : draft.value
+  const keyAvailable = t.sourceWise ? holding.sources.find((s) => s.id === activeSrc)?.amount || 0 : holding.amount
+  const canPick = !noUnits && !!key && +keyValue > 0 && !overMax(keyValue, keyAvailable)
+  const rows = (key && draft.buys[key]) || []
 
-  const setSrc = (id, patch) =>
-    setDraft((d) => ({ ...d, sources: { ...d.sources, [id]: { on: false, value: '', ...d.sources[id], ...patch } } }))
-  // Unchecking a source clears what was entered for it, including its buys,
-  // and hands the step 2/3 focus to the next checked source.
+  const isEmpty =
+    !(+draft.value > 0) && !Object.values(draft.sources || {}).some((s) => s.on) && !Object.values(draft.buys || {}).some((l) => l.length)
+  const canSave = !errs.length || (isEmpty && !!sell)
+
+  const setSrc = (id, patch) => setDraft((d) => ({ ...d, sources: { ...d.sources, [id]: { on: false, value: '', ...d.sources[id], ...patch } } }))
   const toggleSrc = (id, on) => {
     setDraft((d) => {
       if (on) return { ...d, sources: { ...d.sources, [id]: { on: true, value: d.sources[id]?.value || '' } } }
       const buys = { ...d.buys }
       delete buys[id]
-      const sources = { ...d.sources, [id]: { on: false, value: '' } }
-      // Shared buys go too once no source is left to fund them.
-      if (!Object.values(sources).some((x) => x.on)) buys.all = []
-      return { ...d, sources, buys }
+      return { ...d, sources: { ...d.sources, [id]: { on: false, value: '' } }, buys }
     })
-    if (!on && activeSrc === id) setActiveSrc(null)
+    if (on) setActiveSrc(id)
+    else if (activeSrc === id) setActiveSrc(Object.keys(draft.sources).find((k) => k !== id && draft.sources[k]?.on) || null)
   }
-  const setRows = (fn) => setDraft((d) => ({ ...d, buys: { ...d.buys, [key]: fn(d.buys[key] || []) } }))
+  const setRowsFor = (k, fn) => setDraft((d) => ({ ...d, buys: { ...d.buys, [k]: fn(d.buys[k] || []) } }))
   const q = query.trim().toLowerCase()
   const options = buyOptions.filter(
-    (o) => o.id !== holding.id && !rows.some((r) => r.id === o.id) && (!q || o.name.toLowerCase().includes(q) || o.cusip.includes(q))
+    (o) => o.id !== holding.id && !rows.some((r) => r.id === o.id) && (!q || o.name.toLowerCase().includes(q) || o.cusip.toLowerCase().includes(q))
   )
   const aq = addedQuery.trim().toLowerCase()
-  const shownRows = aq ? rows.filter((r) => r.name.toLowerCase().includes(aq)) : rows
-  const lockHint = t.sourceWise && !bySource.length ? 'Choose a source first' : `Enter the transfer ${{ pct: 'percentage', units: 'units', amount: 'amount' }[t.by]} first`
+  const groups = t.sourceWise
+    ? holding.sources.filter((s) => draft.sources[s.id]?.on).map((s) => ({ key: s.id, title: s.name, moved: bySource.find((b) => b.id === s.id)?.moved || 0 }))
+    : [{ key: 'all', title: null, moved: sellBreakdown(draft, holding, t.by, false).total }]
+  const heldAmount = (id) => holdings.find((h) => h.id === id)?.amount
 
-  const requestClose = () => (dirty ? setLeaving(true) : onClose())
-  const save = () => canSave && onSave(draft)
+  const doneLine = (k, value) => {
+    const list = draft.buys[k] || []
+    if (!(+value > 0) || !list.length || Math.abs(sumPct(list) - 100) > 0.01) return null
+    return (
+      <p className="tf-from-done">
+        {valueText(t.by, value)} into {String(list.length).padStart(2, '0')} investment{list.length === 1 ? '' : 's'}
+      </p>
+    )
+  }
+
+  const requestClose = onClose
+  const save = () => canSave && onSave(isEmpty ? null : draft)
 
   return (
     <Slideover
-      title="Investment transfer"
+      title="Investment Transfer"
       width="full"
       onClose={requestClose}
       closeButton={false}
       actions={
         <>
           <button type="button" className="btn btn-primary" disabled={!canSave} onClick={save}>
-            Save transfer
+            Save
           </button>
           <button type="button" className="btn btn-ghost" onClick={requestClose}>
             Cancel
@@ -736,20 +534,17 @@ function EditSell({ holding, sell, t, buyOptions, onClose, onSave }) {
       }
     >
       <div className="tf-cols">
-        <section className="tf-col" aria-label="Step 1, transfer from">
-          <ColHead
-            n={1}
-            title="Transfer from"
-            hint={t.sourceWise ? 'Check the sources to include, then enter the amount' : 'Enter the amount to move'}
-            done={fromDone}
-          />
-          <div className="tf-from">
-            <b>{holding.name}</b>
-            <span>
-              {formatMoney(holding.amount)} · {unitsText(holding.units)} units
-            </span>
-            {noUnits && <div className="wd-note">Units not available. Choose Percentage or Amount.</div>}
-            {!t.sourceWise && !noUnits && (
+        <section className="tf-col" aria-labelledby="tf-c1">
+          <h4 className="tf-col-title" id="tf-c1">
+            1. Transfer from
+          </h4>
+          {noUnits && <div className="wd-note">Units not available. Choose Percentage or Amount.</div>}
+          {!t.sourceWise && !noUnits && (
+            <div className="tf-src-card on active">
+              <span className="tf-src-name">{holding.name}</span>
+              <span className="tf-src-meta">
+                Balance: <b>{formatMoney(holding.amount)}</b> Units: <b>{r2(holding.units).toLocaleString('en-US')}</b>
+              </span>
               <AmountField
                 label="Amount to move"
                 by={t.by}
@@ -759,238 +554,172 @@ function EditSell({ holding, sell, t, buyOptions, onClose, onSave }) {
                 onChange={(v) => setDraft((d) => ({ ...d, value: v }))}
                 onMax={() => setDraft((d) => ({ ...d, value: String(maxFor(t.by, holding.amount, holding.nav)) }))}
               />
-            )}
-          </div>
-          {t.sourceWise && !noUnits && (
-            <ul className="tf-sources">
-              {holding.sources.map((s) => {
-                const row = draft.sources[s.id] || {}
-                const srcBuys = (draft.buys[perSource ? s.id : 'all'] || []).length
-                return (
-                  <li
-                    key={s.id}
-                    className={`${row.on ? 'on' : ''}${curSrc?.id === s.id ? ' active' : ''}`}
-                    onFocusCapture={() => row.on && setActiveSrc(s.id)}
-                  >
-                    <label className="tf-source-pick">
-                      <input type="checkbox" checked={!!row.on} onChange={(e) => toggleSrc(s.id, e.target.checked)} />
-                      <span>
-                        <b>{s.name}</b>
-                        <small>
-                          {formatMoney(s.amount)} · {unitsText(s.amount / holding.nav)} units
-                        </small>
-                      </span>
-                    </label>
-                    <AmountField
-                      label={`${s.name} amount`}
-                      by={t.by}
-                      unit={unit}
-                      value={row.value ?? ''}
-                      max={maxFor(t.by, s.amount, holding.nav)}
-                      disabled={!row.on}
-                      onChange={(v) => setSrc(s.id, { value: v })}
-                      onMax={() => setSrc(s.id, { value: String(maxFor(t.by, s.amount, holding.nav)) })}
-                    />
-                    <small className="tf-src-status">
-                      {!row.on
-                        ? 'Not included'
-                        : +row.value > 0
-                          ? `${formatMoney(toDollars(row.value, t.by, s.amount, holding.nav))} into ${srcBuys} investment${srcBuys === 1 ? '' : 's'}`
-                          : 'Enter how much to move out'}
-                    </small>
-                  </li>
-                )
-              })}
-            </ul>
+              {doneLine('all', draft.value)}
+            </div>
           )}
-          <p className="tf-total">
-            {total > 0 ? (
-              <>
-                <span>Will be moved</span>
-                <b>≈ {formatMoney(total)}</b>
-                <span>
-                  {pctText(holding.amount ? (total / holding.amount) * 100 : 0)} · {unitsText(total / holding.nav)} units
-                </span>
-              </>
-            ) : (
-              'Enter how much to move out'
-            )}
-          </p>
+          {t.sourceWise &&
+            !noUnits &&
+            holding.sources.map((s) => {
+              const row = draft.sources[s.id] || {}
+              return (
+                <div
+                  key={s.id}
+                  className={`tf-src-card${row.on ? ' on' : ''}${activeSrc === s.id ? ' active' : ''}`}
+                  onFocusCapture={() => row.on && setActiveSrc(s.id)}
+                  onClick={() => row.on && setActiveSrc(s.id)}
+                >
+                  <label className="tf-src-pick">
+                    <input type="checkbox" checked={!!row.on} onChange={(e) => toggleSrc(s.id, e.target.checked)} />
+                    <span className="tf-src-name">{s.name}</span>
+                  </label>
+                  <span className="tf-src-meta">
+                    Balance: <b>{formatMoney(s.amount)}</b> Units: <b>{r2(s.amount / holding.nav).toLocaleString('en-US')}</b>
+                  </span>
+                  <AmountField
+                    label={`${s.name} amount`}
+                    by={t.by}
+                    unit={unit}
+                    value={row.value ?? ''}
+                    max={maxFor(t.by, s.amount, holding.nav)}
+                    disabled={!row.on}
+                    onChange={(v) => setSrc(s.id, { value: v })}
+                    onMax={() => setSrc(s.id, { value: String(maxFor(t.by, s.amount, holding.nav)) })}
+                  />
+                  {row.on && doneLine(s.id, row.value)}
+                </div>
+              )
+            })}
         </section>
 
-        <section className={`tf-col${fromDone ? '' : ' tf-locked'}`} aria-label="Step 2, choose investments to buy">
-          <ColHead n={2} title="Choose investments to buy" hint="Search and add one or more investments" done={pickDone} />
-          {!fromDone && (
-            <div className="wd-note" role="status">
-              {lockHint} to add investments.
-            </div>
-          )}
-          {t.sourceWise && (
-            <label className={`inv-toggle tf-same${!perSource ? ' on' : ''}`}>
-              <input type="checkbox" checked={!perSource} onChange={() => setDraft((d) => ({ ...d, sameBuys: d.sameBuys === false }))} />
-              <span className="switch" aria-hidden="true" />
-              Same investments for all sources
-            </label>
-          )}
-          {perSource && bySource.length > 0 && (
-            <div className="period tf-src-tabs" role="tablist" aria-label="Source">
-              {bySource.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={curSrc?.id === s.id}
-                  className={curSrc?.id === s.id ? 'on' : ''}
-                  onClick={() => setActiveSrc(s.id)}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
+        <section className="tf-col" aria-labelledby="tf-c2">
+          <h4 className="tf-col-title" id="tf-c2">
+            2. Choose buy investment(s)
+          </h4>
           <div className="add-inv-search">
             <Icon icon={faSearch} size={15} />
-            <input
-              type="search"
-              aria-label="Search investments to buy"
-              placeholder="Search by name or CUSIP"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+            <input type="search" aria-label="Search by Investments" placeholder="Search by Investments" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <p className="add-inv-count">
-            {String(options.length).padStart(2, '0')} investment{options.length === 1 ? '' : 's'}
+            <b>{String(options.length).padStart(2, '0')}</b> Investment(s)
           </p>
-          <ul className="add-inv-list tf-options">
+          <ul className="tf-fund-cards">
             {options.map((o) => (
-              <li key={o.id} className={o.restricted ? 'restricted' : ''}>
-                <span className="tf-option">
+              <li key={o.id} className={`tf-fund-card${o.restricted ? ' restricted' : ''}`}>
+                <span className="tf-fund-meta">
                   <span>
-                    <b>{o.name}</b>
-                    {o.restricted ? (
-                      <small>
-                        <Icon icon={faExclamationTriangle} size={12} /> Not available for transfer
-                      </small>
-                    ) : (
-                      <span className="tf-meta">
-                        {o.asset} · CUSIP {o.cusip}
-                      </span>
-                    )}
+                    CUSIP: <b>{o.cusip}</b>
                   </span>
+                  <span>
+                    Type: <b>{o.asset}</b>
+                  </span>
+                </span>
+                <span className="tf-fund-row">
+                  <b className="tf-fund-name">{o.name}</b>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    disabled={o.restricted || !fromDone}
-                    title={o.restricted ? 'Not available' : !fromDone ? lockHint : undefined}
-                    onClick={() => setRows((cur) => evenSplit([...cur, { id: o.id, name: o.name, asset: o.asset, cusip: o.cusip, nav: o.nav, pct: 0 }]))}
-                    aria-label={`Add ${o.name}`}
+                    disabled={o.restricted || !canPick}
+                    title={o.restricted ? 'Not available for transfer' : undefined}
+                    aria-label={`Select ${o.name}`}
+                    onClick={() => setRowsFor(key, (cur) => evenSplit([...cur, { id: o.id, name: o.name, asset: o.asset, cusip: o.cusip, nav: o.nav, pct: 0 }]))}
                   >
-                    Add
+                    Select
                   </button>
                 </span>
               </li>
             ))}
-            {!options.length && (
-              <li className="add-inv-empty">{q ? `No investments match "${query.trim()}".` : 'All available investments are added.'}</li>
-            )}
           </ul>
         </section>
 
-        <section className="tf-col" aria-label="Step 3, set allocation">
-          <ColHead
-            n={3}
-            title="Set allocation"
-            hint={curSrc ? `${curSrc.name} · moving ${formatMoney(moved)}` : `Split ${formatMoney(moved)} across your picks`}
-            done={allocDone}
-          />
-          {!rows.length ? (
-            <div className="wd-note">
-              {perSource && curSrc ? `Add investments for ${curSrc.name} from column 2.` : 'Investments you add appear here. Enter the share of the money each one gets.'}
-            </div>
-          ) : (
-            <>
-              <div className="tf-alloc-bar">
-                <span>
-                  <b>{String(rows.length).padStart(2, '0')}</b> added
-                </span>
-                <button type="button" className="text-link" onClick={() => setRows(() => [])}>
-                  Remove all
-                </button>
-              </div>
-              {rows.length > 3 && (
-                <div className="add-inv-search">
-                  <Icon icon={faSearch} size={15} />
-                  <input
-                    type="search"
-                    aria-label="Search added investments"
-                    placeholder="Search added investments"
-                    value={addedQuery}
-                    onChange={(e) => setAddedQuery(e.target.value)}
-                  />
-                </div>
-              )}
-              <ul className="tf-alloc">
-                {shownRows.map((r) => (
-                  <li key={r.id}>
-                    <span>
-                      <b>{r.name}</b>
-                      <span className="tf-meta">
-                        {r.asset} · {formatMoney((moved * (+r.pct || 0)) / 100)}
-                      </span>
-                    </span>
-                    <span className={`alloc-pct-input${Math.abs(allocTotal - 100) > 0.01 ? ' tf-bad' : ''}`}>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        aria-label={`Allocation for ${r.name}`}
-                        value={r.pct}
-                        onChange={(e) =>
-                          setRows((cur) => cur.map((x) => (x.id === r.id ? { ...x, pct: cleanNumber(e.target.value, x.pct, 'pct') } : x)))
-                        }
-                      />
-                      <i>%</i>
-                    </span>
-                    <button
-                      type="button"
-                      className="text-link"
-                      onClick={() => setRows((cur) => renormalise(cur.filter((x) => x.id !== r.id), isEven(cur)))}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-                {!shownRows.length && <li className="add-inv-empty">No match for "{addedQuery.trim()}".</li>}
-              </ul>
-            </>
-          )}
-          <div className={`tf-alloc-total${rows.length && Math.abs(allocTotal - 100) < 0.01 ? ' ok' : rows.length ? ' bad' : ''}`}>
-            <span>
-              Total <b>{pctText(allocTotal)}</b> · {formatMoney((moved * allocTotal) / 100)}
-            </span>
-            {rows.length > 1 && (
-              <button type="button" className="text-link" onClick={() => setRows(evenSplit)}>
-                Split evenly
-              </button>
-            )}
+        <section className="tf-col" aria-labelledby="tf-c3">
+          <h4 className="tf-col-title" id="tf-c3">
+            3. Set allocation
+          </h4>
+          <div className="add-inv-search">
+            <Icon icon={faSearch} size={15} />
+            <input
+              type="search"
+              aria-label="Search selected Investments"
+              placeholder="Search selected Investments"
+              value={addedQuery}
+              onChange={(e) => setAddedQuery(e.target.value)}
+            />
           </div>
-          {rows.length > 0 && Math.abs(allocTotal - 100) > 0.01 && (
-            <p className="alloc-warn tf-alloc-msg" role="status">
-              <Icon icon={faExclamationTriangle} size={12} /> {allocMessage(allocTotal)}
+          {!groups.length && (
+            <p className="add-inv-count">
+              <b>0</b> Investment(s) added
             </p>
           )}
+          {groups.map((g) => {
+            const list = draft.buys[g.key] || []
+            const shown = aq ? list.filter((r) => r.name.toLowerCase().includes(aq)) : list
+            const total = sumPct(list)
+            return (
+              <div key={g.key} className={`tf-alloc-group${t.sourceWise && activeSrc === g.key ? ' active' : ''}`}>
+                {g.title && <p className="tf-group-title">{g.title}</p>}
+                <div className="tf-alloc-bar">
+                  <span>
+                    <b>{list.length ? String(list.length).padStart(2, '0') : 0}</b> Investment(s) added
+                  </span>
+                  {list.length > 0 && (
+                    <button type="button" className="text-link danger" onClick={() => setRowsFor(g.key, () => [])}>
+                      Remove all
+                    </button>
+                  )}
+                </div>
+                <ul className="tf-fund-cards">
+                  {shown.map((r) => (
+                    <li key={r.id} className="tf-fund-card">
+                      <span className="tf-fund-meta">
+                        <span>
+                          CUSIP: <b>{r.cusip}</b>
+                        </span>
+                        <span>
+                          Type: <b>{r.asset}</b>
+                        </span>
+                      </span>
+                      <b className="tf-fund-name">{r.name}</b>
+                      <span className="tf-alloc-row">
+                        <span className={`alloc-pct-input${list.length && Math.abs(total - 100) > 0.01 ? ' tf-bad' : ''}`}>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={`Allocation for ${r.name}`}
+                            value={r.pct}
+                            onChange={(e) =>
+                              setRowsFor(g.key, (cur) => cur.map((x) => (x.id === r.id ? { ...x, pct: cleanNumber(e.target.value, x.pct, 'pct') } : x)))
+                            }
+                          />
+                          <i>%</i>
+                        </span>
+                        <b>{formatMoney((g.moved * (+r.pct || 0)) / 100)}</b>
+                      </span>
+                      <span className="tf-fund-foot">
+                        {heldAmount(r.id) != null ? (
+                          <span>
+                            Current balance: <b>{formatMoney(heldAmount(r.id))}</b>
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        <button
+                          type="button"
+                          className="icon-btn tf-trash"
+                          aria-label={`Remove ${r.name}`}
+                          onClick={() => setRowsFor(g.key, (cur) => renormalise(cur.filter((x) => x.id !== r.id), isEven(cur)))}
+                        >
+                          <Icon icon={faTrash} size={13} />
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })}
         </section>
       </div>
 
-      {leaving && (
-        <ConfirmDialog
-          title="Discard your changes?"
-          body="The changes you made to this transfer will be lost."
-          confirmLabel="Discard changes"
-          cancelLabel="Keep editing"
-          onConfirm={onClose}
-          onCancel={() => setLeaving(false)}
-        />
-      )}
     </Slideover>
   )
 }
@@ -1018,19 +747,16 @@ function AmountField({ label, by, unit, value, max, onChange, onMax, disabled })
           Max
         </button>
       </span>
-      {!disabled && <small className={`tf-max${over ? ' over' : ''}`}>Max {maxText(by, max)}</small>}
     </span>
   )
 }
 
-// Read-only list of everything one sell moves into, with Edit / Remove.
-function TransferDetails({ holding, sell, t, onClose, onEdit, onRemove }) {
+// Figma "Transfer details": read-only, Cancel only. Sell cell spans its buys.
+function TransferDetails({ holding, sell, t, onClose }) {
   const { total, bySource } = sellBreakdown(sell, holding, t.by, t.sourceWise)
-  // Reference layout: one block per sell (or per source when source wise),
-  // the sell on the left and every fund it buys on the right.
   const groups = t.sourceWise
     ? bySource.map((s) => ({ key: s.id, title: s.name, moved: s.moved, rows: buysFor(sell, s.id) }))
-    : [{ key: 'all', title: holding.name, moved: total, rows: buysFor(sell) }]
+    : [{ key: 'all', title: null, moved: total, rows: buysFor(sell) }]
   return (
     <Slideover
       title="Transfer details"
@@ -1038,31 +764,23 @@ function TransferDetails({ holding, sell, t, onClose, onEdit, onRemove }) {
       onClose={onClose}
       closeButton={false}
       actions={
-        <>
-          <button type="button" className="btn btn-primary" onClick={onEdit}>
-            Edit
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
-        </>
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
+          Cancel
+        </button>
       }
     >
-      <div className="tf-from">
-        <b>{holding.name}</b>
-        <span>
-          {formatMoney(total)} moving{t.sourceWise ? ` from ${bySource.length} source${bySource.length === 1 ? '' : 's'}` : ''} · balance{' '}
-          {formatMoney(holding.amount)} · {unitsText(holding.units)} units
-        </span>
-      </div>
       <div className="table-wrap tf-detail-group">
         <table className="alloc-table table-grouped tf-detail-table">
           <thead>
             <tr>
-              <th scope="col">Sell investment</th>
+              <th scope="col">Sell Investment</th>
               <th scope="col">Buy investment(s)</th>
-              <th scope="col" className="num">Allocation</th>
-              <th scope="col" className="num">Amount</th>
+              <th scope="col" className="num">
+                Allocation
+              </th>
+              <th scope="col" className="num">
+                Amount
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1071,18 +789,20 @@ function TransferDetails({ holding, sell, t, onClose, onEdit, onRemove }) {
                 <tr key={`${g.key}-${r.id}`} className={i === g.rows.length - 1 ? 'group-end' : undefined}>
                   {i === 0 && (
                     <td rowSpan={g.rows.length} className="group-head tf-detail-sell">
-                      <span className="badge red">Sell</span>
-                      <b>{g.title}</b>
-                      <b className="tf-sell-amt">{formatMoney(g.moved)}</b>
-                      <small>moving</small>
-                      <span className="tf-detail-arrow" aria-hidden="true">
-                        <Icon icon={faArrowRight} size={12} />
+                      <span className="tf-sell-top">
+                        <span className="badge red">Sell</span>
+                        <span className="tf-detail-arrow static" aria-hidden="true">
+                          <Icon icon={faArrowRight} size={12} />
+                        </span>
                       </span>
+                      <b className="tf-detail-src">{g.title || holding.name}</b>
+                      {g.title && <small>{holding.name}</small>}
+                      <b className="tf-sell-amt">{formatMoney(g.moved)}</b>
                     </td>
                   )}
                   <td className="alloc-name-col">
                     <span className="alloc-name">{r.name}</span>
-                    <span className="tf-meta">CUSIP {r.cusip}</span>
+                    {g.title && <span className="tf-meta">{g.title}</span>}
                   </td>
                   <td className="num">{pctText(r.pct)}</td>
                   <td className="num">{formatMoney((g.moved * (+r.pct || 0)) / 100)}</td>
@@ -1096,35 +816,32 @@ function TransferDetails({ holding, sell, t, onClose, onEdit, onRemove }) {
           </tbody>
         </table>
       </div>
-      <button type="button" className="text-link danger tf-details-remove" onClick={onRemove}>
-        Remove this transfer
-      </button>
     </Slideover>
   )
 }
 
-function SellReview({ holding, sell, t, buyOptions, onEdit }) {
+// Figma "Transfer Summary" card: sell panel on the left, buy table(s) right.
+function SellReview({ holding, sell, t, flowIn }) {
   const { total, bySource } = sellBreakdown(sell, holding, t.by, t.sourceWise)
-  const perSource = t.sourceWise && sell.sameBuys === false
-  // One buy table per source when sources have their own split; otherwise a
-  // single table, with per-source amounts listed under the sell card.
-  const tables = perSource
-    ? bySource.map((s) => ({ key: s.id, title: s.name, moved: s.moved, rows: buysFor(sell, s.id) }))
-    : [{ key: 'all', title: null, moved: total, rows: buysFor(sell) }]
+  const tables = t.sourceWise
+    ? bySource.map((s) => ({ key: s.id, title: s.name, moved: s.moved, pct: (s.moved / (s.amount || 1)) * 100, rows: buysFor(sell, s.id) }))
+    : [{ key: 'all', title: null, moved: total, pct: (total / (holding.amount || 1)) * 100, rows: buysFor(sell) }]
   return (
     <div className="tf-review">
       <div className="tf-sell">
         <span className="tf-sell-top">
           <span className="badge red">Sell</span>
-          <button type="button" className="text-link" onClick={onEdit} aria-label={`Edit transfer from ${holding.name}`}>
-            Edit
-          </button>
+          <span className="tf-detail-arrow static" aria-hidden="true">
+            <Icon icon={faArrowRight} size={12} />
+          </span>
         </span>
         <b className="tf-sell-name">{holding.name}</b>
-        <b className="tf-sell-amt">{formatMoney(total)}</b>
-        <span className="tf-meta">
-          {pctText((total / holding.amount) * 100)} of {formatMoney(holding.amount)} · {unitsText(total / holding.nav)} units
-        </span>
+        <dl className="tf-dl">
+          <div>
+            <dt>Current balance</dt>
+            <dd>{formatMoney(holding.amount + flowIn)}</dd>
+          </div>
+        </dl>
         <dl className="tf-dl">
           <div>
             <dt>CUSIP</dt>
@@ -1134,38 +851,45 @@ function SellReview({ holding, sell, t, buyOptions, onEdit }) {
             <dt>Type</dt>
             <dd>{holding.asset}</dd>
           </div>
-          {t.sourceWise &&
-            bySource.map((s) => (
-              <div key={s.id}>
-                <dt>{s.name}</dt>
-                <dd>{formatMoney(s.moved)}</dd>
-              </div>
-            ))}
         </dl>
-      </div>
-      <span className="tf-arrow" aria-hidden="true">
-        <Icon icon={faArrowRight} size={14} />
-      </span>
-      <div className="tf-buys">
         {tables.map((tb) => (
+          <dl key={tb.key} className="tf-dl">
+            {tb.title && <p className="tf-dl-title">{tb.title}</p>}
+            <div>
+              <dt>Selling percentage</dt>
+              <dd>{pctText(tb.pct)}</dd>
+            </div>
+            <div>
+              <dt>Selling amount</dt>
+              <dd>{formatMoney(tb.moved)}</dd>
+            </div>
+          </dl>
+        ))}
+      </div>
+      <div className="tf-buys">
+        <span className="badge green">Buy</span>
+        {tables.map((tb, i) => (
           <div key={tb.key} className="tf-buy-table">
             <p className="tf-buy-title">
-              <span className="badge green">Buy</span>
-              {tb.title ? <b>{tb.title}</b> : <b>Buy investments</b>}
-              <span>{String(tb.rows.length).padStart(2, '0')} investments</span>
+              {tb.title ? (
+                <>
+                  <b>{tb.title}</b> {formatMoney(tb.moved)} | {pctText(tb.pct)} | <b>{String(tb.rows.length).padStart(2, '0')}</b> Investment(s)
+                </>
+              ) : (
+                <>
+                  <b>{String(tb.rows.length).padStart(2, '0')}</b> Investment(s) | {formatMoney(tb.moved)} | {pctText(tb.pct)}
+                </>
+              )}
             </p>
             <div className="table-wrap">
-              <table className="alloc-table">
+              <table className="alloc-table table-grouped">
                 <thead>
                   <tr>
                     <th scope="col">Investment name</th>
                     <th scope="col">CUSIP</th>
                     <th scope="col">Type</th>
                     <th scope="col" className="num">
-                      Units
-                    </th>
-                    <th scope="col" className="num">
-                      Buy %
+                      Allocation
                     </th>
                     <th scope="col" className="num">
                       Buy amount
@@ -1173,25 +897,19 @@ function SellReview({ holding, sell, t, buyOptions, onEdit }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {tb.rows.map((r) => {
-                    const amt = (tb.moved * (+r.pct || 0)) / 100
-                    const nav = r.nav || buyOptions.find((o) => o.id === r.id)?.nav || 1
-                    return (
-                      <tr key={r.id}>
-                        <td className="alloc-name-col">
-                          <span className="alloc-name">{r.name}</span>
-                        </td>
-                        <td>{r.cusip}</td>
-                        <td>{r.asset}</td>
-                        <td className="num">{unitsText(amt / nav)}</td>
-                        <td className="num">{pctText(r.pct)}</td>
-                        <td className="num">{formatMoney(amt)}</td>
-                      </tr>
-                    )
-                  })}
+                  {tb.rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="alloc-name-col">
+                        <span className="alloc-name">{r.name}</span>
+                      </td>
+                      <td>{r.cusip}</td>
+                      <td>{r.asset}</td>
+                      <td className="num">{pctText(r.pct)}</td>
+                      <td className="num">{formatMoney((tb.moved * (+r.pct || 0)) / 100)}</td>
+                    </tr>
+                  ))}
                   <tr className="alloc-total">
-                    <td colSpan={4}>Total buying</td>
-                    <td className="num">{pctText(sumPct(tb.rows))}</td>
+                    <td colSpan={4}>{i < tables.length - 1 ? 'Total buying' : 'Total'}</td>
                     <td className="num">{formatMoney(tb.moved)}</td>
                   </tr>
                 </tbody>
