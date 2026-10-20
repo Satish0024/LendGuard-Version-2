@@ -269,7 +269,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
         <div className="tf-page-head">
           <h3>Transfer Summary</h3>
           <div className="tf-page-actions">
-            <button type="button" className="btn btn-ghost" onClick={discard} disabled={submitted}>
+            <button type="button" className="btn btn-secondary" onClick={discard} disabled={submitted}>
               Cancel
             </button>
             <button
@@ -305,7 +305,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
       <div className="tf-page-head">
         <h3>New Transfer Request</h3>
         <div className="tf-page-actions">
-          <button type="button" className="btn btn-ghost" onClick={discard}>
+          <button type="button" className="btn btn-secondary" onClick={discard}>
             Cancel
           </button>
           <button type="button" className="btn btn-primary" disabled={!ready} onClick={onNext}>
@@ -545,7 +545,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
           <button type="button" className="btn btn-primary" disabled={!canSave} onClick={save}>
             Save
           </button>
-          <button type="button" className="btn btn-ghost" onClick={requestClose}>
+          <button type="button" className="btn btn-secondary" onClick={requestClose}>
             Cancel
           </button>
         </>
@@ -774,7 +774,7 @@ function TransferDetails({ holding, sell, t, onClose }) {
       onClose={onClose}
       closeButton={false}
       actions={
-        <button type="button" className="btn btn-ghost" onClick={onClose}>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
           Cancel
         </button>
       }
