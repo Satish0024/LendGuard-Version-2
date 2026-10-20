@@ -717,3 +717,10 @@
 .tf-mc .tf-chip-track > .tf-chip{min-width:48px}
 .tf-mc .tf-chips > .text-link,.tf-mc .tf-chips > .badge{flex:0 0 auto}
 @media (min-width:768px){.table-wrap .alloc-table.tf-table{min-width:0}}
+/* Chips shrink when tight but never stretch, so +N / View details sit right after them. */
+.tf-mc .tf-chip-track{flex:0 1 auto}
+.tf-mc .tf-chips{justify-content:flex-start}
+.table-grouped.tf-detail-table tbody td.group-head{background:var(--neutral-surface-layer-01)}
+/* Transfer Summary: white sell panel (divider kept), bold buy names per Figma. */
+.tf-review .tf-sell{background:var(--neutral-surface-layer-01)}
+.tf-review .tf-buy-table .alloc-name{font-weight:var(--typography-font-weight-bold)}
