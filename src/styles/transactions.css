@@ -782,3 +782,5 @@
 /* Card names: fixed width = "iShares Emerging Markets ETF" at 14px bold (210px);
    longer names truncate, full name in the tooltip. */
 .tf-cols .tf-fund-name,.tf-cols .tf-src-name{flex:0 1 auto;width:auto;max-width:210px}
+/* Transfer details: a little wider than the 680px "wide" slide-over. */
+.slideover-panel.slideover-wide:has(.tf-detail-table){max-width:min(840px,100%)}
