@@ -763,3 +763,6 @@
 .table-wrap .alloc-table.tf-detail-table{min-width:0;table-layout:fixed;width:100%}
 .tf-detail-table td.alloc-name-col{white-space:normal;overflow-wrap:break-word}
 .tf-detail-table th.num,.tf-detail-table td.num{width:96px}
+/* Style guide: 8px (--core-space-2) between a field label and its control. */
+.tf-controls .tf-control:last-child{gap:var(--core-space-2)}
+.tf-controls .tf-control:last-child .inv-toggle{height:auto;min-height:0;padding:0;margin:0}
