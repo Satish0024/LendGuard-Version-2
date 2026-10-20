@@ -5,6 +5,7 @@ import { faExclamationTriangle, faSearch, faArrowRight, faInfoCircle, faTrash } 
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Toast from '../common/Toast.jsx'
+import TruncateTooltip from '../common/TruncateTooltip.jsx'
 import { formatMoney } from '../../lib/accountSummary'
 import { AVAILABLE_INVESTMENTS, sourcesFor, recordRequest, generateTransactionId } from '../../data/transactions.js'
 import { useParticipant } from '../../context/ParticipantContext.jsx'
@@ -249,6 +250,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
   const dialogs = (
     <>
       {confirm && <ConfirmDialog {...confirm} onCancel={() => setConfirm(null)} />}
+      <TruncateTooltip />
     </>
   )
 
@@ -378,7 +380,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
                 <tr key={h.id} className={sell ? 'tf-on' : undefined}>
                   <td className="alloc-name-col">
                     {sell && <span className="badge red tf-sell-tag">Sell</span>}
-                    <button type="button" className="text-link tf-fund-link" title={h.name} onClick={() => setEditing(h.id)}>
+                    <button type="button" className="text-link tf-fund-link" data-full={h.name} onClick={() => setEditing(h.id)}>
                       {h.name}
                     </button>
                     <span className="tf-meta">
@@ -401,7 +403,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
                         <span className="tf-chips">
                           <span className="tf-chip-track">
                           {targets.slice(0, 2).map((x) => (
-                            <span key={x.id} className="badge navy tf-chip" title={`${x.name} · ${formatMoney(x.amount)}`}>
+                            <span key={x.id} className="badge navy tf-chip" data-full={x.name}>
                               <span className="tf-chip-name">{x.name}</span>
                               <b>{Math.round((x.amount / (total || 1)) * 100)}%</b>
                             </span>
@@ -557,7 +559,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
           {noUnits && <div className="wd-note">Units not available. Choose Percentage or Amount.</div>}
           {!t.sourceWise && !noUnits && (
             <div className="tf-src-card on active">
-              <span className="tf-src-name" title={holding.name}>{holding.name}</span>
+              <span className="tf-src-name" data-full={holding.name}>{holding.name}</span>
               <span className="tf-src-meta">
                 Balance: <b>{formatMoney(holding.amount)}</b> Units: <b>{r2(holding.units).toLocaleString('en-US')}</b>
               </span>
@@ -586,7 +588,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                 >
                   <label className="tf-src-pick">
                     <input type="checkbox" checked={!!row.on} onChange={(e) => toggleSrc(s.id, e.target.checked)} />
-                    <span className="tf-src-name" title={s.name}>{s.name}</span>
+                    <span className="tf-src-name" data-full={s.name}>{s.name}</span>
                   </label>
                   <span className="tf-src-meta">
                     Balance: <b>{formatMoney(s.amount)}</b> Units: <b>{r2(s.amount / holding.nav).toLocaleString('en-US')}</b>
@@ -630,7 +632,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                   </span>
                 </span>
                 <span className="tf-fund-row">
-                  <b className="tf-fund-name" title={o.name}>{o.name}</b>
+                  <b className="tf-fund-name" data-full={o.name}>{o.name}</b>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -694,7 +696,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                           Type: <b>{r.asset}</b>
                         </span>
                       </span>
-                      <b className="tf-fund-name" title={r.name}>{r.name}</b>
+                      <b className="tf-fund-name" data-full={r.name}>{r.name}</b>
                       <span className="tf-alloc-row">
                         <span className={`alloc-pct-input${list.length && Math.abs(total - 100) > 0.01 ? ' tf-bad' : ''}`}>
                           <input
@@ -800,7 +802,7 @@ function TransferDetails({ holding, sell, t, onClose }) {
                       <span className="tf-detail-arrow static" aria-hidden="true">
                         <Icon icon={faArrowRight} size={12} />
                       </span>
-                      <b className="tf-detail-src" title={holding.name}>
+                      <b className="tf-detail-src" data-full={holding.name}>
                         {holding.name}
                       </b>
                       {g.title && <small>{g.title}</small>}

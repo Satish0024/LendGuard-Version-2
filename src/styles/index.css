@@ -3329,3 +3329,8 @@ summary:focus-visible {
 .table-grouped tbody tr.group-end td{border-bottom:1px solid var(--theme-neutral-border-primary-default)}
 .table-grouped tbody td.group-head{vertical-align:top;background:var(--neutral-surface-layer-03);border-right:1px solid var(--theme-neutral-border-primary-default);border-bottom:1px solid var(--theme-neutral-border-primary-default)}
 .table-grouped tbody tr.alloc-total td,.table-grouped tfoot td{background:var(--neutral-surface-layer-03);font-weight:var(--typography-font-weight-bold)}
+
+/* Floating tooltip for truncated text (TruncateTooltip.jsx) -- same visual
+   language as [data-tip], but fixed-position so clipped parents can't hide it. */
+.trunc-tip{position:fixed;transform:translateX(-50%);z-index:200;width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);
+  background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-xs-line-height);box-shadow:var(--core-elevation-1);pointer-events:none;white-space:normal;text-align:center}
