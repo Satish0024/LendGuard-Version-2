@@ -389,12 +389,12 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
                   <td>
                     {sell && total > 0 ? (
                       <div className="tf-mc">
+                        <span className="badge green tf-sell-tag">Buy</span>
                         <p className="tf-mc-h">
                           <b>{formatMoney(total)}</b>
                           <span>| {buyCount} Investment(s)</span>
                         </p>
                         <span className="tf-chips">
-                          <span className="badge green">Buy</span>
                           <span className="tf-chip-track">
                           {targets.slice(0, 2).map((x) => (
                             <span key={x.id} className="badge navy tf-chip" title={`${x.name} · ${formatMoney(x.amount)}`}>
@@ -502,6 +502,18 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
     ? holding.sources.filter((s) => draft.sources[s.id]?.on).map((s) => ({ key: s.id, title: s.name, moved: bySource.find((b) => b.id === s.id)?.moved || 0 }))
     : [{ key: 'all', title: null, moved: sellBreakdown(draft, holding, t.by, false).total }]
   const heldAmount = (id) => holdings.find((h) => h.id === id)?.amount
+  // Trash sits on the input row; when the fund is already held it moves down
+  // to the "Current balance" row, matching Figma.
+  const trash = (k, r) => (
+    <button
+      type="button"
+      className="icon-btn tf-trash"
+      aria-label={`Remove ${r.name}`}
+      onClick={() => setRowsFor(k, (cur) => renormalise(cur.filter((x) => x.id !== r.id), isEven(cur)))}
+    >
+      <Icon icon={faTrash} size={13} />
+    </button>
+  )
 
   const doneLine = (k, value) => {
     const list = draft.buys[k] || []
@@ -661,9 +673,9 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                   <span>
                     <b>{list.length ? String(list.length).padStart(2, '0') : 0}</b> Investment(s) added
                   </span>
-                  {list.length > 0 && (
-                    <button type="button" className="text-link danger" onClick={() => setRowsFor(g.key, () => [])}>
-                      Remove all
+                  {list.length > 1 && (
+                    <button type="button" className="text-link" onClick={() => setRowsFor(g.key, evenSplit)}>
+                      Split evenly
                     </button>
                   )}
                 </div>
@@ -693,24 +705,16 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                           <i>%</i>
                         </span>
                         <b>{formatMoney((g.moved * (+r.pct || 0)) / 100)}</b>
+                        {heldAmount(r.id) == null && trash(g.key, r)}
                       </span>
-                      <span className="tf-fund-foot">
-                        {heldAmount(r.id) != null ? (
+                      {heldAmount(r.id) != null && (
+                        <span className="tf-fund-foot">
                           <span>
                             Current balance: <b>{formatMoney(heldAmount(r.id))}</b>
                           </span>
-                        ) : (
-                          <span />
-                        )}
-                        <button
-                          type="button"
-                          className="icon-btn tf-trash"
-                          aria-label={`Remove ${r.name}`}
-                          onClick={() => setRowsFor(g.key, (cur) => renormalise(cur.filter((x) => x.id !== r.id), isEven(cur)))}
-                        >
-                          <Icon icon={faTrash} size={13} />
-                        </button>
-                      </span>
+                          {trash(g.key, r)}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -789,14 +793,13 @@ function TransferDetails({ holding, sell, t, onClose }) {
                 <tr key={`${g.key}-${r.id}`} className={i === g.rows.length - 1 ? 'group-end' : undefined}>
                   {i === 0 && (
                     <td rowSpan={g.rows.length} className="group-head tf-detail-sell">
-                      <span className="tf-sell-top">
-                        <span className="badge red">Sell</span>
-                        <span className="tf-detail-arrow static" aria-hidden="true">
-                          <Icon icon={faArrowRight} size={12} />
-                        </span>
+                      <span className="tf-detail-arrow static" aria-hidden="true">
+                        <Icon icon={faArrowRight} size={12} />
                       </span>
-                      <b className="tf-detail-src">{g.title || holding.name}</b>
-                      {g.title && <small>{holding.name}</small>}
+                      <b className="tf-detail-src" title={holding.name}>
+                        {holding.name}
+                      </b>
+                      {g.title && <small>{g.title}</small>}
                       <b className="tf-sell-amt">{formatMoney(g.moved)}</b>
                     </td>
                   )}
