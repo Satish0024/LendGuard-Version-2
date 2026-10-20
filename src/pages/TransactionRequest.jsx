@@ -39,6 +39,8 @@ import {
   computeWithdrawalFees,
   estimatePeriodicPayment,
   generateTransactionId,
+  recordRequest,
+  TRANSACTION_TYPES,
   hasRestrictedTransfer,
   investmentsForSource,
   loanLimits,
@@ -203,7 +205,16 @@ function TransactionRequestWizard() {
   const back = () => setStepIdx((i) => Math.max(0, i - 1))
 
   const [transactionId] = useState(generateTransactionId)
-  const submit = () => setDone(true)
+  const submit = () => {
+    recordRequest(participant.id, {
+      id: transactionId,
+      type,
+      typeLabel: TRANSACTION_TYPES.find((x) => x.id === type)?.label || type,
+      plan: plan.name,
+      amount: requestAmount(type, form)
+    })
+    setDone(true)
+  }
 
   return (
     <>
@@ -346,6 +357,16 @@ function TransactionRequestWizard() {
 // than swapping the page content out — the last summary screen stays
 // visible (dimmed) behind it, so "submitted" reads as a confirmation of
 // what's on screen instead of a navigation away from it.
+// Headline amount for the Recent requests list, per request type.
+function requestAmount(type, form) {
+  const n = (v) => +String(v ?? '').replace(/[^0-9.]/g, '') || 0
+  let total = 0
+  if (type === 'loan') total = n(form.amount)
+  else if (type === 'withdrawal') total = (form.withdrawal?.allocations || []).reduce((t, a) => t + n(a.amount), 0)
+  else if (type === 'rollover') total = Object.values(form.sources || {}).reduce((t, s) => t + n(s.contribution) + n(s.earning), 0)
+  return total ? formatMoney(total) : '—'
+}
+
 function SubmittedPanel({ type, transactionId, navigate }) {
   const label =
     { loan: 'loan', withdrawal: 'withdrawal', transfer: 'transfer', rebalance: 'rebalance', rollover: 'rollover' }[type] ||

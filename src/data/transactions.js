@@ -407,7 +407,7 @@ export const SPOUSAL_CONSENT_DOC = { id: 'spousal-consent', label: 'Spousal Cons
 
 export function requestStatusTone(status) {
   if (status === 'Approved' || status === 'Completed') return 'good'
-  if (status === 'Pending' || status === 'In Review') return 'ok'
+  if (status === 'Pending' || status === 'In Review' || status === 'Submitted') return 'ok'
   return 'warn'
 }
 
@@ -430,8 +430,30 @@ export const TRANSACTION_REQUESTS = {
   ]
 }
 
+// Requests submitted in this session, newest first, shown above the demo data
+// in Transactions > Recent requests.
+const SUBMITTED_KEY = 'lg-submitted-requests'
+function readSubmitted() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SUBMITTED_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function recordRequest(participantId, request) {
+  const all = readSubmitted()
+  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  all[participantId] = [{ status: 'Submitted', date: today, ...request }, ...(all[participantId] || [])]
+  try {
+    sessionStorage.setItem(SUBMITTED_KEY, JSON.stringify(all))
+  } catch {
+    /* storage unavailable: list just won't include it */
+  }
+}
+
 export function requestsFor(participant) {
-  return TRANSACTION_REQUESTS[participant.id] || []
+  return [...(readSubmitted()[participant.id] || []), ...(TRANSACTION_REQUESTS[participant.id] || [])]
 }
 
 // Mock transaction id shown on the wizard's success screen and used to track

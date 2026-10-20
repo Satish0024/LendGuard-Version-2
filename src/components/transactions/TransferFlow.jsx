@@ -6,7 +6,8 @@ import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Toast from '../common/Toast.jsx'
 import { formatMoney } from '../../lib/accountSummary'
-import { AVAILABLE_INVESTMENTS, sourcesFor } from '../../data/transactions.js'
+import { AVAILABLE_INVESTMENTS, sourcesFor, recordRequest, generateTransactionId } from '../../data/transactions.js'
+import { useParticipant } from '../../context/ParticipantContext.jsx'
 import { HOLDINGS } from '../../data/portfolio.js'
 
 // Participant version of the admin "Transfer Request v3" flow: pick one or
@@ -252,6 +253,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
   )
 
   const [submitted, setSubmitted] = useState(false)
+  const { participant } = useParticipant()
   const infoLine = (
     <p className="hint tf-info">
       <Icon icon={faInfoCircle} size={13} /> The available amount is reported as of {new Date().toLocaleDateString('en-US')} and may change due
@@ -273,6 +275,8 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
               className="btn btn-primary"
               disabled={submitted}
               onClick={() => {
+                const total = configured.reduce((sum, h) => sum + sellBreakdown(t.sells[h.id], h, t.by, t.sourceWise).total, 0)
+                recordRequest(participant.id, { id: generateTransactionId(), type: 'transfer', typeLabel: 'Transfer', plan: plan.name, amount: formatMoney(total) })
                 setSubmitted(true)
               }}
             >
