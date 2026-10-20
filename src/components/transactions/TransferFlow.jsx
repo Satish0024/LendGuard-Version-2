@@ -357,7 +357,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
         record(s) found
       </p>
       <div className="table-wrap">
-        <table className="alloc-table tf-table">
+        <table className="alloc-table table-grouped tf-table">
           <thead>
             <tr>
               <th scope="col" className="tf-c-name">Investment name</th>
@@ -557,7 +557,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
           {noUnits && <div className="wd-note">Units not available. Choose Percentage or Amount.</div>}
           {!t.sourceWise && !noUnits && (
             <div className="tf-src-card on active">
-              <span className="tf-src-name">{holding.name}</span>
+              <span className="tf-src-name" title={holding.name}>{holding.name}</span>
               <span className="tf-src-meta">
                 Balance: <b>{formatMoney(holding.amount)}</b> Units: <b>{r2(holding.units).toLocaleString('en-US')}</b>
               </span>
@@ -586,7 +586,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                 >
                   <label className="tf-src-pick">
                     <input type="checkbox" checked={!!row.on} onChange={(e) => toggleSrc(s.id, e.target.checked)} />
-                    <span className="tf-src-name">{s.name}</span>
+                    <span className="tf-src-name" title={s.name}>{s.name}</span>
                   </label>
                   <span className="tf-src-meta">
                     Balance: <b>{formatMoney(s.amount)}</b> Units: <b>{r2(s.amount / holding.nav).toLocaleString('en-US')}</b>
@@ -630,7 +630,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                   </span>
                 </span>
                 <span className="tf-fund-row">
-                  <b className="tf-fund-name">{o.name}</b>
+                  <b className="tf-fund-name" title={o.name}>{o.name}</b>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -694,7 +694,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                           Type: <b>{r.asset}</b>
                         </span>
                       </span>
-                      <b className="tf-fund-name">{r.name}</b>
+                      <b className="tf-fund-name" title={r.name}>{r.name}</b>
                       <span className="tf-alloc-row">
                         <span className={`alloc-pct-input${list.length && Math.abs(total - 100) > 0.01 ? ' tf-bad' : ''}`}>
                           <input

@@ -766,3 +766,16 @@
 /* Style guide: 8px (--core-space-2) between a field label and its control. */
 .tf-controls .tf-control:last-child{gap:var(--core-space-2)}
 .tf-controls .tf-control:last-child .inv-toggle{height:auto;min-height:0;padding:0;margin:0}
+/* Transfer module: no zebra rows anywhere. */
+.table-grouped.tf-table tbody tr:not(.tf-on) td{background:var(--neutral-surface-layer-01)}
+.table-grouped.tf-table tbody tr.tf-on td{background:var(--neutral-surface-layer-01)}
+.table-grouped.tf-table tbody td{border-bottom:1px solid var(--neutral-border-light)}
+.table-grouped.tf-table tbody tr:last-child td{border-bottom:0}
+/* One name style on every transfer card: 14px bold, single line, truncated,
+   full name in the native tooltip. */
+.tf-fund-name,.tf-src-name{display:block;min-width:0;max-width:100%;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-bold);line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+.tf-fund-row{min-width:0}
+.tf-fund-row .tf-fund-name{flex:1 1 auto}
+.tf-fund-row .btn{flex:0 0 auto}
+.tf-src-pick{min-width:0}
+.tf-src-pick .tf-src-name{flex:1 1 auto}
