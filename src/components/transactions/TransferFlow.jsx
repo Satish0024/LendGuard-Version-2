@@ -17,7 +17,6 @@ import { HOLDINGS } from '../../data/portfolio.js'
 
 const BY = [
   ['pct', 'Percentage'],
-  ['units', 'Units'],
   ['amount', 'Amount']
 ]
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-')
