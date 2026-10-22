@@ -784,3 +784,10 @@
 .tf-cols .tf-fund-name,.tf-cols .tf-src-name{flex:0 1 auto;width:auto;max-width:210px}
 /* Transfer details: a little wider than the 680px "wide" slide-over. */
 .slideover-panel.slideover-wide:has(.tf-detail-table){max-width:min(840px,100%)}
+/* Phones: same rule as every other table -- keep a readable min width and
+   scroll inside .table-wrap instead of crushing the Buy column. */
+@media (max-width:767px){
+  .table-wrap .alloc-table.tf-detail-table{min-width:560px;table-layout:auto}
+  .tf-detail-table td.tf-detail-sell{width:auto;min-width:160px;max-width:200px}
+  .tf-detail-table td.alloc-name-col{min-width:180px}
+}
