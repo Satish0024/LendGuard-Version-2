@@ -108,6 +108,9 @@ function cleanNumber(raw, prev, by) {
   return v
 }
 
+// Design-system confirm text for leaving with unsaved work.
+const LOST_CHANGES = { title: 'Are you sure?', body: 'Your changes may be lost. Do you want to continue?', confirmLabel: 'Okay', cancelLabel: 'Cancel' }
+
 export function blankTransfer() {
   return { by: 'pct', sourceWise: false, sells: {} }
 }
@@ -244,7 +247,8 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
   }
 
 
-  const discard = () => navigate('/transactions')
+  const discard = () =>
+    configured.length ? setConfirm({ ...LOST_CHANGES, onConfirm: () => navigate('/transactions') }) : navigate('/transactions')
 
   const dialogs = (
     <>
@@ -530,7 +534,10 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
     )
   }
 
-  const requestClose = onClose
+  const [leaving, setLeaving] = useState(false)
+  // Only ask when something in the panel actually changed.
+  const dirty = JSON.stringify(draft) !== initial
+  const requestClose = () => (dirty ? setLeaving(true) : onClose())
   const save = () => canSave && onSave(isEmpty ? null : draft)
 
   return (
@@ -729,6 +736,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
         </section>
       </div>
 
+      {leaving && <ConfirmDialog {...LOST_CHANGES} onConfirm={onClose} onCancel={() => setLeaving(false)} />}
     </Slideover>
   )
 }
