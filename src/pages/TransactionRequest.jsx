@@ -270,7 +270,7 @@ function TransactionRequestWizard() {
               </div>
               <div className="req-plan-stats">
                 <div>
-                  <span>Plan balance</span>
+                  <span>Account balance</span>
                   <b>{formatMoney(planBalance(plan))}</b>
                 </div>
                 <div>
@@ -1502,7 +1502,7 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
         </ul>
         <ul className="detail-rows" style={{ flex: 1 }}>
           <li>
-            <span>Plan balance</span>
+            <span>Account balance</span>
             <b>{formatMoney(planBalance(plan))}</b>
           </li>
           <li>
