@@ -621,7 +621,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
           </h4>
           <div className="add-inv-search">
             <Icon icon={faSearch} size={15} />
-            <input type="search" aria-label="Search by Investments" placeholder="Search by Investments" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input type="search" aria-label="Search by name/CUSIP" placeholder="Search by name/CUSIP" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <p className="add-inv-count">
             <b>{String(options.length).padStart(2, '0')}</b> Investment(s)
