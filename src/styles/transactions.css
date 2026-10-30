@@ -782,6 +782,17 @@
 /* Card names: fixed width = "iShares Emerging Markets ETF" at 14px bold (210px);
    longer names truncate, full name in the tooltip. */
 .tf-cols .tf-fund-name,.tf-cols .tf-src-name{flex:0 1 auto;width:auto;max-width:210px}
+/* Investment name links on transfer cards keep the single-line truncate
+   (fund-link defaults to wrapping) and the bold card type scale. */
+.tf-cols .text-link.fund-link.tf-fund-name,
+.tf-cols .text-link.fund-link.tf-src-name{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;
+  font-weight:var(--typography-font-weight-bold);font-size:var(--typography-body-sm-size);line-height:20px;
+  text-align:left
+}
+.tf-detail-sell .text-link.fund-link.tf-detail-src{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.tf-review .text-link.fund-link.tf-sell-name,
+.tf-review .text-link.fund-link.alloc-name{font-weight:var(--typography-font-weight-bold);text-align:left}
 /* Transfer details: a little wider than the 680px "wide" slide-over. */
 .slideover-panel.slideover-wide:has(.tf-detail-table){max-width:min(840px,100%)}
 /* Phones: same rule as every other table -- keep a readable min width and

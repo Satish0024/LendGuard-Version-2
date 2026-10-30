@@ -6,6 +6,7 @@ import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Toast from '../common/Toast.jsx'
 import TruncateTooltip from '../common/TruncateTooltip.jsx'
+import FundDetailDialog from '../common/FundDetailDialog.jsx'
 import { formatMoney } from '../../lib/accountSummary'
 import { AVAILABLE_INVESTMENTS, sourcesFor, recordRequest, generateTransactionId } from '../../data/transactions.js'
 import { useParticipant } from '../../context/ParticipantContext.jsx'
@@ -59,6 +60,25 @@ function holdingsFor(plan) {
       }))
     }
   })
+}
+
+// Fields shown in the fund-detail popup opened from any investment name link.
+function fundDetailFields(f) {
+  return [
+    { label: 'CUSIP', value: f.cusip },
+    { label: 'Type', value: f.asset },
+    { label: 'Nav', value: f.nav != null ? formatMoney(f.nav) : undefined },
+    { label: 'Current balance', value: f.amount != null ? formatMoney(f.amount) : undefined },
+    { label: 'Units', value: f.units != null ? r2(f.units).toLocaleString('en-US') : undefined }
+  ]
+}
+
+function FundNameLink({ fund, className, onOpen }) {
+  return (
+    <button type="button" className={`text-link fund-link ${className || ''}`.trim()} data-full={fund.name} onClick={() => onOpen(fund)}>
+      {fund.name}
+    </button>
+  )
 }
 
 function buyOptionsFor(plan) {
@@ -207,6 +227,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
   const [editing, setEditing] = useState(null)
   const [confirm, setConfirm] = useState(null)
   const [details, setDetails] = useState(null)
+  const [openFund, setOpenFund] = useState(null)
 
   const configured = holdings.filter((h) => t.sells[h.id])
   const errorsById = Object.fromEntries(configured.map((h) => [h.id, sellErrors(t.sells[h.id], h, t.by, t.sourceWise)]))
@@ -253,6 +274,9 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
   const dialogs = (
     <>
       {confirm && <ConfirmDialog {...confirm} onCancel={() => setConfirm(null)} />}
+      {openFund && (
+        <FundDetailDialog name={openFund.name} fields={fundDetailFields(openFund)} onClose={() => setOpenFund(null)} />
+      )}
       <TruncateTooltip />
     </>
   )
@@ -383,9 +407,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
                 <tr key={h.id} className={sell ? 'tf-on' : undefined}>
                   <td className="alloc-name-col">
                     {sell && <span className="badge red tf-sell-tag">Sell</span>}
-                    <button type="button" className="text-link tf-fund-link" data-full={h.name} onClick={() => setEditing(h.id)}>
-                      {h.name}
-                    </button>
+                    <FundNameLink fund={h} className="tf-fund-link" onOpen={setOpenFund} />
                     <span className="tf-meta">
                       Balance <b>{formatMoney(bal)}</b> and <b>{r2(bal / h.nav).toLocaleString('en-US')}</b> Units
                     </span>
@@ -535,6 +557,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
   }
 
   const [leaving, setLeaving] = useState(false)
+  const [openFund, setOpenFund] = useState(null)
   // Only ask when something in the panel actually changed.
   const dirty = JSON.stringify(draft) !== initial
   const requestClose = () => (dirty ? setLeaving(true) : onClose())
@@ -565,7 +588,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
           {noUnits && <div className="wd-note">Units not available. Choose Percentage or Amount.</div>}
           {!t.sourceWise && !noUnits && (
             <div className="tf-src-card on active">
-              <span className="tf-src-name" data-full={holding.name}>{holding.name}</span>
+              <FundNameLink fund={holding} className="tf-src-name" onOpen={setOpenFund} />
               <span className="tf-src-meta">
                 Balance: <b>{formatMoney(holding.amount)}</b> Units: <b>{r2(holding.units).toLocaleString('en-US')}</b>
               </span>
@@ -638,7 +661,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                   </span>
                 </span>
                 <span className="tf-fund-row">
-                  <b className="tf-fund-name" data-full={o.name}>{o.name}</b>
+                  <FundNameLink fund={o} className="tf-fund-name" onOpen={setOpenFund} />
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -702,7 +725,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                           Type: <b>{r.asset}</b>
                         </span>
                       </span>
-                      <b className="tf-fund-name" data-full={r.name}>{r.name}</b>
+                      <FundNameLink fund={r} className="tf-fund-name" onOpen={setOpenFund} />
                       <span className="tf-alloc-row">
                         <span className={`alloc-pct-input${list.length && Math.abs(total - 100) > 0.01 ? ' tf-bad' : ''}`}>
                           <input
@@ -737,6 +760,9 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
       </div>
 
       {leaving && <ConfirmDialog {...LOST_CHANGES} onConfirm={onClose} onCancel={() => setLeaving(false)} />}
+      {openFund && (
+        <FundDetailDialog name={openFund.name} fields={fundDetailFields(openFund)} onClose={() => setOpenFund(null)} />
+      )}
     </Slideover>
   )
 }
@@ -770,6 +796,7 @@ function AmountField({ label, by, unit, value, max, onChange, onMax, disabled })
 
 // Figma "Transfer details": read-only, Cancel only. Sell cell spans its buys.
 function TransferDetails({ holding, sell, t, onClose }) {
+  const [openFund, setOpenFund] = useState(null)
   const { total, bySource } = sellBreakdown(sell, holding, t.by, t.sourceWise)
   const groups = t.sourceWise
     ? bySource.map((s) => ({ key: s.id, title: s.name, moved: s.moved, rows: buysFor(sell, s.id) }))
@@ -809,15 +836,13 @@ function TransferDetails({ holding, sell, t, onClose }) {
                       <span className="tf-detail-arrow static" aria-hidden="true">
                         <Icon icon={faArrowRight} size={12} />
                       </span>
-                      <b className="tf-detail-src" data-full={holding.name}>
-                        {holding.name}
-                      </b>
+                      <FundNameLink fund={holding} className="tf-detail-src" onOpen={setOpenFund} />
                       {g.title && <small>{g.title}</small>}
                       <b className="tf-sell-amt">{formatMoney(g.moved)}</b>
                     </td>
                   )}
                   <td className="alloc-name-col">
-                    <span className="alloc-name">{r.name}</span>
+                    <FundNameLink fund={r} className="alloc-name" onOpen={setOpenFund} />
                     {g.title && <span className="tf-meta">{g.title}</span>}
                   </td>
                   <td className="num">{pctText(r.pct)}</td>
@@ -832,12 +857,16 @@ function TransferDetails({ holding, sell, t, onClose }) {
           </tbody>
         </table>
       </div>
+      {openFund && (
+        <FundDetailDialog name={openFund.name} fields={fundDetailFields(openFund)} onClose={() => setOpenFund(null)} />
+      )}
     </Slideover>
   )
 }
 
 // Figma "Transfer Summary" card: sell panel on the left, buy table(s) right.
 function SellReview({ holding, sell, t, flowIn }) {
+  const [openFund, setOpenFund] = useState(null)
   const { total, bySource } = sellBreakdown(sell, holding, t.by, t.sourceWise)
   const tables = t.sourceWise
     ? bySource.map((s) => ({ key: s.id, title: s.name, moved: s.moved, pct: (s.moved / (s.amount || 1)) * 100, rows: buysFor(sell, s.id) }))
@@ -851,7 +880,7 @@ function SellReview({ holding, sell, t, flowIn }) {
             <Icon icon={faArrowRight} size={12} />
           </span>
         </span>
-        <b className="tf-sell-name">{holding.name}</b>
+        <FundNameLink fund={holding} className="tf-sell-name" onOpen={setOpenFund} />
         <dl className="tf-dl">
           <div>
             <dt>Current balance</dt>
@@ -916,7 +945,7 @@ function SellReview({ holding, sell, t, flowIn }) {
                   {tb.rows.map((r) => (
                     <tr key={r.id}>
                       <td className="alloc-name-col">
-                        <span className="alloc-name">{r.name}</span>
+                        <FundNameLink fund={r} className="alloc-name" onOpen={setOpenFund} />
                       </td>
                       <td>{r.cusip}</td>
                       <td>{r.asset}</td>
@@ -934,6 +963,9 @@ function SellReview({ holding, sell, t, flowIn }) {
           </div>
         ))}
       </div>
+      {openFund && (
+        <FundDetailDialog name={openFund.name} fields={fundDetailFields(openFund)} onClose={() => setOpenFund(null)} />
+      )}
     </div>
   )
 }
