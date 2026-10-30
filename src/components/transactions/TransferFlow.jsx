@@ -438,6 +438,22 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
                           <button type="button" className="text-link" onClick={() => setDetails(h.id)}>
                             View details
                           </button>
+                          <button
+                            type="button"
+                            className="icon-btn tf-trash"
+                            aria-label={`Remove transfer from ${h.name}`}
+                            onClick={() =>
+                              setConfirm({
+                                ...LOST_CHANGES,
+                                onConfirm: () => {
+                                  removeSell(h)
+                                  setConfirm(null)
+                                }
+                              })
+                            }
+                          >
+                            <Icon icon={faTrash} size={13} />
+                          </button>
                         </span>
                       </div>
                     ) : (

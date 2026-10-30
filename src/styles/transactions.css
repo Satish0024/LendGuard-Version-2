@@ -715,7 +715,8 @@
 .tf-mc .tf-chips{width:100%}
 .tf-mc .tf-chip-track{flex:1 1 auto}
 .tf-mc .tf-chip-track > .tf-chip{min-width:48px}
-.tf-mc .tf-chips > .text-link,.tf-mc .tf-chips > .badge{flex:0 0 auto}
+.tf-mc .tf-chips > .text-link,.tf-mc .tf-chips > .badge,.tf-mc .tf-chips > .tf-trash{flex:0 0 auto}
+.tf-mc .tf-chips > .tf-trash{width:28px;height:28px}
 @media (min-width:768px){.table-wrap .alloc-table.tf-table{min-width:0}}
 /* Chips shrink when tight but never stretch, so +N / View details sit right after them. */
 .tf-mc .tf-chip-track{flex:0 1 auto}
