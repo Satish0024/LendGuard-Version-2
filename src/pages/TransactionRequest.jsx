@@ -297,6 +297,7 @@ function TransactionRequestWizard() {
               <WithdrawalFlow
                 step={step.id}
                 plan={plan}
+                plans={plans}
                 participant={participant}
                 form={form}
                 set={set}
@@ -304,6 +305,12 @@ function TransactionRequestWizard() {
                 onBack={back}
                 onSubmit={submit}
                 onEdit={(id) => goTo(wizard.steps.findIndex((s) => s.id === id))}
+                onChangePlan={(id) => {
+                  setForm(blankForm(type))
+                  setStepIdx(0)
+                  setMaxReached(0)
+                  navigate(`/transactions/request/${type}?plan=${id}`, { replace: true })
+                }}
               />
             )}
             {type === 'transfer' && (

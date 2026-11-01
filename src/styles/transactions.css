@@ -803,3 +803,26 @@
   .tf-detail-table td.tf-detail-sell{width:auto;min-width:160px;max-width:200px}
   .tf-detail-table td.alloc-name-col{min-width:180px}
 }
+.wd2 .tabs{margin:var(--core-space-3) var(--core-space-0) var(--core-space-2)}
+.wd2-requested{display:flex;flex-direction:column;gap:var(--core-space-1);margin:0 0 var(--core-space-3)}
+.wd2-requested span{font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.wd2-requested b{font-size:var(--typography-heading-md-size,1.5rem);font-weight:var(--typography-font-weight-bold)}
+.wd2-src-head td{font-weight:var(--typography-font-weight-semibold)}
+.wd2-src-line td:first-child{padding-left:var(--core-space-6)}
+.wd2-src-toggle{display:inline-flex;align-items:center;gap:var(--core-space-2);padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.wd2-src-toggle svg{transform:rotate(-90deg);transition:transform .15s}
+.wd2-src-toggle[aria-expanded="true"] svg{transform:none}
+.wd2-src-toggle:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color)}
+.wd2-src-row{padding:var(--core-space-3) 0;border-top:1px solid var(--neutral-border-light)}
+.wd2-src-row:first-of-type{border-top:0}
+.wd2-src-name{display:flex;justify-content:space-between;gap:var(--core-space-3);margin-bottom:var(--core-space-2);font-size:var(--typography-body-sm-size)}
+.wd2-hist{list-style:none;margin:var(--core-space-4) 0 0;padding:0}
+.wd2-hist li{position:relative;display:flex;flex-direction:column;gap:var(--core-space-1);padding:0 0 var(--core-space-4) var(--core-space-5);border-left:2px solid var(--neutral-border-light);margin-left:var(--core-space-1)}
+.wd2-hist li:last-child{border-left-color:transparent;padding-bottom:0}
+.wd2-hist li::before{content:"";position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--neutral-surface-layer-01);border:2px solid var(--neutral-border-strong)}
+.wd2-hist li.done::before{background:var(--cds-focus-color);border-color:var(--cds-focus-color)}
+.wd2-hist span{font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.table-wrap.wd2-src .alloc-table{min-width:0;width:100%}
+.wd2-src th,.wd2-src td{padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
+.wd2-src td:first-child{white-space:normal}
+.wd2-src .alloc-pct-input input{width:72px}

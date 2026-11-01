@@ -1,24 +1,25 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationTriangle, faInfoCircle, faCheck, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../common/Field.jsx'
 import Select, { Option } from '../common/Select.jsx'
 import DatePicker from '../common/DatePicker.jsx'
 import { formatMoney, planBalance, planVested } from '../../lib/accountSummary'
-import { sourcesFor, activeLoanFor } from '../../data/transactions.js'
+import { sourcesFor, activeLoanFor, canRequest, investmentsForSource } from '../../data/transactions.js'
 
 // Participant version of the admin "New Withdrawal Request" prototype. Same
 // data points and rules; admin-only overrides (fee, 1099 codes, penalty
-// waiver, custom mailing address) are shown read-only or left out.
+// waiver) are shown read-only or left out.
 
 export const WD_PERSONA_KEY = 'lg-wd-persona'
 const RMD = { year: 2026, age: 73, factor: 20.2 }
 const PENALTY_RATE = 10
 const PENALTY_FREE_AGE = 59.5
-const ETF_FEE = 5
+const PAYMENT_FEE = 5
+const MIN_WITHDRAW = 10
 const OVERALL_FEE = 50
 const MAX_FILE_MB = 2
 const ANNUITANT = { lifeExpectancy: 10.2, age: 80, dob: '15/01/1946', rate: 4 }
@@ -27,10 +28,10 @@ const TYPES = [
   { id: 'INS', label: 'In-Service', display: 'In-Service - INS' },
   { id: 'RMD', label: 'Required Minimum Distribution', display: 'Required Minimum Distribution - RMD' },
   { id: 'SFS', label: 'Separation from Service', display: 'Separation from Service - SFS' },
-  { id: 'hardship', label: 'Hardship', disabled: true },
-  { id: 'permissible', label: 'Permissible Withdrawal', disabled: true },
-  { id: 'forceout', label: 'Force out', disabled: true },
-  { id: 'qbad', label: 'Qualified Birth and Adoption Distribution', disabled: true }
+  { id: 'HDS', label: 'Hardship', display: 'Hardship - HDS' },
+  { id: 'PW', label: 'Permissible Withdrawal', display: 'Permissible Withdrawal - PW' },
+  { id: 'FO', label: 'Force out', display: 'Force out - FO' },
+  { id: 'QBAD', label: 'Qualified Birth and Adoption Distribution', display: 'Qualified Birth and Adoption Distribution - QBAD' }
 ]
 const MODES = [
   { id: 'self', label: 'Distribution to self', ratio: 1 },
@@ -53,17 +54,27 @@ const FREQ = [
   { id: 'annual', label: 'Annually', perYear: 1 }
 ]
 const DOCS = [
-  { id: 'spousal', label: 'Spousal consent', types: ['INS', 'SFS'], required: true },
-  { id: 'election', label: 'Distribution election form', types: ['INS', 'RMD', 'SFS'], required: true },
-  { id: 'w4r', label: 'W-4R withholding election', types: ['INS', 'RMD'], required: false }
+  { id: 'spousal', label: 'Spousal consent', types: ['INS', 'SFS', 'HDS', 'PW', 'QBAD'], required: true },
+  { id: 'election', label: 'Distribution election form', types: ['INS', 'RMD', 'SFS', 'HDS', 'PW', 'FO', 'QBAD'], required: true },
+  { id: 'w4r', label: 'W-4R withholding election', types: ['INS', 'RMD', 'HDS', 'PW', 'FO', 'QBAD'], required: false }
 ]
-const ADDRESS = '2450 Mission Street, Apt 4B, San Francisco, CA 94110'
+const recordsAddress = (participant) => [participant.profile?.address, participant.profile?.city].filter(Boolean).join(', ')
+const fmtAddress = (d) => [d?.line1, d?.line2, d?.city, d?.state, d?.zip].filter(Boolean).join(', ')
 const BANK = { institution: 'JP Morgan Chase', type: 'Checking Account', number: '••••••4521', routing: '021000021' }
 const ROLLOVER_ON_FILE = {
   rothIra: { planName: 'Fidelity Roth IRA', account: 'RIRA-55120934', trustee: 'Fidelity Management Trust' },
   tradIra: { planName: 'Fidelity Traditional IRA', account: 'TIRA-55120771', trustee: 'Fidelity Management Trust' },
   plan: { planName: 'Acme Corp 401(k) Plan', account: 'PLN-2210457', trustee: 'Empower Trust Company' }
 }
+
+const HISTORY = [
+  { title: 'Withdrawal request submitted', by: 'You' },
+  { title: 'Approved by plan sponsor', by: 'Plan sponsor' },
+  { title: 'Approved by plan administrator', by: 'Plan administrator' },
+  { title: 'Awaiting trade', by: 'System generated' },
+  { title: 'Completed', by: 'Plan administrator' }
+]
+const MAX_CHIPS = 3
 
 const r2 = (n) => Math.round((+n || 0) * 100) / 100
 const money = (n) => formatMoney(r2(n))
@@ -171,20 +182,37 @@ export function allocCalc(a, persona, type) {
   const rollover = !!mode?.rollover
   const fedPct = rollover ? 0 : +a.fedPct || 0
   const statePct = rollover ? 0 : +a.statePct || 0
-  const penaltyFree = rollover || type === 'RMD' || persona.age >= PENALTY_FREE_AGE
+  const penaltyFree = rollover || type === 'RMD' || type === 'QBAD' || persona.age >= PENALTY_FREE_AGE
   const penalty = penaltyFree ? 0 : (gross * PENALTY_RATE) / 100
-  const fee = !rollover && a.payment === 'etf' ? ETF_FEE : 0
+  // Check/EFT fee comes out of the account balance, not this allocation's net.
+  const fee = rollover ? 0 : PAYMENT_FEE
   const fed = (gross * fedPct) / 100
   const state = (gross * statePct) / 100
-  const net = gross - fed - state - penalty - fee
+  const net = gross - fed - state - penalty
   const codes = rollover
     ? a.mode === 'rothIra' ? ['H', 'G'] : ['G', 'G']
-    : type === 'RMD' || persona.age >= PENALTY_FREE_AGE ? ['7', '7'] : ['1', '1']
+    : type === 'QBAD'
+      ? ['2', '2']
+      : type === 'RMD' || persona.age >= PENALTY_FREE_AGE ? ['7', '7'] : ['1', '1']
   return { mode, gross, fed, state, penalty, fee, net, codes, rollover, fedPct, statePct }
+}
+// One row per investment held in a source. A source with no investment lineup
+// is treated as a single line so it can still be allocated.
+function sourceLines(plan, source) {
+  const lines = investmentsForSource(plan, source)
+  return lines.length ? lines : [{ id: source.id, name: source.name, amount: source.amount }]
+}
+const pickKey = (source, line) => `${source.id}::${line.id}`
+function linesTotal(plan, sources) {
+  return sources.reduce((t, s) => t + sourceLines(plan, s).reduce((x, l) => x + l.amount, 0), 0)
+}
+function lineGross(a, source, line, total) {
+  if (a.sourceMode === 'choose') return +a.picks?.[pickKey(source, line)] || 0
+  return total ? ((+a.amount || 0) * line.amount) / total : 0
 }
 
 // ---------- main ----------
-export default function WithdrawalFlow({ step, plan, participant, form, set, onNext, onBack, onSubmit, onEdit }) {
+export default function WithdrawalFlow({ step, plan, plans = [], participant, form, set, onNext, onBack, onSubmit, onEdit, onChangePlan }) {
   const navigate = useNavigate()
   const w = form.withdrawal || blankWithdrawal()
   const setW = (patch) =>
@@ -209,6 +237,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
   const [notice, setNotice] = useState(null)
   const [tried, setTried] = useState(false)
   const [triedDocs, setTriedDocs] = useState(false)
+  const [reviewTab, setReviewTab] = useState('summary')
 
   const type = TYPES.find((t) => t.id === w.type)
   const isRmd = w.type === 'RMD'
@@ -254,6 +283,19 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
     }))
   }
   const setP = (patch) => setW((cur) => ({ periodic: { ...cur.periodic, ...patch } }))
+  const changePlan = (id) => {
+    if (id === plan.id) return
+    if (!w.type) return onChangePlan(id)
+    setConfirm({
+      title: 'Do you want to proceed?',
+      body: 'Changing the plan now will result in losing all your progress.',
+      confirmLabel: 'Okay',
+      onConfirm: () => {
+        setConfirm(null)
+        onChangePlan(id)
+      }
+    })
+  }
   const saveAlloc = (a) => {
     setW((cur) => {
       const list = [...cur.allocations]
@@ -322,6 +364,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           plan={plan}
           persona={persona}
           type={w.type}
+          address={recordsAddress(participant)}
           showSources={!periodic}
           onClose={() => setEditing(null)}
           onSave={saveAlloc}
@@ -346,12 +389,26 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           <div className="plan-notice opted-notice">{plan.name} has $0.00 available. Choose another plan to request a withdrawal.</div>
         )}
         <div className="txn-row">
+          <Field label="Select the plan" required>
+            <Select value={plan.id} onChange={(e) => changePlan(e.target.value)}>
+              {plans.map((p) => (
+                <Option key={p.id} value={p.id} disabled={!canRequest(p, 'withdrawal')}>
+                  {p.name}
+                </Option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Company">
+            <input type="text" value={participant.profile?.employer || ''} readOnly disabled />
+          </Field>
+        </div>
+        <div className="txn-row spaced">
           <Field label="Withdraw Type" required>
             <Select value={w.type} onChange={(e) => chooseType(e.target.value)} disabled={balance <= 0} placeholder="Select the withdrawal type">
               <Option value="">Select the withdrawal type</Option>
               {TYPES.map((t) => (
-                <Option key={t.id} value={t.id} disabled={t.disabled}>
-                  {t.disabled ? `${t.label} (not available)` : t.label}
+                <Option key={t.id} value={t.id}>
+                  {t.label}
                 </Option>
               ))}
             </Select>
@@ -404,7 +461,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                 </div>
               </FieldGroup>
               {!periodic && (
-                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : undefined} noteClass="err">
+                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : `Minimum ${money(MIN_WITHDRAW)} / Maximum ${money(balance)}`} noteClass={tried && !w.entire ? 'err' : undefined}>
                   <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
                     {[
                       ['yes', 'Yes'],
@@ -644,8 +701,8 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                         {c.penalty > 0 && <small className="wd2-pct">{PENALTY_RATE}%</small>}
                       </td>
                       <td className="num">
-                        {c.rollover ? 'Rollover' : c.fee ? money(c.fee) : 'No fee'}
-                        {c.fee > 0 && <small className="wd2-pct">ETF fee</small>}
+                        {c.rollover ? 'Rollover' : money(c.fee)}
+                        {c.fee > 0 && <small className="wd2-pct">{feeLabel(a)}</small>}
                       </td>
                       <td className="num">
                         <b>{money(c.net)}</b>
@@ -728,16 +785,60 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
     ['Federal tax', sum('fed')],
     ['State tax', sum('state')],
     ['Early withdrawal penalty', sum('penalty')],
-    ['ETF fee', sum('fee')],
+    ['EFT fee', w.allocations.reduce((t, a, i) => t + (a.payment === 'eft' ? calcs[i].fee : 0), 0)],
+    ['Check fee', w.allocations.reduce((t, a, i) => t + (a.payment === 'eft' ? 0 : calcs[i].fee), 0)],
     ['Overall withdraw fee', OVERALL_FEE]
   ].filter(([, v]) => v > 0)
   const totalDed = deductions.reduce((t, [, v]) => t + v, 0)
   const pc = periodic ? periodicCalc(w.periodic) : null
+  const lineTotal = linesTotal(plan, sources)
+  const sourceRows = sources
+    .map((s) => {
+      const lines = sourceLines(plan, s)
+        .map((l) => ({ ...l, gross: w.allocations.reduce((t, a) => t + lineGross(a, s, l, lineTotal), 0) }))
+        .filter((l) => l.gross > 0.004)
+      return { id: s.id, name: s.name, lines, total: lines.reduce((t, l) => t + l.gross, 0) }
+    })
+    .filter((s) => s.lines.length)
   return (
     <div className="txn-card wd2">
       <h3>Review your withdrawal</h3>
       <p className="hint">Requests are usually processed within 10 business days after approval.</p>
+      <div className="tabs" role="tablist" aria-label="Withdrawal review">
+        {[
+          ['summary', 'Request Summary'],
+          ['history', 'History']
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`wd-tab-${id}`}
+            aria-selected={reviewTab === id}
+            aria-controls={`wd-panel-${id}`}
+            className={`tab${reviewTab === id ? ' on' : ''}`}
+            onClick={() => setReviewTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
+      {reviewTab === 'history' ? (
+        <ol className="wd2-hist" role="tabpanel" id="wd-panel-history" aria-labelledby="wd-tab-history">
+          <li className="done">
+            <b>Request drafted</b>
+            <span>You · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </li>
+          {HISTORY.map((h) => (
+            <li key={h.title}>
+              <b>{h.title}</b>
+              <span>{h.by} · Pending</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+      <div role="tabpanel" id="wd-panel-summary" aria-labelledby="wd-tab-summary">
       <section className="wd2-sum">
         <div className="wd2-sum-h">
           <h4>
@@ -751,6 +852,10 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           <span className="badge navy">{type?.display}</span>
           <span className="badge navy">{periodic ? 'Periodic payment' : 'One time payment'}</span>
           {!periodic && <span className="badge navy">Withdraw entire balance: {w.entire === 'yes' ? 'Yes' : 'No'}</span>}
+        </p>
+        <p className="wd2-requested">
+          <span>Requested Amount</span>
+          <b>{money(gross)}</b>
         </p>
         <ul className="detail-rows">
           <li>
@@ -837,7 +942,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
               <tr>
                 <th scope="col">Allocation &amp; Payment</th>
                 <th scope="col">1099 codes</th>
-                <th scope="col">Source</th>
+                <th scope="col">Address</th>
                 <th scope="col" className="num">Net</th>
               </tr>
             </thead>
@@ -852,17 +957,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                     Roth {calcs[i].codes[0]} · Non Roth {calcs[i].codes[1]}
                   </td>
                   <td>
-                    <span className="tf-chips">
-                      {a.sourceMode === 'choose'
-                        ? Object.entries(a.sources || {})
-                            .filter(([, v]) => +v > 0)
-                            .map(([id, v]) => (
-                              <span key={id} className="badge navy">
-                                {sources.find((s) => s.id === id)?.name} {money(v)}
-                              </span>
-                            ))
-                        : <span className="badge navy">Pro-rata across sources</span>}
-                    </span>
+                    {addressCell(a, calcs[i], recordsAddress(participant))}
                   </td>
                   <td className="num">
                     <b>{money(calcs[i].net)}</b>
@@ -874,10 +969,23 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
         </div>
       </section>
 
+      {sourceRows.length > 0 && (
+        <section className="wd2-sum">
+          <div className="wd2-sum-h">
+            <h4>
+              <span className="tf-col-num">{periodic ? 4 : 3}</span> Source Withdraw Amount
+            </h4>
+          </div>
+          {sourceRows.map((s) => (
+            <SourceSummaryRow key={s.id} source={s} />
+          ))}
+        </section>
+      )}
+
       <section className="wd2-sum">
         <div className="wd2-sum-h">
           <h4>
-            <span className="tf-col-num">{periodic ? 4 : 3}</span> Documents
+            <span className="tf-col-num">{(periodic ? 4 : 3) + (sourceRows.length > 0 ? 1 : 0)}</span> Documents
           </h4>
           <button type="button" className="text-link" onClick={() => onEdit?.('documents')}>
             Edit
@@ -903,6 +1011,8 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
         <input type="checkbox" checked={!!w.terms} onChange={(e) => setW({ terms: e.target.checked })} />
         <span>By checking this box, I declare that I have read the Terms &amp; Conditions.</span>
       </label>
+      </div>
+      )}
       <div className="txn-actions">
         <button type="button" className="btn btn-primary" disabled={!w.terms} onClick={onSubmit}>
           Submit Request
@@ -925,11 +1035,50 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
 
 function paymentLine(a, c, plan) {
   if (c.rollover) return `${a.delivery === 'wire' ? 'Wire transfer' : 'Check mailed to trustee'} · ${a.rollover?.planName || plan.name}`
-  return a.payment === 'check' ? 'Mail check · Address on file' : `ETF · ${a.bank === 'custom' ? a.customBank?.institution || 'New bank' : 'Bank on file'}`
+  if (a.payment === 'check') return `Mail check · ${a.addressSrc === 'custom' ? 'Custom address' : 'Address on file'}`
+  return `EFT · ${a.bank === 'custom' ? a.customBank?.institution || 'New bank' : 'Bank on file'}`
+}
+const feeLabel = (a) => (a.payment === 'eft' ? 'EFT fee' : 'Check fee')
+function addressCell(a, c, onFile) {
+  const custom = !c.rollover && a.payment === 'check' && a.addressSrc === 'custom'
+  const text = c.rollover ? a.rollover?.trustee : custom ? fmtAddress(a.address) : onFile
+  const tag = c.rollover ? 'Rollover trustee' : custom ? 'Custom address' : 'As per your records'
+  return (
+    <>
+      {text}
+      <span className="tf-meta">{tag}</span>
+    </>
+  )
+}
+
+function SourceSummaryRow({ source }) {
+  const [open, setOpen] = useState(false)
+  const shown = open ? source.lines : source.lines.slice(0, MAX_CHIPS)
+  const extra = source.lines.length - MAX_CHIPS
+  return (
+    <div className="wd2-src-row">
+      <div className="wd2-src-name">
+        <b>{source.name}</b>
+        <span>{money(source.total)}</span>
+      </div>
+      <div className="tf-chips">
+        {shown.map((l) => (
+          <span key={l.id} className="badge navy">
+            {l.name} {money(l.gross)}
+          </span>
+        ))}
+        {extra > 0 && (
+          <button type="button" className="text-link" aria-expanded={open} onClick={() => setOpen(!open)}>
+            {open ? 'Show less' : `+${extra} more`}
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ---------- allocation slide-out ----------
-function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, showSources, onClose, onSave }) {
+function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, address, showSources, onClose, onSave }) {
   const [a, setA] = useState(
     () =>
       initial || {
@@ -937,13 +1086,15 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
         amount: '',
         fedPct: '20',
         statePct: '0',
-        payment: 'etf',
+        payment: 'check',
+        addressSrc: 'records',
+        address: { line1: '', line2: '', city: '', country: 'USA', state: '', zip: '' },
         bank: 'records',
         customBank: { institution: '', holder: '', type: 'Checking Account', number: '', routing: '', email: '', phone: '' },
         rollover: null,
         delivery: 'check',
         sourceMode: 'prorata',
-        sources: {}
+        picks: {}
       }
   )
   const set = (patch) => setA((cur) => ({ ...cur, ...patch }))
@@ -952,19 +1103,27 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   const c = allocCalc(a, persona, type)
   const amt = +a.amount || 0
   const errs = {}
+  if (a.amount !== '' && amt > 0 && amt < MIN_WITHDRAW) errs.amount = `Minimum allocation amount is ${money(MIN_WITHDRAW)}.`
   if (a.amount !== '' && amt > modeMax + 1e-9) errs.amount = modeMax <= 0 ? 'No balance left to allocate.' : `Maximum amount available for ${mode?.rollover ? 'rollover' : 'withdrawal'} ${money(modeMax)}`
   if (+a.fedPct > 100 || +a.statePct > 100) errs.tax = 'Enter a rate between 0 and 100%.'
   if (amt > 0 && c.net <= 0) errs.net = 'Deductions are more than the allocation amount. Lower the tax rates.'
   if (mode?.rollover && a.rollover?.account && !/^[A-Za-z0-9-]{5,20}$/.test(a.rollover.account)) errs.account = 'Account / IRA no must be 5 to 20 letters, numbers or dashes.'
   const cb = a.customBank
-  if (!mode?.rollover && a.payment === 'etf' && a.bank === 'custom') {
+  const ad = a.address
+  const customAddress = !mode?.rollover && a.payment === 'check' && a.addressSrc === 'custom'
+  if (customAddress && ad.zip && !/^\d{5}$/.test(ad.zip)) errs.zip = 'Zip code must be 5 digits.'
+  if (!mode?.rollover && a.payment === 'eft' && a.bank === 'custom') {
     if (cb.number && !/^\d{4,17}$/.test(cb.number)) errs.number = 'Account number must be 4 to 17 digits.'
     if (cb.routing && !/^\d{9}$/.test(cb.routing)) errs.routing = 'ABA routing number must be 9 digits.'
     if (cb.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cb.email)) errs.email = 'Enter a valid email ID, e.g. name@company.com.'
   }
-  const srcTotal = r2(Object.values(a.sources || {}).reduce((t, v) => t + (+v || 0), 0))
+  const lineTotal = linesTotal(plan, sources)
+  const srcTotal = r2(Object.values(a.picks || {}).reduce((t, v) => t + (+v || 0), 0))
   sources.forEach((s) => {
-    if (a.sourceMode === 'choose' && +a.sources[s.id] > s.amount + 1e-9) errs[`src-${s.id}`] = `More than available ${money(s.amount)}.`
+    sourceLines(plan, s).forEach((l) => {
+      const k = pickKey(s, l)
+      if (a.sourceMode === 'choose' && +a.picks[k] > l.amount + 1e-9) errs[`src-${k}`] = `More than available ${money(l.amount)}.`
+    })
   })
   const srcMsg =
     showSources && a.sourceMode === 'choose' && amt > 0 && Math.abs(srcTotal - amt) > 0.009
@@ -978,9 +1137,12 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
       ? 'Enter the allocation amount'
       : mode.rollover && !(a.rollover?.planName && a.rollover?.account && a.rollover?.trustee)
         ? 'Fill in the rollover information'
-        : !mode.rollover && a.payment === 'etf' && a.bank === 'custom' && !(cb.institution && cb.holder && cb.number && cb.routing)
+        : !mode.rollover && a.payment === 'eft' && a.bank === 'custom' && !(cb.institution && cb.holder && cb.number && cb.routing)
           ? 'Fill in the custom bank details'
-          : ''
+          : customAddress && !(ad.line1 && ad.city && ad.state && ad.zip)
+            ? 'Fill in the custom address'
+            : ''
+  const [openSources, setOpenSources] = useState(() => ({ [sources[0]?.id]: true }))
   const canSave = !missing && !Object.keys(errs).length && !srcMsg
 
   const pickMode = (id) => {
@@ -1061,7 +1223,12 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
             {c.penalty > 0 && (
               <div className="wd-note">
                 <b>Early withdrawal penalty applies.</b> You are under 59½, so a {PENALTY_RATE}% early withdrawal penalty ({money(c.penalty)}) will be
-                deducted.
+                deducted. This notice is shared with you and the plan administrator.
+              </div>
+            )}
+            {c.penalty === 0 && !mode.rollover && (
+              <div className="wd-note">
+                Early withdrawal penalty does not apply to this transaction. This notice is shared with you and the plan administrator.
               </div>
             )}
 
@@ -1071,28 +1238,71 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                 <div className="period" role="radiogroup" aria-label="Payment method">
                   {[
                     ['check', 'Mail check to address'],
-                    ['etf', 'ETF']
+                    ['eft', 'EFT']
                   ].map(([id, label]) => (
                     <button key={id} type="button" role="radio" aria-checked={a.payment === id} className={a.payment === id ? 'on' : ''} onClick={() => set({ payment: id })}>
                       {label}
                     </button>
                   ))}
                 </div>
+                <ul className="detail-rows wd2-ro">
+                  <li>
+                    <span>{a.payment === 'eft' ? 'EFT fee' : 'Check fee'} (deducted from account balance)</span>
+                    <b>{money(PAYMENT_FEE)}</b>
+                  </li>
+                </ul>
                 {a.payment === 'check' ? (
-                  <ul className="detail-rows wd2-ro">
-                    <li>
-                      <span>Mailing address (as in your records)</span>
-                      <b>{ADDRESS}</b>
-                    </li>
-                  </ul>
+                  <>
+                    <FieldGroup label="Select address details">
+                      <div className="period" role="radiogroup" aria-label="Address details">
+                        {[
+                          ['records', 'As in my records'],
+                          ['custom', 'Custom']
+                        ].map(([id, label]) => (
+                          <button key={id} type="button" role="radio" aria-checked={a.addressSrc === id} className={a.addressSrc === id ? 'on' : ''} onClick={() => set({ addressSrc: id })}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </FieldGroup>
+                    {a.addressSrc === 'records' ? (
+                      <ul className="detail-rows wd2-ro">
+                        <li>
+                          <span>Mailing address (as in your records)</span>
+                          <b>{address}</b>
+                        </li>
+                      </ul>
+                    ) : (
+                      <>
+                        <div className="txn-row spaced">
+                          <Field label="Address line 1" required>
+                            <input type="text" value={ad.line1} placeholder="Enter street address" onChange={(e) => set({ address: { ...ad, line1: e.target.value } })} />
+                          </Field>
+                          <Field label="Address line 2">
+                            <input type="text" value={ad.line2} placeholder="Apartment, suite, unit (optional)" onChange={(e) => set({ address: { ...ad, line2: e.target.value } })} />
+                          </Field>
+                        </div>
+                        <div className="txn-row">
+                          <Field label="City" required>
+                            <input type="text" value={ad.city} onChange={(e) => set({ address: { ...ad, city: e.target.value } })} />
+                          </Field>
+                          <Field label="Country">
+                            <input type="text" value={ad.country} readOnly disabled />
+                          </Field>
+                        </div>
+                        <div className="txn-row">
+                          <Field label="State" required>
+                            <input type="text" value={ad.state} onChange={(e) => set({ address: { ...ad, state: e.target.value } })} />
+                          </Field>
+                          <Field label="Zip code" required note={errs.zip} noteClass="err">
+                            <input type="text" inputMode="numeric" value={ad.zip} onChange={(e) => set({ address: { ...ad, zip: e.target.value.replace(/\D/g, '').slice(0, 5) } })} />
+                          </Field>
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <>
-                    <ul className="detail-rows wd2-ro">
-                      <li>
-                        <span>ETF fee</span>
-                        <b>{money(ETF_FEE)}</b>
-                      </li>
-                    </ul>
                     <FieldGroup label="Select bank details">
                       <div className="period" role="radiogroup" aria-label="Bank details">
                         {[
@@ -1206,38 +1416,63 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                   <table className="alloc-table">
                     <thead>
                       <tr>
-                        <th scope="col">Source</th>
+                        <th scope="col">Source / Investment</th>
                         <th scope="col" className="num">Available</th>
                         <th scope="col" className="num">Gross withdrawal</th>
+                        <th scope="col" className="num">Net withdrawal</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sources.map((s) => {
-                        const total = sources.reduce((t, x) => t + x.amount, 0) || 1
+                        const lines = sourceLines(plan, s)
+                        const keep = c.gross > 0 ? c.net / c.gross : 0
+                        const srcGross = lines.reduce((t, l) => t + lineGross(a, s, l, lineTotal), 0)
+                        const open = !!openSources[s.id]
                         return (
-                          <tr key={s.id}>
-                            <td>{s.name}</td>
-                            <td className="num">{money(s.amount)}</td>
-                            <td className="num">
-                              {a.sourceMode === 'choose' ? (
-                                <span className="tf-amount-wrap">
-                                  <span className={`alloc-pct-input${errs[`src-${s.id}`] ? ' tf-bad' : ''}`}>
-                                    <i>$</i>
-                                    <input
-                                      type="text"
-                                      inputMode="decimal"
-                                      aria-label={`${s.name} gross withdrawal`}
-                                      value={a.sources[s.id] || ''}
-                                      onChange={(e) => set({ sources: { ...a.sources, [s.id]: clean(e.target.value) } })}
-                                    />
-                                  </span>
-                                  {errs[`src-${s.id}`] && <small className="tf-max over">{errs[`src-${s.id}`]}</small>}
-                                </span>
-                              ) : (
-                                money((amt * s.amount) / total)
-                              )}
-                            </td>
-                          </tr>
+                          <Fragment key={s.id}>
+                            <tr className="wd2-src-head">
+                              <td>
+                                <button type="button" className="wd2-src-toggle" aria-expanded={open} onClick={() => setOpenSources((o) => ({ ...o, [s.id]: !open }))}>
+                                  <Icon icon={faChevronDown} size={11} />
+                                  {s.name}
+                                </button>
+                              </td>
+                              <td className="num">{money(s.amount)}</td>
+                              <td className="num">{money(srcGross)}</td>
+                              <td className="num">{money(srcGross * keep)}</td>
+                            </tr>
+                            {open &&
+                              lines.map((l) => {
+                                const k = pickKey(s, l)
+                                const g = lineGross(a, s, l, lineTotal)
+                                return (
+                                  <tr key={k} className="wd2-src-line">
+                                    <td>{l.name}</td>
+                                    <td className="num">{money(l.amount)}</td>
+                                    <td className="num">
+                                      {a.sourceMode === 'choose' ? (
+                                        <span className="tf-amount-wrap">
+                                          <span className={`alloc-pct-input${errs[`src-${k}`] ? ' tf-bad' : ''}`}>
+                                            <i>$</i>
+                                            <input
+                                              type="text"
+                                              inputMode="decimal"
+                                              aria-label={`${l.name} gross withdrawal from ${s.name}`}
+                                              value={a.picks[k] || ''}
+                                              onChange={(e) => set({ picks: { ...a.picks, [k]: clean(e.target.value) } })}
+                                            />
+                                          </span>
+                                          {errs[`src-${k}`] && <small className="tf-max over">{errs[`src-${k}`]}</small>}
+                                        </span>
+                                      ) : (
+                                        money(g)
+                                      )}
+                                    </td>
+                                    <td className="num">{money(g * keep)}</td>
+                                  </tr>
+                                )
+                              })}
+                          </Fragment>
                         )
                       })}
                     </tbody>
@@ -1276,8 +1511,8 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
               )}
               {c.fee > 0 && (
                 <li>
-                  <span>ETF fee</span>
-                  <span>−{money(c.fee)}</span>
+                  <span>{feeLabel(a)} (from account balance)</span>
+                  <span>{money(c.fee)}</span>
                 </li>
               )}
               <li className="wd2-net">
@@ -1379,7 +1614,14 @@ function DocBlock({ doc, state, error, onChange }) {
           </button>
         </div>
       ) : (
-        <label className="wd2-drop">
+        <label
+          className="wd2-drop"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            pick(e.dataTransfer.files?.[0])
+          }}
+        >
           <input type="file" accept="application/pdf,.pdf" onChange={(e) => pick(e.target.files?.[0])} />
           <span>
             Drag and drop or <u>browse</u> a PDF (max {MAX_FILE_MB} MB)
