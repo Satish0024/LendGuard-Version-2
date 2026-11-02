@@ -560,10 +560,14 @@
 .wd2-table td.alloc-name-col{white-space:normal}
 .wd2-so .choice-list.wd2-modes{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .wd2-so .period{margin-bottom:var(--core-space-3)}
-.wd2-so .alloc-pct-input.wd2-affix{display:flex;width:100%;max-width:420px;min-height:var(--core-size-control-md)}
-.wd2-so .alloc-pct-input.wd2-affix input{flex:1 1 auto;width:auto;min-width:0;text-align:left;padding:var(--core-space-2) var(--core-space-3);font-size:var(--typography-body-md-size)}
-.wd2-so .alloc-pct-input.wd2-affix i:first-child{border-left:0;border-right:1px solid var(--core-color-border-control)}
-.wd2-so .alloc-pct-input.wd2-affix i:last-child:not(:first-child){border-left:1px solid var(--core-color-border-control);border-right:0}
+.txn-field .alloc-pct-input.wd2-affix,.wd2-so .alloc-pct-input.wd2-affix{display:flex;width:100%;max-width:420px;min-height:var(--core-size-control-md)}
+.txn-field .alloc-pct-input.wd2-affix input,.wd2-so .alloc-pct-input.wd2-affix input{flex:1 1 auto;width:auto;min-width:0;text-align:left;padding:var(--core-space-2) var(--core-space-3);font-size:var(--typography-body-md-size)}
+.txn-field .alloc-pct-input.wd2-affix i:first-child,.wd2-so .alloc-pct-input.wd2-affix i:first-child{border-left:0;border-right:1px solid var(--core-color-border-control)}
+.txn-field .alloc-pct-input.wd2-affix i:last-child:not(:first-child),.wd2-so .alloc-pct-input.wd2-affix i:last-child:not(:first-child){border-left:1px solid var(--core-color-border-control);border-right:0}
+.txn-field .alloc-pct-input.wd2-affix.is-disabled,.txn-field .alloc-pct-input.wd2-affix:has(input:disabled){
+  background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);box-shadow:none}
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) input{background:transparent;color:var(--semantics-disabled-text);cursor:not-allowed}
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i{background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);color:var(--semantics-disabled-text)}
 .wd2-so .txn-field .note.err{color:var(--semantics-critical-text)}
 .wd2-ro{margin:var(--core-space-2) var(--core-space-0) var(--core-space-3)}
 .wd2-src{margin-top:var(--core-space-2)}

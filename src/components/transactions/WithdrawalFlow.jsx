@@ -298,9 +298,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
     setW((cur) => ({
       type: id,
       withdrawAs: id === 'SFS' ? cur.withdrawAs : 'one',
-      // In-Service has no entire-balance control — default to partial so
-      // allocations can be any amount up to the vested balance.
-      entire: id === 'RMD' || id === 'INS' ? 'no' : 'yes',
+      entire: id === 'RMD' ? 'no' : 'yes',
       rmdAmount: id === 'RMD' ? String(r2(balance / RMD.factor)) : '',
       allocations: wasRmd !== (id === 'RMD') ? [] : cur.allocations
     }))
@@ -462,54 +460,53 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
 
         {w.type && !blocked && (
           <>
-            {!isIns && (
-              <div className="txn-row spaced">
-                <FieldGroup label="Withdraw as" note={!isSfs ? 'Periodic payment is available for Separation from Service only.' : undefined}>
-                  <div className="period" role="radiogroup" aria-label="Withdraw as">
+            <div className={isIns ? 'txn-stack spaced' : 'txn-row spaced'}>
+              <FieldGroup label="Withdraw as" note={!isSfs && !isIns ? 'Periodic payment is available for Separation from Service only.' : undefined}>
+                <div className="period" role="radiogroup" aria-label="Withdraw as">
+                  {(isIns
+                    ? [['one', 'One time payment']]
+                    : [
+                        ['one', 'One time payment'],
+                        ['periodic', 'Periodic payment']
+                      ]
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={w.withdrawAs === id}
+                      className={w.withdrawAs === id ? 'on' : ''}
+                      disabled={id === 'periodic' && !isSfs}
+                      onClick={() => setW({ withdrawAs: id, allocations: [] })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </FieldGroup>
+              {!periodic && (
+                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : `Minimum ${money(MIN_WITHDRAW)} / Maximum ${money(balance)}`} noteClass={tried && !w.entire ? 'err' : undefined}>
+                  <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
                     {[
-                      ['one', 'One time payment'],
-                      ['periodic', 'Periodic payment']
+                      ['yes', 'Yes'],
+                      ['no', 'No']
                     ].map(([id, label]) => (
                       <button
                         key={id}
                         type="button"
                         role="radio"
-                        aria-checked={w.withdrawAs === id}
-                        className={w.withdrawAs === id ? 'on' : ''}
-                        disabled={id === 'periodic' && !isSfs}
-                        onClick={() => setW({ withdrawAs: id, allocations: [] })}
+                        aria-checked={w.entire === id}
+                        className={w.entire === id ? 'on' : ''}
+                        onClick={() => setW({ entire: id })}
                       >
                         {label}
                       </button>
                     ))}
                   </div>
                 </FieldGroup>
-                {!periodic && (
-                  <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : `Minimum ${money(MIN_WITHDRAW)} / Maximum ${money(balance)}`} noteClass={tried && !w.entire ? 'err' : undefined}>
-                    <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
-                      {[
-                        ['yes', 'Yes'],
-                        ['no', 'No']
-                      ].map(([id, label]) => (
-                        <button
-                          key={id}
-                          type="button"
-                          role="radio"
-                          aria-checked={w.entire === id}
-                          className={w.entire === id ? 'on' : ''}
-                          onClick={() => setW({ entire: id })}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </FieldGroup>
-                )}
-              </div>
-            )}
-            <div className={`txn-stack${isIns ? ' spaced' : ''}`}>
+              )}
               <Field label="Overall Withdraw Fee" tooltip="Set by your plan. Deducted once from the total withdrawal.">
-                <input type="text" value={money(OVERALL_FEE)} readOnly disabled />
+                <AffixInput prefix="$" type="text" value={OVERALL_FEE.toFixed(2)} readOnly disabled />
               </Field>
             </div>
 
