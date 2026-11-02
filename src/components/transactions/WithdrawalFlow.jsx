@@ -8,6 +8,7 @@ import Field, { FieldGroup } from '../common/Field.jsx'
 import Select, { Option } from '../common/Select.jsx'
 import DatePicker from '../common/DatePicker.jsx'
 import { formatMoney, planBalance, planVested } from '../../lib/accountSummary'
+import { parsePlace, splitStreet } from '../../lib/profileDetails.js'
 import { sourcesFor, activeLoanFor, canRequest, investmentsForSource } from '../../data/transactions.js'
 
 // Participant version of the admin "New Withdrawal Request" prototype. Same
@@ -58,8 +59,20 @@ const DOCS = [
   { id: 'election', label: 'Distribution election form', types: ['INS', 'RMD', 'SFS', 'HDS', 'PW', 'FO', 'QBAD'], required: true },
   { id: 'w4r', label: 'W-4R withholding election', types: ['INS', 'RMD', 'HDS', 'PW', 'FO', 'QBAD'], required: false }
 ]
-const recordsAddress = (participant) => [participant.profile?.address, participant.profile?.city].filter(Boolean).join(', ')
 const fmtAddress = (d) => [d?.line1, d?.line2, d?.city, d?.state, d?.zip].filter(Boolean).join(', ')
+const employeeAddress = (participant) => {
+  const street = splitStreet(participant.profile?.address || '')
+  const place = parsePlace(participant.profile?.city || '')
+  return {
+    line1: street.line1 || '',
+    line2: street.line2 || '',
+    city: place.city || '',
+    country: place.country || 'USA',
+    state: place.stateName || place.state || '',
+    zip: place.zip || ''
+  }
+}
+const recordsAddress = (participant) => fmtAddress(employeeAddress(participant))
 const BANK = { institution: 'JP Morgan Chase', type: 'Checking Account', number: '••••••4521', routing: '021000021' }
 const ROLLOVER_ON_FILE = {
   rothIra: { planName: 'Fidelity Roth IRA', account: 'RIRA-55120934', trustee: 'Fidelity Management Trust' },
@@ -74,7 +87,7 @@ const HISTORY = [
   { title: 'Awaiting trade', by: 'System generated' },
   { title: 'Completed', by: 'Plan administrator' }
 ]
-const MAX_CHIPS = 3
+const MAX_CHIPS = 2
 
 const r2 = (n) => Math.round((+n || 0) * 100) / 100
 const money = (n) => formatMoney(r2(n))
@@ -182,18 +195,25 @@ export function allocCalc(a, persona, type) {
   const rollover = !!mode?.rollover
   const fedPct = rollover ? 0 : +a.fedPct || 0
   const statePct = rollover ? 0 : +a.statePct || 0
-  const penaltyFree = rollover || type === 'RMD' || type === 'QBAD' || persona.age >= PENALTY_FREE_AGE
-  const penalty = penaltyFree ? 0 : (gross * PENALTY_RATE) / 100
+  // Explicit Yes/No from the allocation form; default matches age/type rules when unset.
+  const defaultPenalty = !(rollover || type === 'RMD' || type === 'QBAD' || persona.age >= PENALTY_FREE_AGE)
+  const applyPenalty = a.penaltyApply ? a.penaltyApply === 'yes' : defaultPenalty
+  const penalty = !rollover && applyPenalty ? (gross * PENALTY_RATE) / 100 : 0
   // Check/EFT fee comes out of the account balance, not this allocation's net.
-  const fee = rollover ? 0 : PAYMENT_FEE
+  const fee = rollover ? 0 : a.paymentFee === '' || a.paymentFee == null ? PAYMENT_FEE : +a.paymentFee || 0
   const fed = (gross * fedPct) / 100
   const state = (gross * statePct) / 100
   const net = gross - fed - state - penalty
-  const codes = rollover
-    ? a.mode === 'rothIra' ? ['H', 'G'] : ['G', 'G']
+  const autoCodes = rollover
+    ? a.mode === 'rothIra'
+      ? ['H', 'G']
+      : ['G', 'G']
     : type === 'QBAD'
       ? ['2', '2']
-      : type === 'RMD' || persona.age >= PENALTY_FREE_AGE ? ['7', '7'] : ['1', '1']
+      : type === 'RMD' || persona.age >= PENALTY_FREE_AGE
+        ? ['7', '7']
+        : ['1', '1']
+  const codes = [a.rothCode || autoCodes[0], a.nonRothCode || autoCodes[1]]
   return { mode, gross, fed, state, penalty, fee, net, codes, rollover, fedPct, statePct }
 }
 // One row per investment held in a source. A source with no investment lineup
@@ -240,6 +260,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
   const [reviewTab, setReviewTab] = useState('summary')
 
   const type = TYPES.find((t) => t.id === w.type)
+  const isIns = w.type === 'INS'
   const isRmd = w.type === 'RMD'
   const isSfs = w.type === 'SFS'
   const periodic = isSfs && w.withdrawAs === 'periodic'
@@ -277,7 +298,9 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
     setW((cur) => ({
       type: id,
       withdrawAs: id === 'SFS' ? cur.withdrawAs : 'one',
-      entire: id === 'RMD' ? 'no' : 'yes',
+      // In-Service has no entire-balance control — default to partial so
+      // allocations can be any amount up to the vested balance.
+      entire: id === 'RMD' || id === 'INS' ? 'no' : 'yes',
       rmdAmount: id === 'RMD' ? String(r2(balance / RMD.factor)) : '',
       allocations: wasRmd !== (id === 'RMD') ? [] : cur.allocations
     }))
@@ -364,7 +387,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           plan={plan}
           persona={persona}
           type={w.type}
-          address={recordsAddress(participant)}
+          recordsAddr={employeeAddress(participant)}
           showSources={!periodic}
           onClose={() => setEditing(null)}
           onSave={saveAlloc}
@@ -439,48 +462,52 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
 
         {w.type && !blocked && (
           <>
-            <div className="txn-row spaced">
-              <FieldGroup label="Withdraw as" note={!isSfs ? 'Periodic payment is available for Separation from Service only.' : undefined}>
-                <div className="period" role="radiogroup" aria-label="Withdraw as">
-                  {[
-                    ['one', 'One time payment'],
-                    ['periodic', 'Periodic payment']
-                  ].map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="radio"
-                      aria-checked={w.withdrawAs === id}
-                      className={w.withdrawAs === id ? 'on' : ''}
-                      disabled={id === 'periodic' && !isSfs}
-                      onClick={() => setW({ withdrawAs: id, allocations: [] })}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </FieldGroup>
-              {!periodic && (
-                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : `Minimum ${money(MIN_WITHDRAW)} / Maximum ${money(balance)}`} noteClass={tried && !w.entire ? 'err' : undefined}>
-                  <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
+            {!isIns && (
+              <div className="txn-row spaced">
+                <FieldGroup label="Withdraw as" note={!isSfs ? 'Periodic payment is available for Separation from Service only.' : undefined}>
+                  <div className="period" role="radiogroup" aria-label="Withdraw as">
                     {[
-                      ['yes', 'Yes'],
-                      ['no', 'No']
+                      ['one', 'One time payment'],
+                      ['periodic', 'Periodic payment']
                     ].map(([id, label]) => (
                       <button
                         key={id}
                         type="button"
                         role="radio"
-                        aria-checked={w.entire === id}
-                        className={w.entire === id ? 'on' : ''}
-                        onClick={() => setW({ entire: id })}
+                        aria-checked={w.withdrawAs === id}
+                        className={w.withdrawAs === id ? 'on' : ''}
+                        disabled={id === 'periodic' && !isSfs}
+                        onClick={() => setW({ withdrawAs: id, allocations: [] })}
                       >
                         {label}
                       </button>
                     ))}
                   </div>
                 </FieldGroup>
-              )}
+                {!periodic && (
+                  <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : `Minimum ${money(MIN_WITHDRAW)} / Maximum ${money(balance)}`} noteClass={tried && !w.entire ? 'err' : undefined}>
+                    <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
+                      {[
+                        ['yes', 'Yes'],
+                        ['no', 'No']
+                      ].map(([id, label]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          role="radio"
+                          aria-checked={w.entire === id}
+                          className={w.entire === id ? 'on' : ''}
+                          onClick={() => setW({ entire: id })}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </FieldGroup>
+                )}
+              </div>
+            )}
+            <div className={`txn-stack${isIns ? ' spaced' : ''}`}>
               <Field label="Overall Withdraw Fee" tooltip="Set by your plan. Deducted once from the total withdrawal.">
                 <input type="text" value={money(OVERALL_FEE)} readOnly disabled />
               </Field>
@@ -848,41 +875,54 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             Edit
           </button>
         </div>
-        <p className="wd2-tags">
-          <span className="badge navy">{type?.display}</span>
-          <span className="badge navy">{periodic ? 'Periodic payment' : 'One time payment'}</span>
-          {!periodic && <span className="badge navy">Withdraw entire balance: {w.entire === 'yes' ? 'Yes' : 'No'}</span>}
-        </p>
-        <p className="wd2-requested">
-          <span>Requested Amount</span>
-          <b>{money(gross)}</b>
-        </p>
-        <ul className="detail-rows">
-          <li>
-            <span>Gross withdrawal amount</span>
-            <b>{money(gross)}</b>
-          </li>
-          <li className="wd2-ded">
-            <details>
-              <summary>
-                <span>Fee &amp; Tax details</span>
-                <b>−{money(totalDed)}</b>
-              </summary>
-              <ul>
-                {deductions.map(([k, v]) => (
-                  <li key={k}>
-                    <span>{k}</span>
-                    <span>−{money(v)}</span>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </li>
-          <li className="wd2-net">
-            <span>Net withdrawal amount</span>
-            <b>{money(gross - totalDed)}</b>
-          </li>
-        </ul>
+        <div className="wd2-details-split">
+          <ul className="detail-rows wd2-details-col">
+            <li>
+              <span>Requested Amount</span>
+              <b>{money(gross)}</b>
+            </li>
+            <li>
+              <span>Withdrawal type</span>
+              <b>{type?.display || '—'}</b>
+            </li>
+            <li>
+              <span>Withdrawal as</span>
+              <b>{periodic ? 'Periodic payment' : 'One time payment'}</b>
+            </li>
+            {!periodic && (
+              <li>
+                <span>Withdrawal entire balance</span>
+                <b>{w.entire === 'yes' ? 'Yes' : 'No'}</b>
+              </li>
+            )}
+          </ul>
+          <ul className="detail-rows wd2-details-col">
+            <li>
+              <span>Gross withdrawal amount</span>
+              <b>{money(gross)}</b>
+            </li>
+            <li className="wd2-ded">
+              <details>
+                <summary>
+                  <span>Fee &amp; Tax details</span>
+                  <b>−{money(totalDed)}</b>
+                </summary>
+                <ul>
+                  {deductions.map(([k, v]) => (
+                    <li key={k}>
+                      <span>{k}</span>
+                      <span>−{money(v)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+            <li className="wd2-net">
+              <span>Net withdrawal amount</span>
+              <b>{money(gross - totalDed)}</b>
+            </li>
+          </ul>
+        </div>
         {isRmd && (
           <p className="hint">
             RMD {RMD.year}: required minimum {money(rmdMin)} · withdrawing {money(rmdPartial ? rmdAmt : balance)}
@@ -1039,6 +1079,16 @@ function paymentLine(a, c, plan) {
   return `EFT · ${a.bank === 'custom' ? a.customBank?.institution || 'New bank' : 'Bank on file'}`
 }
 const feeLabel = (a) => (a.payment === 'eft' ? 'EFT fee' : 'Check fee')
+// Money / percent control that accepts Field's cloned id/required onto the real input.
+function AffixInput({ id, required, prefix, suffix, disabled, ...rest }) {
+  return (
+    <span className={`alloc-pct-input wd2-affix${disabled ? ' is-disabled' : ''}`}>
+      {prefix != null && <i aria-hidden="true">{prefix}</i>}
+      <input id={id} required={required} disabled={disabled} {...rest} />
+      {suffix != null && <i aria-hidden="true">{suffix}</i>}
+    </span>
+  )
+}
 function addressCell(a, c, onFile) {
   const custom = !c.rollover && a.payment === 'check' && a.addressSrc === 'custom'
   const text = c.rollover ? a.rollover?.trustee : custom ? fmtAddress(a.address) : onFile
@@ -1068,7 +1118,7 @@ function SourceSummaryRow({ source }) {
           </span>
         ))}
         {extra > 0 && (
-          <button type="button" className="text-link" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <button type="button" className="wd2-more" aria-expanded={open} onClick={() => setOpen(!open)}>
             {open ? 'Show less' : `+${extra} more`}
           </button>
         )}
@@ -1078,15 +1128,19 @@ function SourceSummaryRow({ source }) {
 }
 
 // ---------- allocation slide-out ----------
-function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, address, showSources, onClose, onSave }) {
+function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, recordsAddr, showSources, onClose, onSave }) {
   const [a, setA] = useState(
     () =>
       initial || {
         mode: '',
-        amount: '',
-        fedPct: '20',
-        statePct: '0',
+        amount: '0.00',
+        fedPct: '0.00',
+        statePct: '0.00',
+        rothCode: '',
+        nonRothCode: '',
+        penaltyApply: 'no',
         payment: 'check',
+        paymentFee: '0.00',
         addressSrc: 'records',
         address: { line1: '', line2: '', city: '', country: 'USA', state: '', zip: '' },
         bank: 'records',
@@ -1110,9 +1164,12 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   if (mode?.rollover && a.rollover?.account && !/^[A-Za-z0-9-]{5,20}$/.test(a.rollover.account)) errs.account = 'Account / IRA no must be 5 to 20 letters, numbers or dashes.'
   const cb = a.customBank
   const ad = a.address
-  const customAddress = !mode?.rollover && a.payment === 'check' && a.addressSrc === 'custom'
+  const fromRecords = a.addressSrc === 'records'
+  const recordAddr = recordsAddr || {}
+  const isRollover = !!mode?.rollover
+  const customAddress = !isRollover && a.payment === 'check' && a.addressSrc === 'custom'
   if (customAddress && ad.zip && !/^\d{5}$/.test(ad.zip)) errs.zip = 'Zip code must be 5 digits.'
-  if (!mode?.rollover && a.payment === 'eft' && a.bank === 'custom') {
+  if (!isRollover && a.payment === 'eft' && a.bank === 'custom') {
     if (cb.number && !/^\d{4,17}$/.test(cb.number)) errs.number = 'Account number must be 4 to 17 digits.'
     if (cb.routing && !/^\d{9}$/.test(cb.routing)) errs.routing = 'ABA routing number must be 9 digits.'
     if (cb.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cb.email)) errs.email = 'Enter a valid email ID, e.g. name@company.com.'
@@ -1135,15 +1192,16 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
     ? 'Select the distribution mode'
     : !(amt > 0)
       ? 'Enter the allocation amount'
-      : mode.rollover && !(a.rollover?.planName && a.rollover?.account && a.rollover?.trustee)
+      : isRollover && !(a.rollover?.planName && a.rollover?.account && a.rollover?.trustee)
         ? 'Fill in the rollover information'
-        : !mode.rollover && a.payment === 'eft' && a.bank === 'custom' && !(cb.institution && cb.holder && cb.number && cb.routing)
+        : !isRollover && a.payment === 'eft' && a.bank === 'custom' && !(cb.institution && cb.holder && cb.number && cb.routing)
           ? 'Fill in the custom bank details'
           : customAddress && !(ad.line1 && ad.city && ad.state && ad.zip)
             ? 'Fill in the custom address'
             : ''
   const [openSources, setOpenSources] = useState(() => ({ [sources[0]?.id]: true }))
   const canSave = !missing && !Object.keys(errs).length && !srcMsg
+  const codeOptions = Object.entries(CODES_1099)
 
   const pickMode = (id) => {
     const m = MODES.find((x) => x.id === id)
@@ -1169,274 +1227,321 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
     >
       <div className="wd2-so">
         <h4 className="wd2-sub">Distribution</h4>
-        <FieldGroup label="Select distribution mode" required>
-          <div className="choice-list wd2-modes" role="radiogroup">
-            {MODES.map((m) => {
-              const off = type === 'RMD' && m.rollover
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={a.mode === m.id}
-                  className={`choice${a.mode === m.id ? ' on' : ''}`}
-                  disabled={off}
-                  onClick={() => pickMode(m.id)}
-                >
-                  <span className="choice-dot" aria-hidden="true" />
-                  <span>
-                    <b>{m.label}</b>
-                    <small>{off ? "RMD amounts can't be rolled over" : `Available ${money(Math.min(max, balance * m.ratio))}${m.excludes ? ` (excludes ${m.excludes} balance)` : ''}`}</small>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </FieldGroup>
-        <div className="txn-row spaced">
-          <Field label="Allocation amount" required note={errs.amount || (mode ? `Maximum amount available for ${mode.rollover ? 'rollover' : 'withdrawal'} ${money(modeMax)}` : undefined)} noteClass={errs.amount ? 'err' : undefined}>
-            <input type="text" inputMode="decimal" value={a.amount} disabled={!a.mode} placeholder="0.00" onChange={(e) => set({ amount: clean(e.target.value) })} />
+        <div className="txn-stack">
+          <Field label="Select distribution mode" required>
+            <Select
+              value={a.mode}
+              onChange={(e) => {
+                const id = e.target.value
+                if (id) pickMode(id)
+                else set({ mode: '', rollover: null })
+              }}
+              placeholder="Select the distribution mode"
+            >
+              {MODES.map((m) => {
+                const off = type === 'RMD' && m.rollover
+                return (
+                  <Option key={m.id} value={m.id} disabled={off}>
+                    {off ? `${m.label} (not available for RMD)` : m.label}
+                  </Option>
+                )
+              })}
+            </Select>
+          </Field>
+          <Field
+            label="Allocation amount"
+            required
+            note={errs.amount || `Maximum amount available for withdrawal ${money(modeMax)}`}
+            noteClass={errs.amount ? 'err' : undefined}
+          >
+            <AffixInput prefix="$" type="text" inputMode="decimal" value={a.amount} placeholder="0.00" onChange={(e) => set({ amount: clean(e.target.value) })} />
           </Field>
         </div>
 
-        {mode && (
+        <h4 className="wd2-sub">Tax &amp; Penalty</h4>
+        <div className="txn-row">
+          <Field label="Select Roth 1099 Code">
+            <Select value={a.rothCode} onChange={(e) => set({ rothCode: e.target.value })} placeholder="Select Roth 1099">
+              {codeOptions.map(([id, label]) => (
+                <Option key={id} value={id}>
+                  {id} - {label}
+                </Option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Select Non Roth 1099 Code">
+            <Select value={a.nonRothCode} onChange={(e) => set({ nonRothCode: e.target.value })} placeholder="Select Non Roth 1099">
+              {codeOptions.map(([id, label]) => (
+                <Option key={id} value={id}>
+                  {id} - {label}
+                </Option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <div className="txn-row">
+          <Field
+            label="Federal tax"
+            tooltip="Federal tax withholding percentage applied to this allocation."
+            note={errs.tax || `${money(c.fed)} tax deduction`}
+            noteClass={errs.tax ? 'err' : undefined}
+          >
+            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.fedPct} placeholder="0.00" onChange={(e) => set({ fedPct: clean(e.target.value) })} />
+          </Field>
+          <Field label="State tax" tooltip="State tax withholding percentage applied to this allocation." note={`${money(c.state)} tax deduction`}>
+            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.statePct} placeholder="0.00" onChange={(e) => set({ statePct: clean(e.target.value) })} />
+          </Field>
+        </div>
+        <FieldGroup label="Early withdraw penalty">
+          <div className="period" role="radiogroup" aria-label="Early withdraw penalty">
+            {[
+              ['yes', 'Yes'],
+              ['no', 'No']
+            ].map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={a.penaltyApply === id} className={a.penaltyApply === id ? 'on' : ''} onClick={() => set({ penaltyApply: id })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </FieldGroup>
+
+        {isRollover ? (
           <>
-            <h4 className="wd2-sub">Tax &amp; Penalty</h4>
+            <h4 className="wd2-sub">Rollover Information</h4>
+            <p className="hint">Pre-filled with the rollover account on file. Update it if it has changed.</p>
             <div className="txn-row">
-              <Field label="1099 code (Roth)">
-                <input type="text" value={`${c.codes[0]} - ${CODES_1099[c.codes[0]]}`} readOnly disabled />
+              <Field label="Plan name" required>
+                <input type="text" value={a.rollover?.planName || ''} onChange={(e) => set({ rollover: { ...a.rollover, planName: e.target.value } })} />
               </Field>
-              <Field label="1099 code (Non Roth)">
-                <input type="text" value={`${c.codes[1]} - ${CODES_1099[c.codes[1]]}`} readOnly disabled />
+              <Field label="Account / IRA no" required note={errs.account} noteClass="err">
+                <input type="text" value={a.rollover?.account || ''} onChange={(e) => set({ rollover: { ...a.rollover, account: e.target.value } })} />
+              </Field>
+              <Field label="Company / Trustee name" required>
+                <input type="text" value={a.rollover?.trustee || ''} onChange={(e) => set({ rollover: { ...a.rollover, trustee: e.target.value } })} />
               </Field>
             </div>
-            {!mode.rollover && (
-              <div className="txn-row">
-                <Field label="Federal tax withholding (%)" note={errs.tax || `${money(c.fed)} tax deduction`} noteClass={errs.tax ? 'err' : undefined}>
-                  <input type="text" inputMode="decimal" value={a.fedPct} onChange={(e) => set({ fedPct: clean(e.target.value) })} />
-                </Field>
-                <Field label="State tax withholding (%)" note={`${money(c.state)} tax deduction`}>
-                  <input type="text" inputMode="decimal" value={a.statePct} onChange={(e) => set({ statePct: clean(e.target.value) })} />
-                </Field>
+            <FieldGroup label="Rollover delivery">
+              <div className="period" role="radiogroup" aria-label="Rollover delivery">
+                {[
+                  ['check', 'Check mailed to trustee'],
+                  ['wire', 'Wire transfer']
+                ].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={a.delivery === id} className={a.delivery === id ? 'on' : ''} onClick={() => set({ delivery: id })}>
+                    {label}
+                  </button>
+                ))}
               </div>
-            )}
-            {c.penalty > 0 && (
-              <div className="wd-note">
-                <b>Early withdrawal penalty applies.</b> You are under 59½, so a {PENALTY_RATE}% early withdrawal penalty ({money(c.penalty)}) will be
-                deducted. This notice is shared with you and the plan administrator.
+            </FieldGroup>
+          </>
+        ) : (
+          <>
+            <h4 className="wd2-sub">Payment Method</h4>
+            <FieldGroup label="Choose payment method">
+              <div className="period" role="radiogroup" aria-label="Payment method">
+                {[
+                  ['check', 'Mail check to address'],
+                  ['eft', 'EFT']
+                ].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={a.payment === id} className={a.payment === id ? 'on' : ''} onClick={() => set({ payment: id })}>
+                    {label}
+                  </button>
+                ))}
               </div>
-            )}
-            {c.penalty === 0 && !mode.rollover && (
-              <div className="wd-note">
-                Early withdrawal penalty does not apply to this transaction. This notice is shared with you and the plan administrator.
-              </div>
-            )}
-
-            {!mode.rollover ? (
+            </FieldGroup>
+            <div className="txn-stack">
+              <Field label="EFT Fee" tooltip="Payment fee deducted from the account balance.">
+                <AffixInput prefix="$" type="text" inputMode="decimal" value={a.paymentFee} placeholder="0.00" onChange={(e) => set({ paymentFee: clean(e.target.value) })} />
+              </Field>
+            </div>
+            {a.payment === 'check' ? (
               <>
-                <h4 className="wd2-sub">Payment method</h4>
-                <div className="period" role="radiogroup" aria-label="Payment method">
-                  {[
-                    ['check', 'Mail check to address'],
-                    ['eft', 'EFT']
-                  ].map(([id, label]) => (
-                    <button key={id} type="button" role="radio" aria-checked={a.payment === id} className={a.payment === id ? 'on' : ''} onClick={() => set({ payment: id })}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <ul className="detail-rows wd2-ro">
-                  <li>
-                    <span>{a.payment === 'eft' ? 'EFT fee' : 'Check fee'} (deducted from account balance)</span>
-                    <b>{money(PAYMENT_FEE)}</b>
-                  </li>
-                </ul>
-                {a.payment === 'check' ? (
-                  <>
-                    <FieldGroup label="Select address details">
-                      <div className="period" role="radiogroup" aria-label="Address details">
-                        {[
-                          ['records', 'As in my records'],
-                          ['custom', 'Custom']
-                        ].map(([id, label]) => (
-                          <button key={id} type="button" role="radio" aria-checked={a.addressSrc === id} className={a.addressSrc === id ? 'on' : ''} onClick={() => set({ addressSrc: id })}>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </FieldGroup>
-                    {a.addressSrc === 'records' ? (
-                      <ul className="detail-rows wd2-ro">
-                        <li>
-                          <span>Mailing address (as in your records)</span>
-                          <b>{address}</b>
-                        </li>
-                      </ul>
-                    ) : (
-                      <>
-                        <div className="txn-row spaced">
-                          <Field label="Address line 1" required>
-                            <input type="text" value={ad.line1} placeholder="Enter street address" onChange={(e) => set({ address: { ...ad, line1: e.target.value } })} />
-                          </Field>
-                          <Field label="Address line 2">
-                            <input type="text" value={ad.line2} placeholder="Apartment, suite, unit (optional)" onChange={(e) => set({ address: { ...ad, line2: e.target.value } })} />
-                          </Field>
-                        </div>
-                        <div className="txn-row">
-                          <Field label="City" required>
-                            <input type="text" value={ad.city} onChange={(e) => set({ address: { ...ad, city: e.target.value } })} />
-                          </Field>
-                          <Field label="Country">
-                            <input type="text" value={ad.country} readOnly disabled />
-                          </Field>
-                        </div>
-                        <div className="txn-row">
-                          <Field label="State" required>
-                            <input type="text" value={ad.state} onChange={(e) => set({ address: { ...ad, state: e.target.value } })} />
-                          </Field>
-                          <Field label="Zip code" required note={errs.zip} noteClass="err">
-                            <input type="text" inputMode="numeric" value={ad.zip} onChange={(e) => set({ address: { ...ad, zip: e.target.value.replace(/\D/g, '').slice(0, 5) } })} />
-                          </Field>
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <FieldGroup label="Select bank details">
-                      <div className="period" role="radiogroup" aria-label="Bank details">
-                        {[
-                          ['records', 'As in my records'],
-                          ['custom', 'Custom']
-                        ].map(([id, label]) => (
-                          <button key={id} type="button" role="radio" aria-checked={a.bank === id} className={a.bank === id ? 'on' : ''} onClick={() => set({ bank: id })}>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </FieldGroup>
-                    {a.bank === 'records' ? (
-                      <ul className="detail-rows wd2-ro">
-                        <li>
-                          <span>Bank</span>
-                          <b>{BANK.institution}</b>
-                        </li>
-                        <li>
-                          <span>Account</span>
-                          <b>
-                            {BANK.type} {BANK.number}
-                          </b>
-                        </li>
-                        <li>
-                          <span>Routing number</span>
-                          <b>{BANK.routing}</b>
-                        </li>
-                      </ul>
-                    ) : (
-                      <>
-                        <div className="txn-row spaced">
-                          <Field label="Financial institution" required>
-                            <input type="text" value={cb.institution} onChange={(e) => set({ customBank: { ...cb, institution: e.target.value } })} />
-                          </Field>
-                          <Field label="Account holder name" required>
-                            <input type="text" value={cb.holder} onChange={(e) => set({ customBank: { ...cb, holder: e.target.value } })} />
-                          </Field>
-                        </div>
-                        <div className="txn-row">
-                          <Field label="Account type" required>
-                            <Select value={cb.type} onChange={(e) => set({ customBank: { ...cb, type: e.target.value } })}>
-                              <Option value="Savings Account">Savings Account</Option>
-                              <Option value="Checking Account">Checking Account</Option>
-                            </Select>
-                          </Field>
-                          <Field label="Account number" required note={errs.number} noteClass="err">
-                            <input type="text" inputMode="numeric" value={cb.number} onChange={(e) => set({ customBank: { ...cb, number: e.target.value.replace(/\D/g, '').slice(0, 17) } })} />
-                          </Field>
-                          <Field label="ABA routing number" required note={errs.routing} noteClass="err">
-                            <input type="text" inputMode="numeric" value={cb.routing} onChange={(e) => set({ customBank: { ...cb, routing: e.target.value.replace(/\D/g, '').slice(0, 9) } })} />
-                          </Field>
-                        </div>
-                        <div className="txn-row">
-                          <Field label="Email ID" note={errs.email} noteClass="err">
-                            <input type="email" value={cb.email} onChange={(e) => set({ customBank: { ...cb, email: e.target.value } })} />
-                          </Field>
-                          <Field label="Mobile No">
-                            <input type="tel" value={cb.phone} onChange={(e) => set({ customBank: { ...cb, phone: e.target.value.replace(/[^\d+ -]/g, '') } })} />
-                          </Field>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                <h4 className="wd2-sub">Rollover Information</h4>
-                <p className="hint">Pre-filled with the rollover account on file. Update it if it has changed.</p>
-                <div className="txn-row">
-                  <Field label="Plan name" required>
-                    <input type="text" value={a.rollover?.planName || ''} onChange={(e) => set({ rollover: { ...a.rollover, planName: e.target.value } })} />
-                  </Field>
-                  <Field label="Account / IRA no" required note={errs.account} noteClass="err">
-                    <input type="text" value={a.rollover?.account || ''} onChange={(e) => set({ rollover: { ...a.rollover, account: e.target.value } })} />
-                  </Field>
-                  <Field label="Company / Trustee name" required>
-                    <input type="text" value={a.rollover?.trustee || ''} onChange={(e) => set({ rollover: { ...a.rollover, trustee: e.target.value } })} />
-                  </Field>
-                </div>
-                <FieldGroup label="Rollover delivery">
-                  <div className="period" role="radiogroup" aria-label="Rollover delivery">
+                <FieldGroup label="Select address details">
+                  <div className="period" role="radiogroup" aria-label="Address details">
                     {[
-                      ['check', 'Check mailed to trustee'],
-                      ['wire', 'Wire transfer']
+                      ['records', 'As in employee records'],
+                      ['custom', 'Custom']
                     ].map(([id, label]) => (
-                      <button key={id} type="button" role="radio" aria-checked={a.delivery === id} className={a.delivery === id ? 'on' : ''} onClick={() => set({ delivery: id })}>
+                      <button key={id} type="button" role="radio" aria-checked={a.addressSrc === id} className={a.addressSrc === id ? 'on' : ''} onClick={() => set({ addressSrc: id })}>
                         {label}
                       </button>
                     ))}
                   </div>
                 </FieldGroup>
+                <>
+                  <h4 className="wd2-sub">{fromRecords ? 'Address Details (From Employee Records)' : 'Address Details'}</h4>
+                  <div className="txn-row spaced">
+                    <Field label="Address line 1" required={!fromRecords}>
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.line1 || '' : ad.line1}
+                        placeholder="Enter street address"
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, line1: e.target.value } })}
+                      />
+                    </Field>
+                    <Field label="Address line 2">
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.line2 || '' : ad.line2}
+                        placeholder={fromRecords ? '' : 'Apartment, suite, unit (optional)'}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, line2: e.target.value } })}
+                      />
+                    </Field>
+                  </div>
+                  <div className="txn-row">
+                    <Field label="City" required={!fromRecords}>
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.city || '' : ad.city}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, city: e.target.value } })}
+                      />
+                    </Field>
+                    <Field label="Country">
+                      <input
+                        type="text"
+                        value={(fromRecords ? recordAddr.country : ad.country) || 'USA'}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, country: e.target.value } })}
+                      />
+                    </Field>
+                  </div>
+                  <div className="txn-row">
+                    <Field label="State" required={!fromRecords}>
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.state || '' : ad.state}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, state: e.target.value } })}
+                      />
+                    </Field>
+                    <Field label="Zip code" required={!fromRecords} note={!fromRecords ? errs.zip : undefined} noteClass="err">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={fromRecords ? recordAddr.zip || '' : ad.zip}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, zip: e.target.value.replace(/\D/g, '').slice(0, 5) } })}
+                      />
+                    </Field>
+                  </div>
+                </>
+              </>
+            ) : (
+              <>
+                <FieldGroup label="Select bank details">
+                  <div className="period" role="radiogroup" aria-label="Bank details">
+                    {[
+                      ['records', 'As in employee records'],
+                      ['custom', 'Custom']
+                    ].map(([id, label]) => (
+                      <button key={id} type="button" role="radio" aria-checked={a.bank === id} className={a.bank === id ? 'on' : ''} onClick={() => set({ bank: id })}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </FieldGroup>
+                {a.bank === 'records' ? (
+                  <ul className="detail-rows wd2-ro">
+                    <li>
+                      <span>Bank</span>
+                      <b>{BANK.institution}</b>
+                    </li>
+                    <li>
+                      <span>Account</span>
+                      <b>
+                        {BANK.type} {BANK.number}
+                      </b>
+                    </li>
+                    <li>
+                      <span>Routing number</span>
+                      <b>{BANK.routing}</b>
+                    </li>
+                  </ul>
+                ) : (
+                  <>
+                    <div className="txn-row spaced">
+                      <Field label="Financial institution" required>
+                        <input type="text" value={cb.institution} onChange={(e) => set({ customBank: { ...cb, institution: e.target.value } })} />
+                      </Field>
+                      <Field label="Account holder name" required>
+                        <input type="text" value={cb.holder} onChange={(e) => set({ customBank: { ...cb, holder: e.target.value } })} />
+                      </Field>
+                    </div>
+                    <div className="txn-row">
+                      <Field label="Account type" required>
+                        <Select value={cb.type} onChange={(e) => set({ customBank: { ...cb, type: e.target.value } })}>
+                          <Option value="Savings Account">Savings Account</Option>
+                          <Option value="Checking Account">Checking Account</Option>
+                        </Select>
+                      </Field>
+                      <Field label="Account number" required note={errs.number} noteClass="err">
+                        <input type="text" inputMode="numeric" value={cb.number} onChange={(e) => set({ customBank: { ...cb, number: e.target.value.replace(/\D/g, '').slice(0, 17) } })} />
+                      </Field>
+                      <Field label="ABA routing number" required note={errs.routing} noteClass="err">
+                        <input type="text" inputMode="numeric" value={cb.routing} onChange={(e) => set({ customBank: { ...cb, routing: e.target.value.replace(/\D/g, '').slice(0, 9) } })} />
+                      </Field>
+                    </div>
+                    <div className="txn-row">
+                      <Field label="Email ID" note={errs.email} noteClass="err">
+                        <input type="email" value={cb.email} onChange={(e) => set({ customBank: { ...cb, email: e.target.value } })} />
+                      </Field>
+                      <Field label="Mobile No">
+                        <input type="tel" value={cb.phone} onChange={(e) => set({ customBank: { ...cb, phone: e.target.value.replace(/[^\d+ -]/g, '') } })} />
+                      </Field>
+                    </div>
+                  </>
+                )}
               </>
             )}
+          </>
+        )}
 
-            {showSources && (
-              <>
-                <h4 className="wd2-sub">Source details</h4>
-                <div className="period" role="radiogroup" aria-label="Source selection">
-                  {[
-                    ['prorata', 'Pro-Rata'],
-                    ['choose', 'Allow me to choose']
-                  ].map(([id, label]) => (
-                    <button key={id} type="button" role="radio" aria-checked={a.sourceMode === id} className={a.sourceMode === id ? 'on' : ''} onClick={() => set({ sourceMode: id })}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="table-wrap wd2-src">
-                  <table className="alloc-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Source / Investment</th>
-                        <th scope="col" className="num">Available</th>
-                        <th scope="col" className="num">Gross withdrawal</th>
-                        <th scope="col" className="num">Net withdrawal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sources.map((s) => {
-                        const lines = sourceLines(plan, s)
-                        const keep = c.gross > 0 ? c.net / c.gross : 0
-                        const srcGross = lines.reduce((t, l) => t + lineGross(a, s, l, lineTotal), 0)
-                        const open = !!openSources[s.id]
-                        return (
-                          <Fragment key={s.id}>
-                            <tr className="wd2-src-head">
-                              <td>
-                                <button type="button" className="wd2-src-toggle" aria-expanded={open} onClick={() => setOpenSources((o) => ({ ...o, [s.id]: !open }))}>
-                                  <Icon icon={faChevronDown} size={11} />
-                                  {s.name}
-                                </button>
-                              </td>
+        {showSources && (
+          <>
+            <h4 className="wd2-sub">Source details</h4>
+            <div className="period" role="radiogroup" aria-label="Source selection">
+              {[
+                ['prorata', 'Pro-Rata'],
+                ['choose', 'Allow me to choose']
+              ].map(([id, label]) => (
+                <button key={id} type="button" role="radio" aria-checked={a.sourceMode === id} className={a.sourceMode === id ? 'on' : ''} onClick={() => set({ sourceMode: id })}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="table-wrap wd2-src">
+              <table className="alloc-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Source / Investment</th>
+                    <th scope="col" className="num">Available</th>
+                    <th scope="col" className="num">Gross withdrawal</th>
+                    <th scope="col" className="num">Net withdrawal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sources.map((s) => {
+                    const lines = sourceLines(plan, s)
+                    const keep = c.gross > 0 ? c.net / c.gross : 0
+                    const srcGross = lines.reduce((t, l) => t + lineGross(a, s, l, lineTotal), 0)
+                    const open = !!openSources[s.id]
+                    return (
+                      <Fragment key={s.id}>
+                        <tr className="wd2-src-head">
+                          <td>
+                            <button type="button" className="wd2-src-toggle" aria-expanded={open} onClick={() => setOpenSources((o) => ({ ...o, [s.id]: !open }))}>
+                              <Icon icon={faChevronDown} size={11} />
+                              {s.name}
+                            </button>
+                          </td>
                               <td className="num">{money(s.amount)}</td>
                               <td className="num">{money(srcGross)}</td>
                               <td className="num">{money(srcGross * keep)}</td>
@@ -1486,46 +1591,44 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
               </>
             )}
 
-            <ul className="detail-rows wd2-calc">
-              <li>
-                <span>Gross</span>
-                <b>{money(c.gross)}</b>
-              </li>
-              {c.fed > 0 && (
-                <li>
-                  <span>Federal tax</span>
-                  <span>−{money(c.fed)}</span>
-                </li>
-              )}
-              {c.state > 0 && (
-                <li>
-                  <span>State tax</span>
-                  <span>−{money(c.state)}</span>
-                </li>
-              )}
-              {c.penalty > 0 && (
-                <li>
-                  <span>Early withdrawal penalty</span>
-                  <span>−{money(c.penalty)}</span>
-                </li>
-              )}
-              {c.fee > 0 && (
-                <li>
-                  <span>{feeLabel(a)} (from account balance)</span>
-                  <span>{money(c.fee)}</span>
-                </li>
-              )}
-              <li className="wd2-net">
-                <span>Net Withdrawal amount</span>
-                <b>{money(c.net)}</b>
-              </li>
-            </ul>
-            {errs.net && (
-              <p className="alloc-warn">
-                <Icon icon={faExclamationTriangle} size={12} /> {errs.net}
-              </p>
-            )}
-          </>
+        <ul className="detail-rows wd2-calc">
+          <li>
+            <span>Gross</span>
+            <b>{money(c.gross)}</b>
+          </li>
+          {c.fed > 0 && (
+            <li>
+              <span>Federal tax</span>
+              <span>−{money(c.fed)}</span>
+            </li>
+          )}
+          {c.state > 0 && (
+            <li>
+              <span>State tax</span>
+              <span>−{money(c.state)}</span>
+            </li>
+          )}
+          {c.penalty > 0 && (
+            <li>
+              <span>Early withdrawal penalty</span>
+              <span>−{money(c.penalty)}</span>
+            </li>
+          )}
+          {c.fee > 0 && (
+            <li>
+              <span>{feeLabel(a)} (from account balance)</span>
+              <span>{money(c.fee)}</span>
+            </li>
+          )}
+          <li className="wd2-net">
+            <span>Net Withdrawal amount</span>
+            <b>{money(c.net)}</b>
+          </li>
+        </ul>
+        {errs.net && (
+          <p className="alloc-warn">
+            <Icon icon={faExclamationTriangle} size={12} /> {errs.net}
+          </p>
         )}
         {missing && (
           <p className="hint wd2-missing">
