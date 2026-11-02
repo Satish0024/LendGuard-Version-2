@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../common/Field.jsx'
@@ -9,6 +9,7 @@ import Select, { Option } from '../common/Select.jsx'
 import DatePicker from '../common/DatePicker.jsx'
 import { formatMoney, planBalance, planVested } from '../../lib/accountSummary'
 import { parsePlace, splitStreet } from '../../lib/profileDetails.js'
+import { downloadDocumentFile } from '../../lib/downloadDocument.js'
 import { sourcesFor, activeLoanFor, canRequest, investmentsForSource } from '../../data/transactions.js'
 
 // Participant version of the admin "New Withdrawal Request" prototype. Same
@@ -73,7 +74,7 @@ const employeeAddress = (participant) => {
   }
 }
 const recordsAddress = (participant) => fmtAddress(employeeAddress(participant))
-const BANK = { institution: 'JP Morgan Chase', type: 'Checking Account', number: '••••••4521', routing: '021000021' }
+const BANK = { institution: 'JP Morgan Chase', holder: 'Jordan Hale', type: 'Checking Account', number: '••••••4521', routing: '021000021' }
 const ROLLOVER_ON_FILE = {
   rothIra: { planName: 'Fidelity Roth IRA', account: 'RIRA-55120934', trustee: 'Fidelity Management Trust' },
   tradIra: { planName: 'Fidelity Traditional IRA', account: 'TIRA-55120771', trustee: 'Fidelity Management Trust' },
@@ -199,8 +200,8 @@ export function allocCalc(a, persona, type) {
   const defaultPenalty = !(rollover || type === 'RMD' || type === 'QBAD' || persona.age >= PENALTY_FREE_AGE)
   const applyPenalty = a.penaltyApply ? a.penaltyApply === 'yes' : defaultPenalty
   const penalty = !rollover && applyPenalty ? (gross * PENALTY_RATE) / 100 : 0
-  // Check/EFT fee comes out of the account balance, not this allocation's net.
-  const fee = rollover ? 0 : a.paymentFee === '' || a.paymentFee == null ? PAYMENT_FEE : +a.paymentFee || 0
+  // Check/EFT fee is plan-set and read-only for participants; comes out of account balance.
+  const fee = rollover ? 0 : PAYMENT_FEE
   const fed = (gross * fedPct) / 100
   const state = (gross * statePct) / 100
   const net = gross - fed - state - penalty
@@ -386,6 +387,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           persona={persona}
           type={w.type}
           recordsAddr={employeeAddress(participant)}
+          takenModes={w.allocations.map((a, i) => (editing !== 'new' && i === editing ? null : a.mode)).filter(Boolean)}
           showSources={!periodic}
           onClose={() => setEditing(null)}
           onSave={saveAlloc}
@@ -505,9 +507,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
                   </div>
                 </FieldGroup>
               )}
-              <Field label="Overall Withdraw Fee" tooltip="Set by your plan. Deducted once from the total withdrawal.">
-                <AffixInput prefix="$" type="text" value={OVERALL_FEE.toFixed(2)} readOnly disabled />
-              </Field>
             </div>
 
             {w.entire === 'yes' && loan && !periodic && (
@@ -726,7 +725,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
                       </td>
                       <td className="num">
                         {c.rollover ? 'Rollover' : money(c.fee)}
-                        {c.fee > 0 && <small className="wd2-pct">{feeLabel(a)}</small>}
                       </td>
                       <td className="num">
                         <b>{money(c.net)}</b>
@@ -744,11 +742,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
                     </tr>
                   )
                 })}
-                <tr className="alloc-total">
-                  <td colSpan={2}>Total</td>
-                  <td className="num">{money(allocTotal)}</td>
-                  <td colSpan={6} />
-                </tr>
               </tbody>
             </table>
           </div>
@@ -1125,19 +1118,19 @@ function SourceSummaryRow({ source }) {
 }
 
 // ---------- allocation slide-out ----------
-function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, recordsAddr, showSources, onClose, onSave }) {
+function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, recordsAddr, takenModes = [], showSources, onClose, onSave }) {
   const [a, setA] = useState(
     () =>
       initial || {
         mode: '',
         amount: '0.00',
-        fedPct: '0.00',
+        fedPct: '20.00',
         statePct: '0.00',
         rothCode: '',
         nonRothCode: '',
         penaltyApply: 'no',
         payment: 'check',
-        paymentFee: '0.00',
+        paymentFee: PAYMENT_FEE.toFixed(2),
         addressSrc: 'records',
         address: { line1: '', line2: '', city: '', country: 'USA', state: '', zip: '' },
         bank: 'records',
@@ -1162,8 +1155,10 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   const cb = a.customBank
   const ad = a.address
   const fromRecords = a.addressSrc === 'records'
+  const bankFromRecords = a.bank === 'records'
   const recordAddr = recordsAddr || {}
   const isRollover = !!mode?.rollover
+  const availableModes = MODES.filter((m) => m.id === a.mode || !takenModes.includes(m.id))
   const customAddress = !isRollover && a.payment === 'check' && a.addressSrc === 'custom'
   if (customAddress && ad.zip && !/^\d{5}$/.test(ad.zip)) errs.zip = 'Zip code must be 5 digits.'
   if (!isRollover && a.payment === 'eft' && a.bank === 'custom') {
@@ -1225,7 +1220,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
       <div className="wd2-so">
         <h4 className="wd2-sub">Distribution</h4>
         <div className="txn-stack">
-          <Field label="Select distribution mode" required>
+          <Field label="Select distribution mode">
             <Select
               value={a.mode}
               onChange={(e) => {
@@ -1235,7 +1230,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
               }}
               placeholder="Select the distribution mode"
             >
-              {MODES.map((m) => {
+              {availableModes.map((m) => {
                 const off = type === 'RMD' && m.rollover
                 return (
                   <Option key={m.id} value={m.id} disabled={off}>
@@ -1247,7 +1242,6 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
           </Field>
           <Field
             label="Allocation amount"
-            required
             note={errs.amount || `Maximum amount available for withdrawal ${money(modeMax)}`}
             noteClass={errs.amount ? 'err' : undefined}
           >
@@ -1279,14 +1273,13 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
         <div className="txn-row">
           <Field
             label="Federal tax"
-            tooltip="Federal tax withholding percentage applied to this allocation."
-            note={errs.tax || `${money(c.fed)} tax deduction`}
-            noteClass={errs.tax ? 'err' : undefined}
+            tooltip="Federal tax withholding percentage set by your plan."
+            note={`${money(c.fed)} tax deduction`}
           >
-            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.fedPct} placeholder="0.00" onChange={(e) => set({ fedPct: clean(e.target.value) })} />
+            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.fedPct} readOnly disabled />
           </Field>
-          <Field label="State tax" tooltip="State tax withholding percentage applied to this allocation." note={`${money(c.state)} tax deduction`}>
-            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.statePct} placeholder="0.00" onChange={(e) => set({ statePct: clean(e.target.value) })} />
+          <Field label="State tax" tooltip="State tax withholding percentage set by your plan." note={`${money(c.state)} tax deduction`}>
+            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.statePct} readOnly disabled />
           </Field>
         </div>
         <FieldGroup label="Early withdraw penalty">
@@ -1307,13 +1300,13 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
             <h4 className="wd2-sub">Rollover Information</h4>
             <p className="hint">Pre-filled with the rollover account on file. Update it if it has changed.</p>
             <div className="txn-row">
-              <Field label="Plan name" required>
+              <Field label="Plan name">
                 <input type="text" value={a.rollover?.planName || ''} onChange={(e) => set({ rollover: { ...a.rollover, planName: e.target.value } })} />
               </Field>
-              <Field label="Account / IRA no" required note={errs.account} noteClass="err">
+              <Field label="Account / IRA no" note={errs.account} noteClass="err">
                 <input type="text" value={a.rollover?.account || ''} onChange={(e) => set({ rollover: { ...a.rollover, account: e.target.value } })} />
               </Field>
-              <Field label="Company / Trustee name" required>
+              <Field label="Company / Trustee name">
                 <input type="text" value={a.rollover?.trustee || ''} onChange={(e) => set({ rollover: { ...a.rollover, trustee: e.target.value } })} />
               </Field>
             </div>
@@ -1346,8 +1339,11 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
               </div>
             </FieldGroup>
             <div className="txn-stack">
-              <Field label="EFT Fee" tooltip="Payment fee deducted from the account balance.">
-                <AffixInput prefix="$" type="text" inputMode="decimal" value={a.paymentFee} placeholder="0.00" onChange={(e) => set({ paymentFee: clean(e.target.value) })} />
+              <Field
+                label={a.payment === 'eft' ? 'EFT Fee' : 'Check Fee'}
+                tooltip="Payment fee set by your plan. Deducted from the account balance."
+              >
+                <AffixInput prefix="$" type="text" value={PAYMENT_FEE.toFixed(2)} readOnly disabled />
               </Field>
             </div>
             {a.payment === 'check' ? (
@@ -1367,7 +1363,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                 <>
                   <h4 className="wd2-sub">{fromRecords ? 'Address Details (From Employee Records)' : 'Address Details'}</h4>
                   <div className="txn-row spaced">
-                    <Field label="Address line 1" required={!fromRecords}>
+                    <Field label="Address line 1">
                       <input
                         type="text"
                         value={fromRecords ? recordAddr.line1 || '' : ad.line1}
@@ -1389,7 +1385,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                     </Field>
                   </div>
                   <div className="txn-row">
-                    <Field label="City" required={!fromRecords}>
+                    <Field label="City">
                       <input
                         type="text"
                         value={fromRecords ? recordAddr.city || '' : ad.city}
@@ -1409,7 +1405,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                     </Field>
                   </div>
                   <div className="txn-row">
-                    <Field label="State" required={!fromRecords}>
+                    <Field label="State">
                       <input
                         type="text"
                         value={fromRecords ? recordAddr.state || '' : ad.state}
@@ -1418,7 +1414,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                         onChange={(e) => set({ address: { ...ad, state: e.target.value } })}
                       />
                     </Field>
-                    <Field label="Zip code" required={!fromRecords} note={!fromRecords ? errs.zip : undefined} noteClass="err">
+                    <Field label="Zip code" note={!fromRecords ? errs.zip : undefined} noteClass="err">
                       <input
                         type="text"
                         inputMode="numeric"
@@ -1445,56 +1441,76 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                     ))}
                   </div>
                 </FieldGroup>
-                {a.bank === 'records' ? (
-                  <ul className="detail-rows wd2-ro">
-                    <li>
-                      <span>Bank</span>
-                      <b>{BANK.institution}</b>
-                    </li>
-                    <li>
-                      <span>Account</span>
-                      <b>
-                        {BANK.type} {BANK.number}
-                      </b>
-                    </li>
-                    <li>
-                      <span>Routing number</span>
-                      <b>{BANK.routing}</b>
-                    </li>
-                  </ul>
-                ) : (
-                  <>
-                    <div className="txn-row spaced">
-                      <Field label="Financial institution" required>
-                        <input type="text" value={cb.institution} onChange={(e) => set({ customBank: { ...cb, institution: e.target.value } })} />
-                      </Field>
-                      <Field label="Account holder name" required>
-                        <input type="text" value={cb.holder} onChange={(e) => set({ customBank: { ...cb, holder: e.target.value } })} />
-                      </Field>
-                    </div>
-                    <div className="txn-row">
-                      <Field label="Account type" required>
-                        <Select value={cb.type} onChange={(e) => set({ customBank: { ...cb, type: e.target.value } })}>
-                          <Option value="Savings Account">Savings Account</Option>
-                          <Option value="Checking Account">Checking Account</Option>
-                        </Select>
-                      </Field>
-                      <Field label="Account number" required note={errs.number} noteClass="err">
-                        <input type="text" inputMode="numeric" value={cb.number} onChange={(e) => set({ customBank: { ...cb, number: e.target.value.replace(/\D/g, '').slice(0, 17) } })} />
-                      </Field>
-                      <Field label="ABA routing number" required note={errs.routing} noteClass="err">
-                        <input type="text" inputMode="numeric" value={cb.routing} onChange={(e) => set({ customBank: { ...cb, routing: e.target.value.replace(/\D/g, '').slice(0, 9) } })} />
-                      </Field>
-                    </div>
-                    <div className="txn-row">
-                      <Field label="Email ID" note={errs.email} noteClass="err">
-                        <input type="email" value={cb.email} onChange={(e) => set({ customBank: { ...cb, email: e.target.value } })} />
-                      </Field>
-                      <Field label="Mobile No">
-                        <input type="tel" value={cb.phone} onChange={(e) => set({ customBank: { ...cb, phone: e.target.value.replace(/[^\d+ -]/g, '') } })} />
-                      </Field>
-                    </div>
-                  </>
+                <h4 className="wd2-sub">{bankFromRecords ? 'Bank Details (From Employee Records)' : 'Bank Details'}</h4>
+                <div className="txn-row spaced">
+                  <Field label="Financial institution">
+                    <input
+                      type="text"
+                      value={bankFromRecords ? BANK.institution : cb.institution}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, institution: e.target.value } })}
+                    />
+                  </Field>
+                  <Field label="Account holder name">
+                    <input
+                      type="text"
+                      value={bankFromRecords ? BANK.holder : cb.holder}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, holder: e.target.value } })}
+                    />
+                  </Field>
+                </div>
+                <div className="txn-row">
+                  <Field label="Account type">
+                    {bankFromRecords ? (
+                      <input type="text" value={BANK.type} readOnly disabled />
+                    ) : (
+                      <Select value={cb.type} onChange={(e) => set({ customBank: { ...cb, type: e.target.value } })}>
+                        <Option value="Savings Account">Savings Account</Option>
+                        <Option value="Checking Account">Checking Account</Option>
+                      </Select>
+                    )}
+                  </Field>
+                  <Field label="Account number" note={!bankFromRecords ? errs.number : undefined} noteClass="err">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={bankFromRecords ? BANK.number : cb.number}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, number: e.target.value.replace(/\D/g, '').slice(0, 17) } })}
+                    />
+                  </Field>
+                </div>
+                <div className="txn-row">
+                  <Field label="ABA routing number" note={!bankFromRecords ? errs.routing : undefined} noteClass="err">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={bankFromRecords ? BANK.routing : cb.routing}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, routing: e.target.value.replace(/\D/g, '').slice(0, 9) } })}
+                    />
+                  </Field>
+                  <Field label="Email ID" note={!bankFromRecords ? errs.email : undefined} noteClass="err">
+                    <input
+                      type="email"
+                      value={bankFromRecords ? '' : cb.email}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, email: e.target.value } })}
+                    />
+                  </Field>
+                </div>
+                {!bankFromRecords && (
+                  <div className="txn-row">
+                    <Field label="Mobile No">
+                      <input type="tel" value={cb.phone} onChange={(e) => set({ customBank: { ...cb, phone: e.target.value.replace(/[^\d+ -]/g, '') } })} />
+                    </Field>
+                  </div>
                 )}
               </>
             )}
@@ -1687,6 +1703,13 @@ function DocBlock({ doc, state, error, onChange }) {
     setFileErr('')
     onChange({ ...state, file: { name: file.name, size: file.size } })
   }
+  const downloadTemplate = () => {
+    downloadDocumentFile({
+      name: `${doc.label} Template`,
+      type: 'Withdrawal document template',
+      date: new Date().toLocaleDateString()
+    })
+  }
   return (
     <div className="wd2-doc">
       <p className="txn-doc-label">
@@ -1704,29 +1727,41 @@ function DocBlock({ doc, state, error, onChange }) {
       </div>
       {state.method === 'docusign' ? (
         <div className="wd-note">You will receive this document in your Docusign account to sign electronically.</div>
-      ) : state.file ? (
-        <div className="wd2-file">
-          <span>
-            <Icon icon={faCheck} size={12} /> <b>{state.file.name}</b> · {(state.file.size / 1024).toFixed(0)} KB · Uploaded successfully
-          </span>
-          <button type="button" className="text-link danger" onClick={() => onChange({ ...state, file: null })}>
-            Remove
-          </button>
-        </div>
       ) : (
-        <label
-          className="wd2-drop"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault()
-            pick(e.dataTransfer.files?.[0])
-          }}
-        >
-          <input type="file" accept="application/pdf,.pdf" onChange={(e) => pick(e.target.files?.[0])} />
-          <span>
-            Drag and drop or <u>browse</u> a PDF (max {MAX_FILE_MB} MB)
-          </span>
-        </label>
+        <div className="wd2-doc-body">
+          <div className="wd2-doc-side">
+            <p className="wd2-doc-accept">Accepted file : PDF | Max File Size : {MAX_FILE_MB} MB</p>
+            {state.file ? (
+              <div className="wd2-file">
+                <span>
+                  <Icon icon={faCheck} size={12} /> <b>{state.file.name}</b> · {(state.file.size / 1024).toFixed(0)} KB · Uploaded successfully
+                </span>
+                <button type="button" className="text-link danger" onClick={() => onChange({ ...state, file: null })}>
+                  Remove
+                </button>
+              </div>
+            ) : null}
+            <button type="button" className="wd2-doc-template" onClick={downloadTemplate}>
+              <Icon icon={faDownload} size={13} /> Download template
+            </button>
+          </div>
+          {!state.file && (
+            <label
+              className="wd2-drop"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                pick(e.dataTransfer.files?.[0])
+              }}
+            >
+              <input type="file" accept="application/pdf,.pdf" onChange={(e) => pick(e.target.files?.[0])} />
+              <Icon icon={faUpload} size={18} />
+              <span>
+                Drag &amp; Drop here or <u>Browse File</u>
+              </span>
+            </label>
+          )}
+        </div>
       )}
       {(fileErr || error) && (
         <p className="alloc-warn">
