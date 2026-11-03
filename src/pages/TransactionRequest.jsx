@@ -258,9 +258,9 @@ function TransactionRequestWizard() {
             </ol>
           </aside>
 
-          {/* Transfer and rebalance render wide current-vs-target tables, so
-              they get more room than the form-style loan/withdrawal steps. */}
-          <main className={`txn-main${type === 'transfer' || type === 'withdrawal' || type === 'rebalance' || type === 'rollover' ? ' txn-main-wide' : ''}`}>
+          {/* Every type uses the wide shell so the card fills the content area
+              like Transfer; field max-widths keep form controls from stretching. */}
+          <main className="txn-main txn-main-wide">
             <div className="txn-plan-head">
               <div>
                 <h2>{plan.name}</h2>
