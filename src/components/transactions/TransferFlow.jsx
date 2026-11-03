@@ -769,13 +769,6 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                     </li>
                   ))}
                 </ul>
-                {list.length > 0 && (
-                  <p className={`tf-alloc-total ${Math.abs(total - 100) > 0.01 ? 'bad' : 'ok'}`}>
-                    <span>Total</span>
-                    <b>{pctText(total)}</b>
-                    <b>{formatMoney((g.moved * total) / 100)}</b>
-                  </p>
-                )}
               </div>
             )
           })}
