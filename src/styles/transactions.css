@@ -155,24 +155,31 @@
 .txn-field input:focus,.txn-field select:focus,.txn-field .ui-select:not(.disabled) .ui-select-btn:focus-visible{outline:none;border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
 .txn-field .note{font-size:var(--typography-helper-size);font-weight:var(--typography-helper-weight);line-height:var(--typography-helper-line-height);color:var(--neutral-text-subtle)}
 .txn-field .note.warn{color:var(--semantics-warning-text)}
+/* Info notice under a field: icon + text on one line, free to run wider than the capped control. */
+.txn-field .note.note-info{display:flex;align-items:flex-start;gap:var(--core-space-1);width:max-content;max-width:min(720px,100%)}
+.txn-field .note.note-info svg{flex-shrink:0;margin-top:3px}
 
 .field-tip{position:relative;display:inline-flex;vertical-align:middle;margin-left:var(--core-space-1)}
 .field-tip-btn{
   display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:var(--core-radius-full);
-  border:none;padding:var(--core-space-0);background:var(--theme-neutral-border-primary-default);color:var(--neutral-text-subtle);cursor:help}
-.field-tip-btn:hover,.field-tip-btn:focus-visible{background:var(--brand-background-primary-strong);color:var(--brand-text-primary-oncolor)}
+  border:none;padding:var(--core-space-0);background:transparent;color:var(--neutral-text-subtle);cursor:help}
+/* No disc behind the icon: faInfoCircle is already a filled circle, so a
+   background doubled it into a halo. Only the icon colour changes. */
+.field-tip-btn:hover,.field-tip-btn:focus-visible{color:var(--brand-text-primary-default)}
 .field-tip-btn:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
 .field-tip-bubble{
   /* CORE .cds-tooltip; wraps because this carries sentence-length help. */
-  position:absolute;left:50%;bottom:calc(100% + var(--core-tooltip-offset));transform:translateX(-50%) translateY(4px);
+  /* Anchored to the icon's left (labels sit at the left edge of cards and
+     slideouts), so it opens rightward instead of clipping off-panel. */
+  position:absolute;left:-8px;bottom:calc(100% + var(--core-tooltip-offset));transform:translateY(4px);
   width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);
   font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-xs-line-height);text-align:left;box-shadow:var(--core-elevation-1);
   opacity:0;visibility:hidden;pointer-events:none;transition:opacity var(--core-motion-duration-fast),transform var(--core-motion-duration-fast);z-index:20}
 .field-tip-bubble::after{
-  content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;
+  content:"";position:absolute;top:100%;left:20px;transform:translateX(-50%);border:5px solid transparent;
   border-top-color:var(--neutral-text-default)}
 .field-tip:hover .field-tip-bubble,.field-tip:focus-within .field-tip-bubble{
-  opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+  opacity:1;visibility:visible;transform:translateY(0)}
 
 .txn-tenure-row{display:flex;gap:var(--core-space-2);align-items:center}
 .txn-tenure-row input{
@@ -878,16 +885,28 @@
 .wd2-src-toggle svg{transform:rotate(-90deg);transition:transform .15s}
 .wd2-src-toggle[aria-expanded="true"] svg{transform:none}
 .wd2-src-toggle:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color)}
-.wd2-src-row{padding:var(--core-space-3) 0;border-top:1px solid var(--neutral-border-light)}
-.wd2-src-row:first-of-type{border-top:0}
-.wd2-src-name{display:flex;justify-content:space-between;gap:var(--core-space-3);margin-bottom:var(--core-space-2);font-size:var(--typography-body-sm-size)}
-.wd2-src-row .tf-chips{align-items:center}
+.wd2-restrict{margin:var(--core-space-2) 0 var(--core-space-4)}
+.wd2-restrict svg{flex-shrink:0;margin-top:2px}
+/* Source Withdraw Amount: bordered list, linked source + total left, fund chips right. */
+.wd2-src-list{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-md);background:var(--neutral-surface-layer-01)}
+.wd2-src-row{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-5);border-top:1px solid var(--neutral-border-light)}
+.wd2-src-row:first-child{border-top:0}
+.wd2-src-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:1 1 220px;min-width:0;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.wd2-src-link{display:block;max-width:100%;padding:0;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd2-src-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2);flex:0 1 auto;min-width:0}
+.wd2-src-chip{
+  display:inline-flex;align-items:center;gap:var(--core-space-1);max-width:220px;height:28px;padding:0 var(--core-space-3);
+  border:1px solid var(--brand-border-primary-default,var(--brand-text-primary-default));border-radius:var(--core-radius-full);
+  background:var(--brand-background-primary-light);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.wd2-src-chip-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd2-src-chip b{flex:0 0 auto;color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-bold)}
 .wd2-more{
   display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 var(--core-space-2);
-  border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-full);background:var(--neutral-surface-layer-01);
-  font:inherit;font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-semibold);
-  color:var(--neutral-text-default);cursor:pointer}
-.wd2-more:hover{border-color:var(--neutral-border-strong);background:color-mix(in srgb,black 6%,var(--neutral-surface-layer-01))}
+  border:1px solid var(--brand-border-primary-default,var(--brand-text-primary-default));border-radius:var(--core-radius-full);background:var(--neutral-surface-layer-01);
+  font:inherit;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);
+  color:var(--brand-text-primary-default);cursor:pointer}
+.wd2-more:hover{background:var(--brand-background-primary-light)}
+@media (max-width:767px){.wd2-src-row{flex-direction:column;align-items:stretch}.wd2-src-chips{justify-content:flex-start}}
 .wd2-more:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
 .wd2-hist{list-style:none;margin:var(--core-space-4) 0 0;padding:0}
 .wd2-hist li{position:relative;display:flex;flex-direction:column;gap:var(--core-space-1);padding:0 0 var(--core-space-4) var(--core-space-5);border-left:2px solid var(--neutral-border-light);margin-left:var(--core-space-1)}

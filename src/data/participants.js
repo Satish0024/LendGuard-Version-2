@@ -108,6 +108,9 @@ export const PARTICIPANTS = [
         noticeLink: { label: 'View details', details: true },
         stats: { balance: '$12,840.00', vested: '$9,620.00', returnPct: 101.2 },
         details: { status: 'Auto Enrolled', balance: '$12,840.00', vested: '$9,620.00' },
+        // Shown as a warning when a withdrawal lets the participant choose
+        // sources/investments; ignored once `until` has passed.
+        investmentRestriction: { name: 'Inclusion', until: '2027-10-09' },
         sources: [
           { name: 'Pre-Tax', amount: 4200, vested: 4200 },
           { name: 'Roth', amount: 1600, vested: 1600 },

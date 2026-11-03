@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload } from '@fortawesome/free-solid-svg-icons'
+import { faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../common/Field.jsx'
@@ -88,7 +88,7 @@ const HISTORY = [
   { title: 'Awaiting trade', by: 'System generated' },
   { title: 'Completed', by: 'Plan administrator' }
 ]
-const MAX_CHIPS = 2
+const MAX_CHIPS = 3
 
 const r2 = (n) => Math.round((+n || 0) * 100) / 100
 const money = (n) => formatMoney(r2(n))
@@ -325,7 +325,9 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
       else list[editing] = a
       return { allocations: list }
     })
-    setNotice(editing === 'new' ? { text: `Allocation of ${money(a.amount)} added.` } : { text: 'Allocation updated.' })
+    // The new/updated row in the table is confirmation enough; only removal
+    // gets a banner, because it carries Undo.
+    setNotice(null)
     setEditing(null)
   }
   const removeAlloc = (i) => {
@@ -686,12 +688,11 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             <table className="alloc-table wd2-table">
               <thead>
                 <tr>
-                  <th scope="col">Allocation &amp; Payment</th>
+                  <th scope="col">Allocation &amp; Recipient</th>
                   <th scope="col">1099 codes</th>
                   <th scope="col" className="num">Gross</th>
                   <th scope="col" className="num">State tax</th>
                   <th scope="col" className="num">Federal tax</th>
-                  <th scope="col" className="num">Penalty</th>
                   <th scope="col" className="num">Fee</th>
                   <th scope="col" className="num">Net</th>
                   <th scope="col" className="num">Action</th>
@@ -718,10 +719,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
                       <td className="num">
                         {money(c.fed)}
                         <small className="wd2-pct">{c.fedPct}%</small>
-                      </td>
-                      <td className="num">
-                        {c.rollover ? 'Rollover' : c.penalty ? money(c.penalty) : 'None'}
-                        {c.penalty > 0 && <small className="wd2-pct">{PENALTY_RATE}%</small>}
                       </td>
                       <td className="num">
                         {c.rollover ? 'Rollover' : money(c.fee)}
@@ -970,7 +967,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           <table className="alloc-table">
             <thead>
               <tr>
-                <th scope="col">Allocation &amp; Payment</th>
+                <th scope="col">Allocation &amp; Recipient</th>
                 <th scope="col">1099 codes</th>
                 <th scope="col">Address</th>
                 <th scope="col" className="num">Net</th>
@@ -1006,9 +1003,11 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
               <span className="tf-col-num">{periodic ? 4 : 3}</span> Source Withdraw Amount
             </h4>
           </div>
-          {sourceRows.map((s) => (
-            <SourceSummaryRow key={s.id} source={s} />
-          ))}
+          <div className="wd2-src-list">
+            {sourceRows.map((s) => (
+              <SourceSummaryRow key={s.id} source={s} />
+            ))}
+          </div>
         </section>
       )}
 
@@ -1091,28 +1090,67 @@ function addressCell(a, c, onFile) {
   )
 }
 
+// A plan-level investment restriction counts only while today is on or before `until`.
+function activeRestriction(plan) {
+  const r = plan?.investmentRestriction
+  if (!r?.until) return false
+  return new Date(`${r.until}T23:59:59`) >= new Date()
+}
+const fmtDate = (iso) => {
+  const [y, m, d] = iso.split('-')
+  return `${m}/${d}/${y}`
+}
+
 function SourceSummaryRow({ source }) {
   const [open, setOpen] = useState(false)
-  const shown = open ? source.lines : source.lines.slice(0, MAX_CHIPS)
+  const shown = source.lines.slice(0, MAX_CHIPS)
   const extra = source.lines.length - MAX_CHIPS
   return (
     <div className="wd2-src-row">
       <div className="wd2-src-name">
-        <b>{source.name}</b>
+        <button type="button" className="text-link wd2-src-link" title={source.name} onClick={() => setOpen(true)}>
+          {source.name}
+        </button>
         <span>{money(source.total)}</span>
       </div>
-      <div className="tf-chips">
+      <div className="wd2-src-chips">
         {shown.map((l) => (
-          <span key={l.id} className="badge navy">
-            {l.name} {money(l.gross)}
+          <span key={l.id} className="wd2-src-chip" title={`${l.name} ${money(l.gross)}`}>
+            <span className="wd2-src-chip-name">{l.name}</span>
+            <b>{money(l.gross)}</b>
           </span>
         ))}
         {extra > 0 && (
-          <button type="button" className="wd2-more" aria-expanded={open} onClick={() => setOpen(!open)}>
-            {open ? 'Show less' : `+${extra} more`}
+          <button type="button" className="wd2-more" aria-label={`Show ${extra} more for ${source.name}`} onClick={() => setOpen(true)}>
+            +{extra}
           </button>
         )}
       </div>
+      {open && (
+        <Slideover
+          title={source.name}
+          closeButton={false}
+          onClose={() => setOpen(false)}
+          actions={
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
+              Close
+            </button>
+          }
+        >
+          <ul className="detail-rows">
+            {source.lines.map((l) => (
+              <li key={l.id}>
+                <span>{l.name}</span>
+                <b>{money(l.gross)}</b>
+              </li>
+            ))}
+            <li>
+              <span>Total</span>
+              <b>{money(source.total)}</b>
+            </li>
+          </ul>
+        </Slideover>
+      )}
     </div>
   )
 }
@@ -1169,11 +1207,27 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   const lineTotal = linesTotal(plan, sources)
   const srcTotal = r2(Object.values(a.picks || {}).reduce((t, v) => t + (+v || 0), 0))
   sources.forEach((s) => {
-    sourceLines(plan, s).forEach((l) => {
-      const k = pickKey(s, l)
-      if (a.sourceMode === 'choose' && +a.picks[k] > l.amount + 1e-9) errs[`src-${k}`] = `More than available ${money(l.amount)}.`
-    })
+    const lines = sourceLines(plan, s)
+    const avail = lines.reduce((t, l) => t + l.amount, 0)
+    const picked = lines.reduce((t, l) => t + (+a.picks[pickKey(s, l)] || 0), 0)
+    if (a.sourceMode === 'choose' && picked > avail + 0.009) errs[`src-${s.id}`] = `More than available ${money(avail)}.`
   })
+  // Choose by Sources: the amount typed for a source is spread across its
+  // investments pro-rata; the last line takes the rounding remainder.
+  const setSourceGross = (s, v) => {
+    const val = clean(v)
+    const lines = sourceLines(plan, s)
+    const avail = lines.reduce((t, l) => t + l.amount, 0)
+    const want = +val || 0
+    const picks = { ...a.picks }
+    let left = r2(want)
+    lines.forEach((l, i) => {
+      const share = i === lines.length - 1 ? left : r2(avail ? (want * l.amount) / avail : 0)
+      picks[pickKey(s, l)] = share > 0 ? share.toFixed(2) : ''
+      left = r2(left - share)
+    })
+    set({ picks, srcPicks: { ...a.srcPicks, [s.id]: val } })
+  }
   const srcMsg =
     showSources && a.sourceMode === 'choose' && amt > 0 && Math.abs(srcTotal - amt) > 0.009
       ? srcTotal < amt
@@ -1282,7 +1336,18 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
             <AffixInput suffix="%" type="text" inputMode="decimal" value={a.statePct} readOnly disabled />
           </Field>
         </div>
-        <FieldGroup label="Early withdraw penalty">
+        <FieldGroup
+          label="Early withdraw penalty"
+          noteClass="note-info"
+          note={
+            <>
+              <Icon icon={faInfoCircle} size={13} />
+              {a.penaltyApply === 'yes'
+                ? 'Early Withdrawal Penalty applies to this transaction. This notice is shared with the participant and the admin.'
+                : 'Early Withdrawal Penalty does not apply for this transaction. This notice is shared with the participant and the admin.'}
+            </>
+          }
+        >
           <div className="period" role="radiogroup" aria-label="Early withdraw penalty">
             {[
               ['yes', 'Yes'],
@@ -1341,7 +1406,13 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
             <div className="txn-stack">
               <Field
                 label={a.payment === 'eft' ? 'EFT Fee' : 'Check Fee'}
-                tooltip="Payment fee set by your plan. Deducted from the account balance."
+                noteClass="note-info"
+                note={
+                  <>
+                    <Icon icon={faInfoCircle} size={13} />
+                    Fee will be deducted from account balance
+                  </>
+                }
               >
                 <AffixInput prefix="$" type="text" value={PAYMENT_FEE.toFixed(2)} readOnly disabled />
               </Field>
@@ -1519,17 +1590,40 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
 
         {showSources && (
           <>
-            <h4 className="wd2-sub">Source details</h4>
-            <div className="period" role="radiogroup" aria-label="Source selection">
-              {[
-                ['prorata', 'Pro-Rata'],
-                ['choose', 'Allow me to choose']
-              ].map(([id, label]) => (
-                <button key={id} type="button" role="radio" aria-checked={a.sourceMode === id} className={a.sourceMode === id ? 'on' : ''} onClick={() => set({ sourceMode: id })}>
-                  {label}
-                </button>
-              ))}
-            </div>
+            <FieldGroup label="Source details">
+              <div className="period" role="radiogroup" aria-label="Source details">
+                {[
+                  ['prorata', 'Pro-Rata'],
+                  ['choose', 'Allow me to choose']
+                ].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={a.sourceMode === id} className={a.sourceMode === id ? 'on' : ''} onClick={() => set({ sourceMode: id })}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldGroup>
+            {a.sourceMode === 'choose' && (
+              // Only choosing by source is supported for now; Investments is shown but disabled.
+              <FieldGroup label="Choose by">
+                <div className="period" role="radiogroup" aria-label="Choose by">
+                  <button type="button" role="radio" aria-checked="true" className="on">
+                    Sources
+                  </button>
+                  <button type="button" role="radio" aria-checked="false" disabled>
+                    Investments
+                  </button>
+                </div>
+              </FieldGroup>
+            )}
+            {a.sourceMode === 'choose' && activeRestriction(plan) && (
+              <div className="inline-alert warn wd2-restrict" role="alert">
+                <Icon icon={faExclamationCircle} size={16} />
+                <span>
+                  Investment restriction - {plan.investmentRestriction.name} has an active investment restriction until{' '}
+                  {fmtDate(plan.investmentRestriction.until)}
+                </span>
+              </div>
+            )}
             <div className="table-wrap wd2-src">
               <table className="alloc-table">
                 <thead>
@@ -1556,7 +1650,26 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                             </button>
                           </td>
                               <td className="num">{money(s.amount)}</td>
-                              <td className="num">{money(srcGross)}</td>
+                              <td className="num">
+                                {a.sourceMode === 'choose' ? (
+                                  <span className="tf-amount-wrap">
+                                    <span className={`alloc-pct-input${errs[`src-${s.id}`] ? ' tf-bad' : ''}`}>
+                                      <i>$</i>
+                                      <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        aria-label={`${s.name} gross withdrawal`}
+                                        placeholder="0.00"
+                                        value={a.srcPicks?.[s.id] ?? (srcGross > 0 ? srcGross.toFixed(2) : '')}
+                                        onChange={(e) => setSourceGross(s, e.target.value)}
+                                      />
+                                    </span>
+                                    {errs[`src-${s.id}`] && <small className="tf-max over">{errs[`src-${s.id}`]}</small>}
+                                  </span>
+                                ) : (
+                                  money(srcGross)
+                                )}
+                              </td>
                               <td className="num">{money(srcGross * keep)}</td>
                             </tr>
                             {open &&
@@ -1568,23 +1681,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                                     <td>{l.name}</td>
                                     <td className="num">{money(l.amount)}</td>
                                     <td className="num">
-                                      {a.sourceMode === 'choose' ? (
-                                        <span className="tf-amount-wrap">
-                                          <span className={`alloc-pct-input${errs[`src-${k}`] ? ' tf-bad' : ''}`}>
-                                            <i>$</i>
-                                            <input
-                                              type="text"
-                                              inputMode="decimal"
-                                              aria-label={`${l.name} gross withdrawal from ${s.name}`}
-                                              value={a.picks[k] || ''}
-                                              onChange={(e) => set({ picks: { ...a.picks, [k]: clean(e.target.value) } })}
-                                            />
-                                          </span>
-                                          {errs[`src-${k}`] && <small className="tf-max over">{errs[`src-${k}`]}</small>}
-                                        </span>
-                                      ) : (
-                                        money(g)
-                                      )}
+                                      {money(g)}
                                     </td>
                                     <td className="num">{money(g * keep)}</td>
                                   </tr>
