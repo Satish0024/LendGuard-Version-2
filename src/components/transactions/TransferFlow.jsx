@@ -494,7 +494,7 @@ export default function TransferFlow({ step, plan, form, set, onNext }) {
 const valueText = (by, v) => (by === 'pct' ? pctText(v) : by === 'units' ? `${unitsText(v)} units` : formatMoney(v))
 
 // Figma "Investment Transfer" slide-over: 1. Transfer from (fund card, or one
-// checkbox card per source), 2. Choose buy investment(s) as cards with Select,
+// checkbox card per source), 2. Choose Buy investment(s) as cards with Select,
 // 3. Set allocation as cards grouped per source. Save stays disabled until
 // the transfer is complete; saving an emptied transfer removes it.
 function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
@@ -656,7 +656,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
 
         <section className="tf-col" aria-labelledby="tf-c2">
           <h4 className="tf-col-title" id="tf-c2">
-            2. Choose buy investment(s)
+            2. Choose Buy investment(s)
           </h4>
           <div className="add-inv-search">
             <Icon icon={faSearch} size={15} />
@@ -769,6 +769,13 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
                     </li>
                   ))}
                 </ul>
+                {list.length > 0 && (
+                  <p className={`tf-alloc-total ${Math.abs(total - 100) > 0.01 ? 'bad' : 'ok'}`}>
+                    <span>Total</span>
+                    <b>{pctText(total)}</b>
+                    <b>{formatMoney((g.moved * total) / 100)}</b>
+                  </p>
+                )}
               </div>
             )
           })}

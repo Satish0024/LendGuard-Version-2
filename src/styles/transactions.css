@@ -694,6 +694,10 @@
 .tf-alloc-group + .tf-alloc-group{margin-top:var(--core-space-3)}
 .tf-group-title{margin:0;font-weight:var(--typography-font-weight-bold);font-size:var(--typography-body-sm-size)}
 .tf-alloc-bar{display:flex;justify-content:space-between;align-items:center;font-size:var(--typography-body-sm-size)}
+/* Set allocation total: % and amount line up under the card inputs. */
+.tf-alloc-total{display:flex;align-items:center;gap:var(--core-space-4);margin:var(--core-space-3) 0 0;padding:var(--core-space-3) var(--core-space-4);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-03);font-size:var(--typography-body-md-size)}
+.tf-alloc-total span{flex:1 1 auto;font-weight:var(--typography-font-weight-semibold)}
+.tf-alloc-total.ok b + b,.tf-alloc-total.bad b + b{color:var(--neutral-text-default)}
 .tf-alloc-row{display:flex;align-items:center;gap:var(--core-space-3)}
 .tf-alloc-row .alloc-pct-input{width:120px}
 .tf-fund-foot{display:flex;justify-content:space-between;align-items:center;font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
