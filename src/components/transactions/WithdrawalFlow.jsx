@@ -10,8 +10,7 @@ import DatePicker from '../common/DatePicker.jsx'
 import { formatMoney, planBalance, planVested } from '../../lib/accountSummary'
 import { parsePlace, splitStreet } from '../../lib/profileDetails.js'
 import { downloadDocumentFile } from '../../lib/downloadDocument.js'
-import { useTheme } from '../../context/ThemeContext.jsx'
-import { sourcesFor, canRequest, investmentsForSource, WITHDRAWAL_TERMS_COPY } from '../../data/transactions.js'
+import { sourcesFor, canRequest, investmentsForSource } from '../../data/transactions.js'
 
 // Participant version of the admin "New Withdrawal Request" prototype. Same
 // data points and rules; admin-only overrides (fee, 1099 codes, penalty
@@ -260,7 +259,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
   const [tried, setTried] = useState(false)
   const [triedDocs, setTriedDocs] = useState(false)
   const [reviewTab, setReviewTab] = useState('summary')
-  const [showTerms, setShowTerms] = useState(false)
 
   const type = TYPES.find((t) => t.id === w.type)
   const isIns = w.type === 'INS'
@@ -1028,8 +1026,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
 
       <section className="wd2-terms">
         <h4 className="txn-section-title">Confirm and Submit</h4>
-        {/* The link sits outside the <label>: inside it, some browsers route
-            the click to the checkbox instead of opening the terms. */}
+        {/* The link sits outside the <label> so clicking it never toggles the checkbox. */}
         <div className="alloc-apply-all tf-ack wd2-ack">
           <input id="wd-terms-ack" type="checkbox" checked={!!w.terms} onChange={(e) => setW({ terms: e.target.checked })} />
           <span>
@@ -1037,31 +1034,13 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             <button
               type="button"
               className="text-link wd2-terms-link"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setShowTerms(true)
-              }}
+              onClick={(e) => e.preventDefault()}
             >
               Terms &amp; Conditions
             </button>
           </span>
         </div>
       </section>
-      {showTerms && (
-        <Slideover
-          title="Terms & Conditions"
-          closeButton={false}
-          onClose={() => setShowTerms(false)}
-          actions={
-            <button type="button" className="btn btn-primary" onClick={() => setShowTerms(false)}>
-              Close
-            </button>
-          }
-        >
-          <TermsFrame />
-        </Slideover>
-      )}
       </div>
       )}
       <div className="txn-actions">
@@ -1088,17 +1067,6 @@ function paymentLine(a, c, plan) {
   if (c.rollover) return `${a.delivery === 'wire' ? 'Wire transfer' : 'Check mailed to trustee'} · ${a.rollover?.planName || plan.name}`
   if (a.payment === 'check') return `Mail Check · ${a.addressSrc === 'custom' ? 'Custom Address' : 'Address on File'}`
   return `EFT · ${a.bank === 'custom' ? a.customBank?.institution || 'New Bank' : 'Bank on File'}`
-}
-// The terms document renders in an iframe so it reads as its own
-// scrollable page. It can't see the app's CSS, so it takes the active theme.
-function TermsFrame() {
-  const { theme } = useTheme()
-  const [fg, bg] = theme === 'dark' ? ['#EEEEF2', '#1D1C24'] : ['#1D1C24', '#FFFFFF']
-  const doc = `<!doctype html><html><head><meta charset="utf-8"><style>
-body{margin:0;padding:16px 20px;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:${fg};background:${bg}}
-ol{margin:0;padding-left:20px}li+li{margin-top:8px}
-</style></head><body><ol>${WITHDRAWAL_TERMS_COPY.map((t) => `<li>${t}</li>`).join('')}</ol></body></html>`
-  return <iframe className="wd2-terms-frame" title="Terms and Conditions" srcDoc={doc} />
 }
 // Money / percent control that accepts Field's cloned id/required onto the real input.
 function AffixInput({ id, required, prefix, suffix, disabled, invalid, ...rest }) {

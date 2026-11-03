@@ -967,8 +967,6 @@
 .wd2-terms{margin-top:var(--core-space-5)}
 .wd2-terms .tf-ack{margin:0}
 .wd2-terms-link{padding:0;font:inherit;font-weight:var(--typography-font-weight-semibold)}
-/* In the slide-out the frame fills the panel so the full terms read without nested scrolling. */
-.wd2-terms-frame{display:block;width:100%;height:calc(100vh - 160px);min-height:320px;border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01)}
 
 /* Source gross input inside the Choose-by-Sources table. */
 .wd2-so td .alloc-pct-input.wd2-affix{width:160px;max-width:100%;margin-left:auto}

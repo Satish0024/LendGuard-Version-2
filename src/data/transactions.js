@@ -204,17 +204,6 @@ export const LOAN_TERMS_COPY = [
   'I understand that once my payment has been processed, it cannot be changed.'
 ]
 
-// Withdrawal Review and Submit step — Terms & Conditions shown in the
-// read-only frame above the acknowledgment checkbox.
-export const WITHDRAWAL_TERMS_COPY = [
-  'I have read and understood the rules governing withdrawals from my 401(k) plan, including any eligibility requirements for the withdrawal type I selected.',
-  'I understand that withdrawals may be subject to federal and state income tax withholding, and that an early withdrawal penalty may apply if I am under age 59½.',
-  'I understand that redemption fees may be imposed on certain funds if assets are held less than the period stated in the fund\'s prospectus or other disclosure documents.',
-  'I understand that it is entirely my responsibility to ensure that this election conforms with all applicable provisions of the Internal Revenue Code.',
-  'I understand that I may be liable for any income tax and/or penalties assessed by the IRS for any elections I have chosen.',
-  'I understand that check and EFT fees are deducted from my account balance, and that once my payment has been processed, it cannot be changed or reversed.'
-]
-
 export const DISTRIBUTION_MODES = [
   { id: 'direct', label: 'Direct Distribution', hint: 'A check is mailed or funds are sent to your bank account.' },
   { id: 'rollover', label: 'Rollover', hint: 'Move funds directly into another employer plan.' },
