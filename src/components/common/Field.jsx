@@ -30,7 +30,6 @@ export default function Field({ label, required, note, noteClass, tooltip, child
     <div className="txn-field">
       <label htmlFor={id}>
         {label}
-        {required && <i aria-hidden="true">*</i>}
         {required && <span className="sr-only"> (required)</span>}
         <FieldTip tooltip={tooltip} id={tipId} />
       </label>
@@ -49,7 +48,6 @@ export function FieldGroup({ label, required, note, noteClass, tooltip, children
     <fieldset className="txn-field txn-fieldset">
       <legend>
         {label}
-        {required && <i aria-hidden="true">*</i>}
         {required && <span className="sr-only"> (required)</span>}
         <FieldTip tooltip={tooltip} id={tipId} />
       </legend>

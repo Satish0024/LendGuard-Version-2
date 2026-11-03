@@ -162,11 +162,11 @@ function RequestsPanel({ participant, planId, onPlanChange }) {
         </div>
         <div className="req-plan-stats">
           <div>
-            <span>Account balance</span>
+            <span>Account Balance</span>
             <b>{formatMoney(planBalance(plan))}</b>
           </div>
           <div>
-            <span>Vested balance</span>
+            <span>Vested Balance</span>
             <b>{formatMoney(planVested(plan))}</b>
           </div>
         </div>

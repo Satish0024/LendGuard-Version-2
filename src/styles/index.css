@@ -1518,7 +1518,7 @@ this grey triplet is only for
   input[type="radio"]::before{content:"";width:var(--core-space-2);height:var(--core-space-2);border-radius:var(--core-radius-full);background:var(--neutral-surface-layer-01);opacity:0;transition:opacity var(--core-motion-duration-instant) ease}
   input[type="checkbox"]::before{
     content:"";width:10px;height:5px;border-left:2px solid var(--brand-text-primary-oncolor);border-bottom:2px solid var(--brand-text-primary-oncolor);
-    transform:rotate(-45deg) translate(1px,-2px);opacity:0;transition:opacity var(--core-motion-duration-instant) ease}
+    transform:translateY(-2px) rotate(-45deg);opacity:0;transition:opacity var(--core-motion-duration-instant) ease}
   input[type="checkbox"]:checked::before,input[type="radio"]:checked::before{opacity:1}
   input[type="checkbox"]:focus-visible,input[type="radio"]:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
   input[type="checkbox"]:focus-visible:not(:checked),input[type="radio"]:focus-visible:not(:checked){border-color:var(--cds-focus-color);background:var(--neutral-surface-layer-01)}

@@ -113,7 +113,7 @@ function StatementModal({ plans, onClose, onGenerate }) {
         <div className="pr-form">
           <div className="pr-field">
             <label htmlFor="stmt-plan">
-              Plan Name/ID<i aria-hidden="true">*</i>
+              Plan Name/ID
               <span className="sr-only"> (required)</span>
             </label>
             <Select id="stmt-plan" required value={planId} onChange={(e) => setPlanId(e.target.value)}>

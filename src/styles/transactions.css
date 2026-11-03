@@ -584,39 +584,62 @@
 .wd2-table td.alloc-name-col{white-space:normal}
 .wd2-so .choice-list.wd2-modes{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .wd2-so .period{margin-bottom:var(--core-space-3)}
-.txn-field .alloc-pct-input.wd2-affix,.wd2-so .alloc-pct-input.wd2-affix{display:flex;width:100%;max-width:420px;min-height:var(--core-size-control-md)}
+/* A helper note under a toggle sits at the field's 8px gap, same as under inputs. */
+.wd2-so .period:has(+ .note){margin-bottom:0}
+.txn-field .alloc-pct-input.wd2-affix,.wd2-so .alloc-pct-input.wd2-affix{display:flex;align-items:stretch;background-clip:padding-box;width:100%;max-width:420px;min-height:var(--core-size-control-md)}
+.wd2-affix i{display:flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:36px;padding:0 var(--core-space-2);font-size:var(--typography-body-md-size);color:var(--neutral-text-subtle);background:var(--neutral-surface-layer-03)}
+/* The affix carries the field's inner corner radius itself. Relying on the
+   wrapper's overflow clip left an anti-aliased seam on the curve that read as
+   a second stroke beside the border. */
+.wd2-affix i:first-child{border-radius:calc(var(--core-radius-sm) - 1px) 0 0 calc(var(--core-radius-sm) - 1px)}
+.wd2-affix i:last-child:not(:first-child){border-radius:0 calc(var(--core-radius-sm) - 1px) calc(var(--core-radius-sm) - 1px) 0}
 .txn-field .alloc-pct-input.wd2-affix input,.wd2-so .alloc-pct-input.wd2-affix input{flex:1 1 auto;width:auto;min-width:0;text-align:left;padding:var(--core-space-2) var(--core-space-3);font-size:var(--typography-body-md-size)}
 .txn-field .alloc-pct-input.wd2-affix i:first-child,.wd2-so .alloc-pct-input.wd2-affix i:first-child{border-left:0;border-right:1px solid var(--core-color-border-control)}
 .txn-field .alloc-pct-input.wd2-affix i:last-child:not(:first-child),.wd2-so .alloc-pct-input.wd2-affix i:last-child:not(:first-child){border-left:1px solid var(--core-color-border-control);border-right:0}
+/* Disabled: the whole control (value area and affix) takes the same grey fill
+   and the light disabled border, so it reads as one locked field. */
 .txn-field .alloc-pct-input.wd2-affix.is-disabled,.txn-field .alloc-pct-input.wd2-affix:has(input:disabled){
   background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);box-shadow:none}
 .txn-field .alloc-pct-input.wd2-affix:has(input:disabled) input{background:transparent;color:var(--semantics-disabled-text);cursor:not-allowed}
-.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i{background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);color:var(--semantics-disabled-text)}
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i,
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i:first-child,
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i:last-child:not(:first-child){background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);color:var(--semantics-disabled-text)}
 .wd2-so .txn-field .note.err{color:var(--semantics-critical-text)}
 .wd2-ro{margin:var(--core-space-2) var(--core-space-0) var(--core-space-3)}
 .wd2-src{margin-top:var(--core-space-2)}
 .wd2-calc{margin-top:var(--core-space-5);padding-top:var(--core-space-3);border-top:1px solid var(--neutral-border-light)}
 .wd2-net b,.wd2-net span{font-weight:var(--typography-font-weight-bold)}
 .wd2-missing{margin-top:var(--core-space-4)}
-.wd2-doc{padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);margin-top:var(--core-space-3)}
-.wd2-doc .txn-doc-label{margin:0 0 var(--core-space-2);font-weight:var(--typography-font-weight-bold)}
-.wd2-doc-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1.1fr);gap:var(--core-space-4);align-items:stretch;margin-top:var(--core-space-3)}
-@media (max-width:767px){.wd2-doc-body{grid-template-columns:1fr}}
-.wd2-doc-side{display:flex;flex-direction:column;gap:var(--core-space-3);min-width:0}
-.wd2-doc-accept{margin:0;font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle);line-height:var(--typography-caption-line-height)}
+.wd2-doc{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1fr);gap:var(--core-space-3) var(--core-space-6);align-items:stretch;
+  padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);margin-top:var(--core-space-3)}
+.wd2-doc > .alloc-warn{grid-column:1 / -1;margin:0}
+@media (max-width:767px){.wd2-doc{grid-template-columns:1fr}}
+.wd2-doc .txn-doc-label{margin:0;font-weight:var(--typography-font-weight-regular);font-size:var(--typography-body-md-size)}
+.wd2-doc-side{display:flex;flex-direction:column;align-items:flex-start;gap:var(--core-space-2);min-width:0}
+.wd2-doc-side .period{margin:0}
+.wd2-doc-side .wd-note{margin-top:var(--core-space-1);width:max-content;max-width:100%}
+/* Docusign (no drop zone): the left column spans the card so the note stays on one line. */
+.wd2-doc:not(:has(.wd2-drop)) > .wd2-doc-side{grid-column:1 / -1}
+/* "Accepted file : PDF | Max File Size : 2 MB", split by a hairline divider. */
+.wd2-doc-accept{display:flex;flex-wrap:wrap;align-items:center;margin:0;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle);line-height:var(--typography-body-sm-line-height)}
+.wd2-doc-accept span + span{margin-left:var(--core-space-2);padding-left:var(--core-space-2);border-left:1px solid var(--neutral-border-light)}
+.wd2-doc-side .wd2-file{align-self:stretch}
 .wd2-doc-template{
-  display:inline-flex;align-items:center;gap:var(--core-space-2);align-self:flex-start;margin-top:auto;
+  display:inline-flex;align-items:center;gap:var(--core-space-1);align-self:flex-start;margin-top:var(--core-space-2);
   padding:0;border:0;background:none;font:inherit;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);
   color:var(--brand-text-primary-default);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .wd2-doc-template:hover{color:var(--brand-text-primary-hover)}
 .wd2-doc-template:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-sm)}
 .wd2-drop{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--core-space-2);min-height:120px;
-  margin:0;padding:var(--core-space-5);border:1px dashed var(--brand-border-primary-default);border-radius:var(--core-radius-sm);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--core-space-1);min-height:120px;
+  margin:0;padding:var(--core-space-4);border:1px dashed var(--brand-border-primary-default);border-radius:var(--core-radius-sm);
   background:var(--theme-brand-background-primary-subtle);text-align:center;cursor:pointer;color:var(--neutral-text-subtle);
   font-size:var(--typography-body-sm-size);position:relative}
-.wd2-drop svg{color:var(--brand-text-primary-default)}
-.wd2-drop u{color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-semibold);text-decoration:underline}
+.wd2-drop-title{display:inline-flex;align-items:center;gap:var(--core-space-2);color:var(--neutral-text-default)}
+.wd2-drop svg{color:var(--neutral-text-default)}
+.wd2-drop u{color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-regular);text-decoration:none}
+.wd2-drop:hover u{text-decoration:underline}
 .wd2-drop input{position:absolute;width:1px;height:1px;opacity:0}
 .wd2-drop:focus-within{outline:var(--core-focusRing-width) solid var(--cds-focus-color)}
 .wd2-file{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);padding:var(--core-space-3);background:var(--neutral-surface-layer-03);border-radius:var(--core-radius-sm)}
@@ -634,6 +657,9 @@
 .wd2 .hint{align-items:flex-start}
 .wd2 .hint svg{margin-top:3px;flex:0 0 auto}
 .wd2 .wd-note,.wd2-so .wd-note{display:block;font-size:var(--typography-body-sm-size)}
+/* Info notes lead with an icon, aligned to the first line of text. */
+.wd2 .wd-note:has(> svg),.wd2-so .wd-note:has(> svg){display:flex;align-items:flex-start;gap:var(--core-space-2)}
+.wd2 .wd-note > svg,.wd2-so .wd-note > svg{flex-shrink:0;margin-top:3px}
 .wd2-so .txn-fieldset{margin-top:var(--core-space-3)}
 .table-wrap .alloc-table.wd2-table{min-width:0}
 .wd2-table th,.wd2-table td{padding-left:var(--core-space-3);padding-right:var(--core-space-3)}
@@ -648,7 +674,7 @@
 .wd2-table .tf-actions{gap:0}
 .wd2 .tf-notice{margin-top:var(--core-space-4)}
 .wd2 .alloc-warn{margin-top:var(--core-space-3)}
-.wd2-doc .txn-doc-required{display:inline;margin-left:var(--core-space-1);font-weight:var(--typography-font-weight-regular)}
+.wd2-doc .txn-doc-required{display:inline;margin-left:var(--core-space-1);font-size:inherit;font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-subtle)}
 .wd2-sum .detail-rows + .hint{margin-top:var(--core-space-3)}
 
 /* ---------- Transfer flow: updated Figma (Census · Final) ---------- */
@@ -858,7 +884,7 @@
   .tf-detail-table td.tf-detail-sell{width:auto;min-width:160px;max-width:200px}
   .tf-detail-table td.alloc-name-col{min-width:180px}
 }
-.wd2 .tabs{margin:var(--core-space-3) var(--core-space-0) var(--core-space-2)}
+.wd2 .tabs{margin:var(--core-space-3) var(--core-space-0) var(--core-space-2);padding:0}
 .wd2-details-split{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 var(--core-space-6);align-items:start;
   padding-top:var(--core-space-1)}
@@ -869,10 +895,12 @@
   .wd2-details-split > .wd2-details-col + .wd2-details-col{padding-left:0;border-left:0;padding-top:var(--core-space-2);border-top:1px solid var(--neutral-border-light)}
 }
 .wd2-details-col{margin:0}
-.wd2-details-col > li{
-  min-height:40px;align-items:center;padding:var(--core-space-3) 0;
+/* Rows are 36px (8px padding around a 20px line) in both columns; the last
+   row drops its bottom padding so the card's 16px padding is the only gap. */
+.wd2-sum .detail-rows.wd2-details-col > li{
+  min-height:0;align-items:center;padding:var(--core-space-2) 0;
   font-size:var(--typography-body-sm-size)}
-.wd2-details-col > li:last-child{border-bottom:0;padding-bottom:var(--core-space-3)}
+.wd2-sum .detail-rows.wd2-details-col > li:last-child{border-bottom:0;padding-bottom:0}
 .wd2-details-col > li > span{flex:1 1 auto;min-width:0}
 .wd2-details-col > li > b{flex:0 0 auto;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold)}
 .wd2-details-col > li.wd2-net > span,.wd2-details-col > li.wd2-net > b{
@@ -889,10 +917,11 @@
 .wd2-restrict svg{flex-shrink:0;margin-top:2px}
 /* Source Withdraw Amount: bordered list, linked source + total left, fund chips right. */
 .wd2-src-list{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-md);background:var(--neutral-surface-layer-01)}
-.wd2-src-row{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-5);border-top:1px solid var(--neutral-border-light)}
+.wd2-src-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-5);border-top:1px solid var(--neutral-border-light)}
 .wd2-src-row:first-child{border-top:0}
 .wd2-src-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:1 1 220px;min-width:0;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
 .wd2-src-link{display:block;max-width:100%;padding:0;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd2-src-name > b{display:block;max-width:100%;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wd2-src-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2);flex:0 1 auto;min-width:0}
 .wd2-src-chip{
   display:inline-flex;align-items:center;gap:var(--core-space-1);max-width:220px;height:28px;padding:0 var(--core-space-3);
@@ -918,3 +947,56 @@
 .wd2-src th,.wd2-src td{padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
 .wd2-src td:first-child{white-space:normal}
 .wd2-src .alloc-pct-input input{width:72px}
+
+/* Withdrawal: every text control is 240px wide; long values and selections
+   truncate with an ellipsis instead of stretching the field. */
+.wd2 .txn-row > .txn-field:not(.txn-fieldset),.wd2-so .txn-row > .txn-field:not(.txn-fieldset){flex:0 1 auto;max-width:100%}
+.wd2 .txn-field > input,.wd2 .txn-field > select,.wd2 .txn-field > .ui-select,.wd2 .txn-field > .ui-datepicker,.wd2 .txn-field > .alloc-pct-input.wd2-affix,
+.wd2-so .txn-field > input,.wd2-so .txn-field > select,.wd2-so .txn-field > .ui-select,.wd2-so .txn-field > .ui-datepicker,.wd2-so .txn-field > .alloc-pct-input.wd2-affix{
+  width:240px;max-width:100%}
+.wd2 .txn-field input,.wd2-so .txn-field input{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+
+/* Checkbox / radio rows (CORE): 20x20 control, 8px to the label, 4px above and below. */
+.wd2 label:has(> input[type="checkbox"]),.wd2 label:has(> input[type="radio"]),
+.wd2-so label:has(> input[type="checkbox"]),.wd2-so label:has(> input[type="radio"]){
+  display:flex;align-items:flex-start;gap:var(--core-space-2);padding:var(--core-space-1) 0;line-height:20px}
+.wd2 label > input[type="checkbox"],.wd2 label > input[type="radio"],
+.wd2-so label > input[type="checkbox"],.wd2-so label > input[type="radio"]{width:20px;height:20px;margin:0}
+
+/* Review and Submit: Terms & Conditions document frame. */
+.wd2-terms{margin-top:var(--core-space-5)}
+.wd2-terms .tf-ack{margin:0}
+.wd2-terms-link{padding:0;font:inherit;font-weight:var(--typography-font-weight-semibold)}
+/* In the slide-out the frame fills the panel so the full terms read without nested scrolling. */
+.wd2-terms-frame{display:block;width:100%;height:calc(100vh - 160px);min-height:320px;border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01)}
+
+/* Source gross input inside the Choose-by-Sources table. */
+.wd2-so td .alloc-pct-input.wd2-affix{width:160px;max-width:100%;margin-left:auto}
+
+/* Review cards: the last element sits on the card padding, no extra margin. */
+.wd2-sum > :last-child{margin-bottom:0}
+.wd2-sum-note{margin:var(--core-space-3) 0 0}
+/* Long uploaded file names wrap instead of pushing the row wider. */
+.wd2-sum .detail-rows li{gap:var(--core-space-4)}
+.wd2-doc-name{min-width:0;max-width:60%;overflow-wrap:anywhere}
+
+/* Terms acknowledgment row (not a <label>, so it needs the checkbox-row spacing explicitly). */
+.wd2-ack{display:flex;align-items:flex-start;gap:var(--core-space-2);padding:var(--core-space-1) 0;line-height:20px;cursor:default}
+.wd2-ack > input[type="checkbox"]{width:20px;height:20px;margin:0}
+.wd2-ack label{cursor:pointer}
+
+/* Allocation slide-out rhythm: 16px between fields (also when a row wraps),
+   24px above a section heading and 8px below it. Toggles and fieldsets carry
+   no margins of their own so the gap is always the container's. */
+.wd2-so .txn-row,.wd2-so .txn-stack{gap:var(--core-space-4)}
+.wd2-so .period,.wd2-so .period:has(+ .note){margin-bottom:0}
+.wd2-so .txn-fieldset{margin-top:0}
+.wd2-so :is(.txn-row,.txn-stack,.txn-field,.txn-fieldset,.wd2-src,.table-wrap,.inline-alert,.wd-note,div) + :is(.txn-row,.txn-stack,.txn-field,.txn-fieldset,.wd2-src,.table-wrap,.inline-alert,.wd2-calc):not(.txn-row > *):not(.txn-stack > *){margin-top:var(--core-space-4)}
+.wd2-so .txn-row > *,.wd2-so .txn-stack > *{margin-top:0}
+.wd2-so .wd2-sub + *{margin-top:0}
+.wd2-so .wd2-sub{margin:var(--core-space-6) 0 var(--core-space-2)}
+.wd2-so > .wd2-sub:first-child{margin-top:0}
+/* Withdrawal steps: same 16px between fields when a row wraps, and the
+   action buttons sit 24px below the step content on every step. */
+.wd2 .txn-row{gap:var(--core-space-4)}
+.wd2 .txn-actions{margin-top:var(--core-space-6)}
