@@ -20,6 +20,7 @@ import AccountSummary from './pages/AccountSummary.jsx'
 import RiskQuestionnaire from './pages/RiskQuestionnaire.jsx'
 import DesignSystem from './pages/DesignSystem.jsx'
 import { useOverlayScrollLock } from './hooks/useOverlayScrollLock'
+import IconTooltip from './components/common/IconTooltip.jsx'
 
 export default function App() {
   // Above <Routes> so it covers every layout — AppLayout, EnrollmentLayout and
@@ -28,6 +29,9 @@ export default function App() {
   useOverlayScrollLock()
 
   return (
+    <>
+    {/* Tooltips for icon-only buttons marked with data-icon-tip (see IconTooltip). */}
+    <IconTooltip />
     <Routes>
       <Route path="/design-system" element={<DesignSystem />} />
       <Route element={<GuestOnly />}>
@@ -59,5 +63,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

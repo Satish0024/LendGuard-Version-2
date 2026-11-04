@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
 import { faCircleCheck, faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -88,8 +88,14 @@ const HISTORY = [
   { title: 'Awaiting Trade', by: 'System Generated' },
   { title: 'Completed', by: 'Plan Administrator' }
 ]
-// Summary shows the first 2 funds of a source in full; the rest collapse into "+N".
-const MAX_CHIPS = 2
+// Summary shows the first 3 funds of a source (Figma); the rest collapse into "+N".
+const MAX_CHIPS = 3
+// Smallest pill width (fund label + amount), the gap between pills, and room kept for "+N".
+const CHIP_MIN = 112
+const CHIP_GAP = 8
+const MORE_W = 48
+// Pills block width cap: it sits at the row's right edge with pills left-aligned inside.
+const CHIPS_MAX_W = 640
 
 const r2 = (n) => Math.round((+n || 0) * 100) / 100
 const money = (n) => formatMoney(r2(n))
@@ -716,10 +722,10 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
                       </td>
                       <td className="num">
                         <span className="tf-actions">
-                          <button type="button" className="icon-btn" aria-label="Edit Allocation" onClick={() => setEditing(i)}>
+                          <button type="button" className="icon-btn" aria-label="Edit Allocation" data-icon-tip="Edit allocation" onClick={() => setEditing(i)}>
                             <Icon icon={faPen} size={13} />
                           </button>
-                          <button type="button" className="icon-btn" aria-label="Remove Allocation" onClick={() => removeAlloc(i)}>
+                          <button type="button" className="icon-btn icon-btn-danger" aria-label="Remove Allocation" data-icon-tip="Remove allocation" onClick={() => removeAlloc(i)}>
                             <Icon icon={faTrash} size={13} />
                           </button>
                         </span>
@@ -989,11 +995,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           <div className="wd2-sum-h">
             <h4>Source Withdraw Amount</h4>
           </div>
-          <div className="wd2-src-list">
-            {sourceRows.map((s) => (
-              <SourceSummaryRow key={s.id} source={s} />
-            ))}
-          </div>
+          <SourceSummaryList rows={sourceRows} />
         </section>
       )}
 
@@ -1101,33 +1103,105 @@ function WdAlert({ tone, title, children }) {
   )
 }
 
+// Shows the first MAX_SOURCES sources; the rest sit behind a "Show all" toggle.
+const MAX_SOURCES = 4
+function SourceSummaryList({ rows }) {
+  const [all, setAll] = useState(false)
+  const hidden = rows.length - MAX_SOURCES
+  return (
+    <>
+      <div className="wd2-src-list">
+        {(all ? rows : rows.slice(0, MAX_SOURCES)).map((s) => (
+          <SourceSummaryRow key={s.id} source={s} />
+        ))}
+      </div>
+      {hidden > 0 && (
+        <button type="button" className="btn btn-ghost btn-sm wd2-src-all" aria-expanded={all} onClick={() => setAll((v) => !v)}>
+          <Icon icon={faChevronDown} size={12} className={all ? 'is-up' : undefined} />
+          {all ? 'Show fewer sources' : `Show all ${rows.length} sources (+${hidden})`}
+        </button>
+      )}
+    </>
+  )
+}
+
 function SourceSummaryRow({ source }) {
   const [expanded, setExpanded] = useState(false)
-  const extra = source.lines.length - MAX_CHIPS
   const shown = expanded ? source.lines : source.lines.slice(0, MAX_CHIPS)
+  // One line only (like the Transfer request): pills shrink (down to
+  // CHIP_MIN, name cut with "…") to share the row; when even that doesn't fit,
+  // fewer pills render and the rest count into "+N".
+  const boxRef = useRef(null)
+  const [fit, setFit] = useState(MAX_CHIPS)
+  useLayoutEffect(() => {
+    const el = boxRef.current
+    if (!el || expanded) return
+    const measure = () => {
+      // Phones let pills wrap freely, so every pill shows.
+      if (window.matchMedia('(max-width: 767px)').matches) return setFit(MAX_CHIPS)
+      // Room = row width minus the name column, the row gap/padding and "+N".
+      const row = el.parentElement
+      const rs = getComputedStyle(row)
+      const avail = row.clientWidth - row.firstElementChild.offsetWidth - parseFloat(rs.columnGap || 0) - parseFloat(rs.paddingRight || 0)
+      const room = Math.min(avail, CHIPS_MAX_W) - MORE_W - CHIP_GAP
+      setFit(Math.max(1, Math.min(MAX_CHIPS, Math.floor((room + CHIP_GAP) / (CHIP_MIN + CHIP_GAP)))))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el.parentElement)
+    return () => ro.disconnect()
+  }, [expanded])
+  // Expanded: shrink the pills block to its widest line so it sits flush at the
+  // table's right edge while the pills inside stay left-aligned.
+  useLayoutEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    if (!expanded) {
+      el.style.width = ''
+      return
+    }
+    const hug = () => {
+      el.style.width = ''
+      if (window.matchMedia('(max-width: 767px)').matches) return
+      const left = el.getBoundingClientRect().left
+      const right = Math.max(...[...el.querySelectorAll('.wd2-src-chip, .wd2-more')].map((c) => c.getBoundingClientRect().right))
+      el.style.width = `${Math.ceil(right - left)}px`
+    }
+    hug()
+    const ro = new ResizeObserver(() => requestAnimationFrame(hug))
+    ro.observe(el.parentElement)
+    return () => ro.disconnect()
+  }, [expanded])
+  const visible = expanded ? shown.length : Math.min(fit, shown.length)
+  const extra = source.lines.length - visible
+  const toggle = () => setExpanded((v) => !v)
   return (
     <div className={`wd2-src-row${expanded ? ' expanded' : ''}`}>
       <div className="wd2-src-name">
-        <b>{source.name}</b>
-        <span>{money(source.total)}</span>
+        {/* Figma: the source name is a link; here it shows or hides all of its funds. */}
+        <button type="button" className="wd2-src-link" title={source.name} aria-expanded={expanded} onClick={toggle} disabled={source.lines.length <= 1}>
+          {source.name}
+        </button>
+        <span className="wd2-src-total">{money(source.total)}</span>
       </div>
-      {/* Same fund pills as the Transfer module: navy badge, name + amount, first 2 then "+N". */}
-      <div className="tf-chips wd2-src-chips">
-        {shown.map((l) => (
-          <span key={l.id} className="badge navy tf-chip wd2-src-chip">
-            <span className="tf-chip-name">{l.name}</span>
-            <b>{money(l.gross)}</b>
-          </span>
-        ))}
-        {extra > 0 && (
+      <div className="wd2-src-chips" ref={boxRef}>
+        <span className="wd2-src-track">
+          {shown.slice(0, visible).map((l) => (
+            <span key={l.id} className="wd2-src-chip" title={`${l.name} ${money(l.gross)}`}>
+              <span className="wd2-src-chip-name">{l.name}</span>
+              <b>{money(l.gross)}</b>
+            </span>
+          ))}
+        </span>
+        {(expanded || extra > 0) && (
           <button
             type="button"
-            className="badge navy wd2-more"
+            className="wd2-more"
             aria-expanded={expanded}
-            aria-label={expanded ? `Show fewer for ${source.name}` : `Show ${extra} more for ${source.name}`}
-            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? `Show fewer funds for ${source.name}` : `Show ${extra} more funds for ${source.name}`}
+            onClick={toggle}
           >
-            {expanded ? 'Show Less' : `+${extra}`}
+            {expanded ? 'Show less' : `+${extra}`}
           </button>
         )}
       </div>
@@ -1766,7 +1840,7 @@ function UploadedFileCard({ file, onRemove }) {
       </span>
       <span className="wd2-file-pill">Uploaded</span>
       {onRemove && (
-        <button type="button" className="icon-btn icon-btn-sm wd2-file-x" aria-label={`Remove ${file.name}`} onClick={onRemove}>
+        <button type="button" className="icon-btn icon-btn-sm wd2-file-x" aria-label={`Remove ${file.name}`} data-icon-tip="Remove file" onClick={onRemove}>
           <Icon icon={faXmark} size={14} />
         </button>
       )}

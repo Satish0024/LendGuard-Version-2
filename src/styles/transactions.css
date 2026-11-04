@@ -944,12 +944,6 @@
 .wd2-restrict{margin:var(--core-space-2) 0 var(--core-space-4)}
 .wd2-restrict svg{flex-shrink:0;margin-top:2px}
 /* Source Withdraw Amount: bordered list, linked source + total left, fund chips right. */
-.wd2-src-list{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-md);background:var(--neutral-surface-layer-01)}
-.wd2-src-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-5);border-top:1px solid var(--neutral-border-light)}
-.wd2-src-row:first-child{border-top:0}
-.wd2-src-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:0 1 auto;min-width:160px;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-.wd2-src-name > b{display:block;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);overflow-wrap:anywhere}
-@media (max-width:767px){.wd2-src-row{flex-direction:column;align-items:stretch}.wd2-src-chips{justify-content:flex-start}}
 .wd2-hist{list-style:none;margin:var(--core-space-4) 0 0;padding:0}
 .wd2-hist li{position:relative;display:flex;flex-direction:column;gap:var(--core-space-1);padding:0 0 var(--core-space-4) var(--core-space-5);border-left:2px solid var(--neutral-border-light);margin-left:var(--core-space-1)}
 .wd2-hist li:last-child{border-left-color:transparent;padding-bottom:0}
@@ -1021,8 +1015,6 @@
 .wd2-table .alloc-name-col{min-width:150px}
 /* Source name column stays compact so fund chips fill the remaining row
    (no empty space on the right), with "+N" after them. One column on phones. */
-.wd2-src-name{min-width:120px;flex:0 0 120px}
-@media (max-width:767px){.wd2-src-name{flex-basis:auto}}
 /* Action column: header and the edit/delete icons share one centre line
    (right-aligning left the icon buttons' padding showing past the header). */
 .table-wrap .alloc-table.wd2-table :is(th,td):last-child{text-align:center}
@@ -1049,12 +1041,91 @@
 .txn-field .alloc-pct-input.wd2-affix:has(input[aria-invalid="true"]) input{border:0}
 .txn-field .note.err{margin-top:var(--core-space-0);line-height:20px}
 
-/* Summary source funds use the Transfer module's fund pills (badge navy). Names
-   show in full; pills wrap to the next line when space runs out. */
-.wd2-src-chips{flex:1 1 0;min-width:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:var(--core-space-2)}
-.wd2-src-chip{gap:var(--core-space-2);max-width:100%}
-.wd2-src-chip .tf-chip-name{overflow:visible;text-overflow:clip;white-space:normal}
-.wd2-src-chip b{flex:0 0 auto;font-weight:var(--typography-font-weight-bold)}
-.wd2-more{border:0;cursor:pointer;font:inherit;font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-bold)}
-.wd2-more:hover{background:var(--brand-background-primary-subtle)}
+/* ---------- Summary: Source Withdraw Amount (Figma 5372-77396) ----------
+   Bordered list, one row per source. Left cell 400px: source name as a
+   brand link (bold 16, one line) with the source total under it. Right: up to
+   3 fund tags then "+N", right-aligned. Tag = 24px pill, brand-subtle fill,
+   brand border, grey fund label + bold brand amount, 8px apart. */
+.wd2-src-list{border:1px solid var(--core-color-neutral-300);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01);overflow:hidden}
+.wd2-src-row{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4);padding:0 var(--core-space-4) 0 0;border-top:1px solid var(--core-color-neutral-300)}
+.wd2-src-row:first-child{border-top:0}
+.wd2-src-row.expanded{align-items:flex-start}
+.wd2-src-row.expanded .wd2-src-chips{padding-top:var(--core-space-4);padding-bottom:var(--core-space-4)}
+.wd2-src-name{flex:0 1 400px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:var(--core-space-1);padding:var(--core-space-4)}
+.wd2-src-link{max-width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);line-height:20px;color:var(--brand-text-primary-default);text-align:left;text-decoration:underline;text-underline-offset:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd2-src-link:hover:not(:disabled){color:var(--brand-text-primary-hover)}
+.wd2-src-link:disabled{cursor:default;opacity:1}
+.wd2-src-link:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-xs,4px)}
+.wd2-src-total{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle);letter-spacing:.02em}
+.wd2-src-chips{flex:0 1 auto;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2)}
+.wd2-src-chip,.wd2-more{display:inline-flex;align-items:center;gap:var(--core-space-1);min-height:24px;padding:var(--core-space-1) var(--core-space-2);border:1px solid var(--brand-border-primary-default);border-radius:var(--core-radius-full);background:var(--brand-background-primary-subtle);font:inherit;font-size:var(--typography-body-sm-size);line-height:16px;white-space:nowrap}
+.wd2-src-chip{max-width:200px}
+.wd2-src-row.expanded .wd2-src-chip{max-width:none}
+.wd2-src-chip-name{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
+.wd2-src-chip b{flex:0 0 auto;font-weight:var(--typography-font-weight-bold);color:var(--brand-text-primary-default)}
+.wd2-more{cursor:pointer;font-weight:var(--typography-font-weight-semibold);color:var(--brand-text-primary-default)}
+.wd2-more:hover{background:var(--brand-background-primary-disabled)}
 .wd2-more:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
+.wd2-src-all{margin-top:var(--core-space-2);display:inline-flex;align-items:center;gap:var(--core-space-2)}
+.wd2-src-all svg{transition:transform var(--core-motion-duration-fast)}
+.wd2-src-all svg.is-up{transform:rotate(180deg)}
+@media (max-width:767px){
+  .wd2-src-row{flex-direction:column;align-items:stretch;gap:0;padding:0 var(--core-space-4) var(--core-space-4) 0}
+  .wd2-src-name{flex-basis:auto}
+  .wd2-src-chips{justify-content:flex-start;padding-left:var(--core-space-4)}
+}
+
+/* Figma sizing: 16px bold name link, 24px pills, and one line of pills that
+   shrink with an ellipsis (full name on hover) instead of wrapping. */
+.wd2-src-link{font-size:var(--typography-font-size-md,16px)}
+.wd2-src-name{flex:0 1 400px;min-width:200px}
+.wd2-src-chips{flex:1 1 0;flex-wrap:nowrap}
+.wd2-src-chip,.wd2-more{min-height:24px;padding-top:3px;padding-bottom:3px}
+.wd2-src-chip{flex:0 1 auto;min-width:0;max-width:220px}
+.wd2-more{flex:0 0 auto}
+.wd2-src-row.expanded .wd2-src-chips{flex-wrap:wrap}
+@media (max-width:767px){.wd2-src-name{min-width:0}.wd2-src-chips{flex-wrap:wrap}.wd2-src-chip{max-width:100%}}
+/* One line, Transfer-request style: the name column gives up width first
+   (down to 180px), each pill keeps at least 112px (fund label + amount), and
+   the track clips anything that still doesn't fit; "+N" always stays visible. */
+.wd2-src-name{flex:0 1 400px;min-width:180px}
+.wd2-src-chips{flex:0 1 auto;min-width:0;flex-wrap:nowrap}
+.wd2-src-track{display:flex;flex:0 1 auto;min-width:0;gap:var(--core-space-2);overflow:hidden}
+.wd2-src-chip{flex:0 1 auto;min-width:112px;max-width:220px}
+.wd2-src-row.expanded .wd2-src-chips{flex-wrap:wrap}
+.wd2-src-row.expanded .wd2-src-track{flex-wrap:wrap;overflow:visible;justify-content:flex-end}
+@media (max-width:767px){.wd2-src-track{flex-wrap:wrap;overflow:visible}.wd2-src-chip{min-width:0;max-width:100%}}
+/* Track wraps but only its first line shows (24px), so a pill is either
+   fully visible or hidden — never cut in half. */
+.wd2-src-track{flex-wrap:wrap;justify-content:flex-end;max-height:24px;overflow:hidden}
+.wd2-src-row.expanded .wd2-src-track{max-height:none}
+@media (max-width:767px){.wd2-src-track{max-height:none;justify-content:flex-start}}
+/* Pills start right after the name column (left-aligned) in both the one-line
+   and expanded views; the name column is fixed so the pills get the rest. */
+.wd2-src-name{flex:0 0 240px;min-width:0}
+.wd2-src-chips{flex:1 1 0;justify-content:flex-start}
+.wd2-src-track{justify-content:flex-start}
+.wd2-src-row.expanded .wd2-src-track{justify-content:flex-start}
+.wd2-src-chip{max-width:240px}
+@media (max-width:767px){.wd2-src-name{flex-basis:auto}}
+/* Final one-line behaviour: no wrapping in the collapsed row; pills shrink to
+   112px with "…" (JS renders only as many as fit). Expanded rows wrap, left-aligned. */
+.wd2-src-track{flex:0 1 auto;flex-wrap:nowrap;max-height:none;overflow:hidden}
+.wd2-src-chip{flex:0 1 auto;min-width:112px;max-width:240px}
+.wd2-src-row.expanded .wd2-src-track{flex-wrap:wrap;overflow:visible}
+@media (max-width:767px){.wd2-src-track{flex-wrap:wrap;overflow:visible}.wd2-src-chip{min-width:0;max-width:100%}}
+/* Pills block sits at the right of the row (Figma); inside it the pills are
+   left-aligned, so expanded rows form a neat left-aligned column on the right. */
+.wd2-src-chips{flex:0 1 auto;width:auto;max-width:640px;margin-left:auto;justify-content:flex-start}
+.wd2-src-row.expanded .wd2-src-chips{flex:0 1 640px}
+.wd2-src-row.expanded .wd2-src-track{justify-content:flex-start}
+@media (max-width:767px){.wd2-src-chips{max-width:none;margin-left:0}.wd2-src-row.expanded .wd2-src-chips{flex-basis:auto}}
+/* Expanded: block wraps within 640px, then JS narrows it to its widest line
+   (inline width) so it ends flush with the table's right edge. */
+.wd2-src-row.expanded .wd2-src-chips{flex:0 1 auto;max-width:640px;margin-left:auto}
+/* Fee & tax breakdown lines up with the arrow and "Net Withdrawal Amount" (no indent). */
+.wd2-ded ul{padding-left:var(--core-space-0)}
+/* Delete icon: critical red, with a light red wash on hover. */
+.icon-btn.icon-btn-danger{color:var(--semantics-critical-text)}
+.icon-btn.icon-btn-danger:hover{color:var(--semantics-critical-text);background:var(--semantics-critical-background-light)}
+.icon-btn.icon-btn-danger:active:not(:disabled){color:var(--semantics-critical-text);background:color-mix(in srgb,var(--semantics-critical-text) 16%,transparent)}

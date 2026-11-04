@@ -3334,3 +3334,12 @@ summary:focus-visible {
    language as [data-tip], but fixed-position so clipped parents can't hide it. */
 .trunc-tip{position:fixed;transform:translateX(-50%);z-index:200;width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);
   background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-xs-line-height);box-shadow:var(--core-elevation-1);pointer-events:none;white-space:normal;text-align:center}
+
+/* Floating tooltip for icon-only buttons (IconTooltip.jsx) -- identical look to
+   the header's [data-tip] tooltip, fixed-positioned so tables and slide-outs
+   can't clip it. */
+.icon-tip{position:fixed;z-index:300;width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);
+  background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);
+  line-height:var(--typography-body-xs-line-height);text-align:center;box-shadow:var(--core-elevation-1);white-space:nowrap;pointer-events:none;animation:icon-tip-in var(--core-motion-duration-fast) ease-out}
+@keyframes icon-tip-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.icon-tip{animation:none}}
