@@ -162,24 +162,27 @@
 .field-tip{position:relative;display:inline-flex;vertical-align:middle;margin-left:var(--core-space-1)}
 .field-tip-btn{
   display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:var(--core-radius-full);
-  border:none;padding:var(--core-space-0);background:transparent;color:var(--neutral-text-subtle);cursor:help}
+  border:none;padding:var(--core-space-0);background:transparent;color:var(--neutral-text-subtle);cursor:pointer}
 /* No disc behind the icon: faInfoCircle is already a filled circle, so a
    background doubled it into a halo. Only the icon colour changes. */
 .field-tip-btn:hover,.field-tip-btn:focus-visible{color:var(--brand-text-primary-default)}
 .field-tip-btn:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
+/* CORE tooltip: dark bubble with an arrow, wrapping onto more lines past 240px.
+   Positioned by FieldTip (fixed, portalled), placement set via .is-<side>. */
 .field-tip-bubble{
-  /* CORE .cds-tooltip; wraps because this carries sentence-length help. */
-  /* Anchored to the icon's left (labels sit at the left edge of cards and
-     slideouts), so it opens rightward instead of clipping off-panel. */
-  position:absolute;left:-8px;bottom:calc(100% + var(--core-tooltip-offset));transform:translateY(4px);
-  width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);
-  font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-xs-line-height);text-align:left;box-shadow:var(--core-elevation-1);
-  opacity:0;visibility:hidden;pointer-events:none;transition:opacity var(--core-motion-duration-fast),transform var(--core-motion-duration-fast);z-index:20}
-.field-tip-bubble::after{
-  content:"";position:absolute;top:100%;left:20px;transform:translateX(-50%);border:5px solid transparent;
-  border-top-color:var(--neutral-text-default)}
-.field-tip:hover .field-tip-bubble,.field-tip:focus-within .field-tip-bubble{
-  opacity:1;visibility:visible;transform:translateY(0)}
+  position:fixed;z-index:300;display:block;width:max-content;max-width:var(--core-tooltip-maxWidth);
+  padding:var(--core-space-2) var(--core-space-3);border-radius:var(--core-radius-sm);
+  background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);box-shadow:var(--core-elevation-1);
+  font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-sm-line-height,20px);
+  pointer-events:none;animation:field-tip-in var(--core-motion-duration-fast) ease-out}
+.field-tip-text{display:block;white-space:normal;overflow-wrap:break-word}
+.field-tip-bubble::after{content:"";position:absolute;width:0;height:0;border:6px solid transparent}
+.field-tip-bubble.is-top::after{top:100%;left:var(--tip-arrow,50%);transform:translateX(-50%);border-top-color:var(--neutral-text-default)}
+.field-tip-bubble.is-bottom::after{bottom:100%;left:var(--tip-arrow,50%);transform:translateX(-50%);border-bottom-color:var(--neutral-text-default)}
+.field-tip-bubble.is-right::after{right:100%;top:var(--tip-arrow,50%);transform:translateY(-50%);border-right-color:var(--neutral-text-default)}
+.field-tip-bubble.is-left::after{left:100%;top:var(--tip-arrow,50%);transform:translateY(-50%);border-left-color:var(--neutral-text-default)}
+@keyframes field-tip-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.field-tip-bubble{animation:none}}
 
 .txn-tenure-row{display:flex;gap:var(--core-space-2);align-items:center}
 .txn-tenure-row input{
@@ -624,7 +627,21 @@
 /* "Accepted file : PDF | Max File Size : 2 MB", split by a hairline divider. */
 .wd2-doc-accept{display:flex;flex-wrap:wrap;align-items:center;margin:0;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle);line-height:var(--typography-body-sm-line-height)}
 .wd2-doc-accept span + span{margin-left:var(--core-space-2);padding-left:var(--core-space-2);border-left:1px solid var(--neutral-border-light)}
-.wd2-doc-side .wd2-file{align-self:stretch}
+.wd2-doc > .wd2-doc-files{grid-column:1 / -1}
+/* Uploaded file: green success card (badge, name, size/status, pill, remove). */
+.wd2-file-card{display:flex;align-items:center;gap:var(--core-space-3);min-width:0;padding:var(--core-space-3);
+  border:1px solid var(--semantics-success-border);border-radius:var(--core-radius-sm);background:var(--semantics-success-background-light)}
+.wd2-file-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:40px;height:40px;border-radius:var(--core-radius-sm);
+  background:var(--theme-semantics-success-strong-background);color:var(--brand-text-primary-oncolor);font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);letter-spacing:.02em}
+.wd2-file-meta{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;text-align:left;overflow-wrap:break-word}
+.detail-rows .wd2-file-meta b,.wd2-file-meta b{color:var(--neutral-text-default);font-weight:var(--typography-font-weight-semibold);text-align:left}
+.wd2-file-meta small{font-size:var(--typography-caption-size);color:var(--neutral-text-subtle)}
+.wd2-file-meta em{font-style:normal;font-weight:var(--typography-font-weight-semibold);color:var(--semantics-success-text)}
+.wd2-file-pill{flex:0 0 auto;padding:2px var(--core-space-3);border:1px solid var(--semantics-success-text);border-radius:var(--core-radius-full);
+  font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);color:var(--semantics-success-text)}
+.wd2-file-x{flex:0 0 auto}
+.detail-rows .wd2-file-card{max-width:60%}
+@media (max-width:767px){.detail-rows .wd2-file-card{max-width:100%}.wd2-file-pill{display:none}}
 .wd2-doc-template{
   display:inline-flex;align-items:center;gap:var(--core-space-1);align-self:flex-start;margin-top:var(--core-space-2);
   padding:0;border:0;background:none;font:inherit;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);
@@ -642,13 +659,21 @@
 .wd2-drop:hover u{text-decoration:underline}
 .wd2-drop input{position:absolute;width:1px;height:1px;opacity:0}
 .wd2-drop:focus-within{outline:var(--core-focusRing-width) solid var(--cds-focus-color)}
-.wd2-file{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);padding:var(--core-space-3);background:var(--neutral-surface-layer-03);border-radius:var(--core-radius-sm)}
+.wd2-ok-mark{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--theme-semantics-success-strong-background);color:var(--brand-text-primary-oncolor)}
 .wd2-sum{margin-top:var(--core-space-4);padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm)}
 .wd2-sum-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--core-space-2)}
 .wd2-sum-h h4{display:flex;align-items:center;gap:var(--core-space-2);margin:0;font-size:var(--typography-body-md-size)}
 .wd2-tags{display:flex;flex-wrap:wrap;gap:var(--core-space-2);margin:0 0 var(--core-space-2)}
 .wd2-ded details{width:100%}
-.wd2-ded summary{display:flex;justify-content:space-between;cursor:pointer}
+.wd2-ded summary{display:flex;justify-content:space-between;cursor:pointer;list-style:none}
+.wd2-ded summary::-webkit-details-marker{display:none}
+/* Expand indicator: a chevron beside the label that turns when the breakdown opens. */
+.wd2-ded-toggle{display:inline-flex;align-items:center;gap:var(--core-space-2);color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-semibold)}
+.wd2-ded-chev{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--brand-background-primary-light);transition:transform var(--core-motion-duration-fast)}
+.wd2-ded details[open] .wd2-ded-chev{transform:rotate(180deg)}
+.wd2-ded summary:hover .wd2-ded-toggle span:last-child{text-decoration:underline}
+.wd2-ded summary:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-sm)}
+@media (prefers-reduced-motion:reduce){.wd2-ded-chev{transition:none}}
 .wd2-ded ul{list-style:none;margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);padding:0 0 0 var(--core-space-4)}
 .wd2-ded ul li{display:flex;justify-content:space-between;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle);padding:var(--core-space-1) 0}
 .txn-field .note.err{color:var(--semantics-critical-text)}
@@ -919,15 +944,18 @@
 .wd2-src-list{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-md);background:var(--neutral-surface-layer-01)}
 .wd2-src-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-5);border-top:1px solid var(--neutral-border-light)}
 .wd2-src-row:first-child{border-top:0}
-.wd2-src-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:1 1 220px;min-width:0;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-.wd2-src-link{display:block;max-width:100%;padding:0;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wd2-src-name > b{display:block;max-width:100%;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wd2-src-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2);flex:0 1 auto;min-width:0}
+.wd2-src-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:0 1 auto;min-width:160px;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.wd2-src-link{display:block;padding:0;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);text-align:left;overflow-wrap:anywhere}
+.wd2-src-name > b{display:block;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);overflow-wrap:anywhere}
+.wd2-src-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2);flex:1 1 0;min-width:0}
 .wd2-src-chip{
-  display:inline-flex;align-items:center;gap:var(--core-space-1);max-width:220px;height:28px;padding:0 var(--core-space-3);
+  display:inline-flex;align-items:center;gap:var(--core-space-1);max-width:100%;min-height:28px;padding:0 var(--core-space-3);
   border:1px solid var(--brand-border-primary-default,var(--brand-text-primary-default));border-radius:var(--core-radius-full);
   background:var(--brand-background-primary-light);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-.wd2-src-chip-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Collapsed rows cap the investment name; expanded rows show it in full. */
+.wd2-src-chip-name{min-width:0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd2-src-row.expanded .wd2-src-chip{padding-top:var(--core-space-1);padding-bottom:var(--core-space-1)}
+.wd2-src-row.expanded .wd2-src-chip-name{max-width:none;white-space:normal;overflow:visible}
 .wd2-src-chip b{flex:0 0 auto;color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-bold)}
 .wd2-more{
   display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 var(--core-space-2);

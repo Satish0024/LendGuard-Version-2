@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload } from '@fortawesome/free-solid-svg-icons'
+import { faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../common/Field.jsx'
@@ -464,19 +464,16 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
         {w.type && !blocked && (
           <>
             <div className={isIns ? 'txn-stack spaced' : 'txn-row spaced'}>
-              <FieldGroup label="Withdraw As" note={!isSfs && !isIns ? 'Periodic payment is available for Separation from Service only.' : undefined}>
+              <FieldGroup label="Withdraw As">
                 <div className="period" role="radiogroup" aria-label="Withdraw As">
-                  {[
-                    ['one', 'One Time Payment'],
-                    ['periodic', 'Periodic Payment']
-                  ].map(([id, label]) => (
+                  {/* Periodic payment only exists for Separation from Service. */}
+                  {[['one', 'One Time Payment'], ...(isSfs ? [['periodic', 'Periodic Payment']] : [])].map(([id, label]) => (
                     <button
                       key={id}
                       type="button"
                       role="radio"
                       aria-checked={w.withdrawAs === id}
                       className={w.withdrawAs === id ? 'on' : ''}
-                      disabled={id === 'periodic' && !isSfs}
                       onClick={() => setW({ withdrawAs: id, allocations: [] })}
                     >
                       {label}
@@ -681,7 +678,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             <table className="alloc-table wd2-table">
               <thead>
                 <tr>
-                  <th scope="col">Allocation &amp; Recipient</th>
+                  <th scope="col">Recipient &amp; Payment</th>
                   <th scope="col">1099 Codes</th>
                   <th scope="col" className="num">Gross</th>
                   <th scope="col" className="num">State Tax</th>
@@ -813,7 +810,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
   return (
     <div className="txn-card wd2">
       <h3>Review Your Withdrawal</h3>
-      <p className="hint">Requests are usually processed within 10 business days after approval.</p>
       <div className="tabs" role="tablist" aria-label="Withdrawal Review">
         {[
           ['summary', 'Request Summary'],
@@ -884,8 +880,13 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             </li>
             <li className="wd2-ded">
               <details>
-                <summary>
-                  <span>Fee &amp; Tax Details</span>
+                <summary aria-label={`Fee and tax details, ${deductions.length} items`}>
+                  <span className="wd2-ded-toggle">
+                    <span className="wd2-ded-chev" aria-hidden="true">
+                      <Icon icon={faChevronDown} size={10} />
+                    </span>
+                    <span>Fee &amp; Tax Details</span>
+                  </span>
                   <b>−{money(totalDed)}</b>
                 </summary>
                 <ul>
@@ -956,7 +957,7 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           <table className="alloc-table">
             <thead>
               <tr>
-                <th scope="col">Allocation &amp; Recipient</th>
+                <th scope="col">Recipient &amp; Payment</th>
                 <th scope="col">1099 Codes</th>
                 <th scope="col">Address</th>
                 <th scope="col" className="num">Net</th>
@@ -1011,7 +1012,11 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             return (
               <li key={d.id}>
                 <span>{d.label}</span>
-                <b className="wd2-doc-name">{s.method === 'manual' ? s.file?.name || 'Not Uploaded' : 'Sent via Docusign'}</b>
+                {s.method === 'manual' && s.file ? (
+                  <UploadedFileCard file={s.file} />
+                ) : (
+                  <b className="wd2-doc-name">{s.method === 'manual' ? 'Not Uploaded' : 'Sent via Docusign'}</b>
+                )}
               </li>
             )
           })}
@@ -1106,7 +1111,7 @@ function SourceSummaryRow({ source }) {
   const extra = source.lines.length - MAX_CHIPS
   const shown = expanded ? source.lines : source.lines.slice(0, MAX_CHIPS)
   return (
-    <div className="wd2-src-row">
+    <div className={`wd2-src-row${expanded ? ' expanded' : ''}`}>
       <div className="wd2-src-name">
         {extra > 0 ? (
           <button type="button" className="text-link wd2-src-link" title={source.name} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
@@ -1685,30 +1690,6 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
               </>
             )}
 
-        <ul className="detail-rows wd2-calc">
-          {c.fed > 0 && (
-            <li>
-              <span>Federal Tax</span>
-              <span>−{money(c.fed)}</span>
-            </li>
-          )}
-          {c.state > 0 && (
-            <li>
-              <span>State Tax</span>
-              <span>−{money(c.state)}</span>
-            </li>
-          )}
-          {c.penalty > 0 && (
-            <li>
-              <span>Early Withdrawal Penalty</span>
-              <span>−{money(c.penalty)}</span>
-            </li>
-          )}
-          <li className="wd2-net">
-            <span>Net Withdrawal Amount</span>
-            <b>{money(c.net)}</b>
-          </li>
-        </ul>
         {errs.net && (
           <p className="alloc-warn">
             <Icon icon={faExclamationTriangle} size={12} /> {errs.net}
@@ -1764,6 +1745,31 @@ function ScheduleSlideover({ p, onClose }) {
   )
 }
 
+// Uploaded file as a green success card: file-type badge, name, size and
+// status, with an Uploaded pill. onRemove adds a remove button (upload step).
+function UploadedFileCard({ file, onRemove }) {
+  const ext = (file.name.split('.').pop() || 'file').slice(0, 4).toUpperCase()
+  return (
+    <span className="wd2-file-card">
+      <span className="wd2-file-badge" aria-hidden="true">
+        {ext}
+      </span>
+      <span className="wd2-file-meta">
+        <b>{file.name}</b>
+        <small>
+          {(file.size / 1024).toFixed(0)} KB · <em>Uploaded</em>
+        </small>
+      </span>
+      <span className="wd2-file-pill">Uploaded</span>
+      {onRemove && (
+        <button type="button" className="icon-btn icon-btn-sm wd2-file-x" aria-label={`Remove ${file.name}`} onClick={onRemove}>
+          <Icon icon={faXmark} size={14} />
+        </button>
+      )}
+    </span>
+  )
+}
+
 function DocBlock({ doc, state, error, onChange }) {
   const [fileErr, setFileErr] = useState('')
   const pick = (file) => {
@@ -1810,22 +1816,13 @@ function DocBlock({ doc, state, error, onChange }) {
               <span>Accepted File : PDF</span>
               <span>Max File Size : {MAX_FILE_MB} MB</span>
             </p>
-            {state.file && (
-              <div className="wd2-file">
-                <span>
-                  <Icon icon={faCheck} size={12} /> <b>{state.file.name}</b> · {(state.file.size / 1024).toFixed(0)} KB · Uploaded successfully
-                </span>
-                <button type="button" className="text-link danger" onClick={() => onChange({ ...state, file: null })}>
-                  Remove
-                </button>
-              </div>
-            )}
             <button type="button" className="wd2-doc-template" onClick={downloadTemplate}>
               <Icon icon={faDownload} size={13} /> Download Template
             </button>
           </>
         )}
       </div>
+      {/* After an upload the drop zone goes away; only the file card shows. */}
       {state.method !== 'docusign' && !state.file && (
         <label
           className="wd2-drop"
@@ -1842,6 +1839,11 @@ function DocBlock({ doc, state, error, onChange }) {
           <span>or</span>
           <u>Browse File</u>
         </label>
+      )}
+      {state.method !== 'docusign' && state.file && (
+        <div className="wd2-doc-files">
+          <UploadedFileCard file={state.file} onRemove={() => onChange({ ...state, file: null })} />
+        </div>
       )}
       {(fileErr || error) && (
         <p className="alloc-warn">

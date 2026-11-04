@@ -181,7 +181,7 @@
   /* Tooltip */
   /* Info tooltip — WCAG 2.5.8: min 24×24px touch target */
   .info{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:var(--core-radius-full);
-    background:var(--neutral-surface-layer-03);color:var(--neutral-text-subtle-light);font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);cursor:help;flex:0 0 24px;
+    background:var(--neutral-surface-layer-03);color:var(--neutral-text-subtle-light);font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);cursor:pointer;flex:0 0 24px;
     text-transform:none;letter-spacing:0}
   .info:hover,.info:focus-visible{background:var(--brand-background-primary-strong);color:var(--brand-text-primary-oncolor);outline:none}
   .info:focus-visible{box-shadow:0 0 0 var(--core-focusRing-width) var(--cds-focus-color)}
