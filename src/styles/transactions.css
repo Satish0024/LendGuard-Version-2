@@ -1125,7 +1125,8 @@
 .wd2-src-row.expanded .wd2-src-chips{flex:0 1 auto;max-width:640px;margin-left:auto}
 /* Fee & tax breakdown lines up with the arrow and "Net Withdrawal Amount" (no indent). */
 .wd2-ded ul{padding-left:var(--core-space-0)}
-/* Delete icon: critical red, with a light red wash on hover. */
-.icon-btn.icon-btn-danger{color:var(--semantics-critical-text)}
+/* Delete icon: grey at rest like the other icons; turns critical red, with a
+   light red wash, on hover and keyboard focus. */
+.icon-btn.icon-btn-danger:focus-visible{color:var(--semantics-critical-text)}
 .icon-btn.icon-btn-danger:hover{color:var(--semantics-critical-text);background:var(--semantics-critical-background-light)}
 .icon-btn.icon-btn-danger:active:not(:disabled){color:var(--semantics-critical-text);background:color-mix(in srgb,var(--semantics-critical-text) 16%,transparent)}
