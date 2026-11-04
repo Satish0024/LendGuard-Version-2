@@ -104,12 +104,30 @@ function FieldTip({ tooltip, id, placement = 'top' }) {
   )
 }
 
+// Helper/error text under a control. Errors follow the CORE style guide: plain
+// red text (no icon), announced as an alert and paired with the field's red border.
+const isErrNote = (note, noteClass) => Boolean(note) && Boolean(noteClass?.split(' ').includes('err'))
+
+function FieldNote({ note, noteClass, id }) {
+  if (!note) return null
+  const isErr = isErrNote(note, noteClass)
+  return (
+    <span id={id} className={`note${noteClass ? ` ${noteClass}` : ''}`} role={isErr ? 'alert' : undefined}>
+      {note}
+    </span>
+  )
+}
+
 // A labelled form row. Generates an id and wires the <label> to the control,
 // so assistive tech announces them together — the plain sibling
 // <label> + <input> pattern this replaces left the control unlabelled.
 export default function Field({ label, required, note, noteClass, tooltip, tooltipPlacement, children }) {
   const id = useId()
   const tipId = useId()
+  const noteId = useId()
+  // CORE error field: the control is marked invalid (red border via CSS) and
+  // points at the error message so screen readers read it with the field.
+  const invalid = isErrNote(note, noteClass)
   return (
     <div className="txn-field">
       <label htmlFor={id}>
@@ -117,8 +135,12 @@ export default function Field({ label, required, note, noteClass, tooltip, toolt
         {required && <span className="sr-only"> (required)</span>}
         <FieldTip tooltip={tooltip} id={tipId} placement={tooltipPlacement} />
       </label>
-      {cloneElement(children, { id, ...(required ? { required: true } : null) })}
-      {note && <span className={`note${noteClass ? ` ${noteClass}` : ''}`}>{note}</span>}
+      {cloneElement(children, {
+        id,
+        ...(required ? { required: true } : null),
+        ...(invalid ? { 'aria-invalid': true, 'aria-describedby': noteId } : null)
+      })}
+      <FieldNote note={note} noteClass={noteClass} id={noteId} />
     </div>
   )
 }
@@ -128,6 +150,7 @@ export default function Field({ label, required, note, noteClass, tooltip, toolt
 // announce the group's name before each individual option.
 export function FieldGroup({ label, required, note, noteClass, tooltip, tooltipPlacement, children }) {
   const tipId = useId()
+  const noteId = useId()
   return (
     <fieldset className="txn-field txn-fieldset">
       <legend>
@@ -136,7 +159,7 @@ export function FieldGroup({ label, required, note, noteClass, tooltip, tooltipP
         <FieldTip tooltip={tooltip} id={tipId} placement={tooltipPlacement} />
       </legend>
       {children}
-      {note && <span className={`note${noteClass ? ` ${noteClass}` : ''}`}>{note}</span>}
+      <FieldNote note={note} noteClass={noteClass} id={noteId} />
     </fieldset>
   )
 }

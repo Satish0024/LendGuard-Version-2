@@ -10,7 +10,12 @@ export function Option() {
 }
 
 const GAP = 4
-const MAX_H = 280
+// Tall enough for 8 options (e.g. every withdraw type) without scrolling.
+const MAX_H = 360
+// Menus can be wider than a narrow trigger so long options (plan names) wrap
+// to at most two lines instead of three or four.
+const MIN_MENU_W = 360
+const EDGE = 8
 
 // A custom, document-styled dropdown that drop-in replaces a native
 // <select>/<option> pair. Keeps the same children-as-options API and calls
@@ -43,7 +48,9 @@ export default function Select({ id, value, onChange, disabled, placeholder, cla
     const above = r.top - GAP
     const flip = below < 200 && above > below
     const maxH = Math.max(96, Math.min(MAX_H, flip ? above : below))
-    setPos({ top: flip ? r.top - GAP - maxH : r.bottom + GAP, left: r.left, width: r.width, maxH })
+    const width = Math.min(Math.max(r.width, MIN_MENU_W), window.innerWidth - EDGE * 2)
+    const left = Math.max(EDGE, Math.min(r.left, window.innerWidth - EDGE - width))
+    setPos({ top: flip ? r.top - GAP - maxH : r.bottom + GAP, left, width, maxH, flip, anchor: r.top })
   }, [])
 
   useLayoutEffect(() => {
@@ -55,6 +62,25 @@ export default function Select({ id, value, onChange, disabled, placeholder, cla
     }
     place()
   }, [open, place])
+
+  // When the list has to scroll, end the menu on a whole option instead of
+  // slicing the last visible one through its text.
+  useLayoutEffect(() => {
+    const menu = menuRef.current
+    if (!pos || !menu || menu.scrollHeight <= pos.maxH + 1) return
+    // Options can wrap to two lines, so snap to the real bottom of the last
+    // option that fits rather than a fixed row height.
+    const padB = parseFloat(getComputedStyle(menu).paddingBottom) + menu.offsetHeight - menu.clientHeight
+    let h = 0
+    for (const li of menu.children) {
+      const bottom = li.offsetTop + li.offsetHeight + padB
+      if (bottom > pos.maxH) break
+      h = bottom
+    }
+    if (!h) return
+    if (Math.abs(h - pos.maxH) < 1) return
+    setPos((p) => ({ ...p, maxH: h, top: p.flip ? p.anchor - GAP - h : p.top }))
+  }, [pos])
 
   useEffect(() => {
     if (!open) return

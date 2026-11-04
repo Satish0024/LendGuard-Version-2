@@ -157,9 +157,11 @@
 .txn-field .note.warn{color:var(--semantics-warning-text)}
 /* Info notice under a field: icon + text on one line, free to run wider than the capped control. */
 .txn-field .note.note-info{display:flex;align-items:flex-start;gap:var(--core-space-1);width:max-content;max-width:min(720px,100%)}
-.txn-field .note.note-info svg{flex-shrink:0;margin-top:3px}
+/* Icons sit on the optical middle of the first line: a 12px icon on a 16px helper line, 13px on a 20px body line. */
+.txn-field .note.note-info svg{flex-shrink:0;margin-top:2px}
 
-.field-tip{position:relative;display:inline-flex;vertical-align:middle;margin-left:var(--core-space-1)}
+/* The 24px button keeps a comfortable hit area; no extra margin so the icon sits ~6px from the label, and top:-1px puts it on the label's optical middle. */
+.field-tip{position:relative;top:-1px;display:inline-flex;vertical-align:middle;margin-left:var(--core-space-0)}
 .field-tip-btn{
   display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:var(--core-radius-full);
   border:none;padding:var(--core-space-0);background:transparent;color:var(--neutral-text-subtle);cursor:pointer}
@@ -607,12 +609,12 @@
 .txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i,
 .txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i:first-child,
 .txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i:last-child:not(:first-child){background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);color:var(--semantics-disabled-text)}
-.wd2-so .txn-field .note.err{color:var(--semantics-critical-text)}
+.wd2-so .txn-field .note.err{color:var(--semantics-critical-text);display:flex;align-items:flex-start;gap:var(--core-space-1)}
 .wd2-ro{margin:var(--core-space-2) var(--core-space-0) var(--core-space-3)}
 .wd2-src{margin-top:var(--core-space-2)}
 .wd2-calc{margin-top:var(--core-space-5);padding-top:var(--core-space-3);border-top:1px solid var(--neutral-border-light)}
 .wd2-net b,.wd2-net span{font-weight:var(--typography-font-weight-bold)}
-.wd2-missing{margin-top:var(--core-space-4)}
+.wd2-so .hint.wd2-missing{margin:var(--core-space-3) var(--core-space-0) var(--core-space-0)}
 .wd2-doc{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1fr);gap:var(--core-space-3) var(--core-space-6);align-items:stretch;
   padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);margin-top:var(--core-space-3)}
@@ -668,28 +670,29 @@
 .wd2-ded summary{display:flex;justify-content:space-between;cursor:pointer;list-style:none}
 .wd2-ded summary::-webkit-details-marker{display:none}
 /* Expand indicator: a chevron beside the label that turns when the breakdown opens. */
-.wd2-ded-toggle{display:inline-flex;align-items:center;gap:var(--core-space-2);color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-semibold)}
+.wd2-ded-toggle{display:inline-flex;align-items:center;gap:var(--core-space-2);color:var(--neutral-text-default);font-weight:var(--typography-font-weight-semibold)}
 .wd2-ded-chev{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--brand-background-primary-light);transition:transform var(--core-motion-duration-fast)}
 .wd2-ded details[open] .wd2-ded-chev{transform:rotate(180deg)}
-.wd2-ded summary:hover .wd2-ded-toggle span:last-child{text-decoration:underline}
 .wd2-ded summary:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-sm)}
 @media (prefers-reduced-motion:reduce){.wd2-ded-chev{transition:none}}
 .wd2-ded ul{list-style:none;margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);padding:0 0 0 var(--core-space-4)}
 .wd2-ded ul li{display:flex;justify-content:space-between;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle);padding:var(--core-space-1) 0}
-.txn-field .note.err{color:var(--semantics-critical-text)}
+.txn-field .note.err{color:var(--semantics-critical-text);display:flex;align-items:flex-start;gap:var(--core-space-1)}
 .wd2 .txn-fieldset{flex:0 1 auto}
 .wd2 .period{width:max-content;max-width:100%;flex-wrap:nowrap}
 .wd2 .hint{align-items:flex-start}
-.wd2 .hint svg{margin-top:3px;flex:0 0 auto}
+/* 4px puts the 13px icon on the optical middle of a 20px line (lowercase text sits lower than the line box centre). */
+.wd2 .hint svg{margin-top:4px;flex:0 0 auto}
 .wd2 .wd-note,.wd2-so .wd-note{display:block;font-size:var(--typography-body-sm-size)}
 /* Info notes lead with an icon, aligned to the first line of text. */
 .wd2 .wd-note:has(> svg),.wd2-so .wd-note:has(> svg){display:flex;align-items:flex-start;gap:var(--core-space-2)}
-.wd2 .wd-note > svg,.wd2-so .wd-note > svg{flex-shrink:0;margin-top:3px}
+.wd2 .wd-note > svg,.wd2-so .wd-note > svg{flex-shrink:0;margin-top:4px}
 .wd2-so .txn-fieldset{margin-top:var(--core-space-3)}
 .table-wrap .alloc-table.wd2-table{min-width:0}
 .wd2-table th,.wd2-table td{padding-left:var(--core-space-3);padding-right:var(--core-space-3)}
 .wd2-pct{display:block;font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
-@media (max-width:1023px){.table-wrap .alloc-table.wd2-table{min-width:820px}}
+/* Only phones scroll the table sideways; tablet/laptop widths fit it by wrapping the text columns. */
+@media (max-width:767px){.table-wrap .alloc-table.wd2-table{min-width:760px}}
 .wd2 .txn-fieldset legend{font-size:var(--typography-label-size);font-weight:var(--typography-label-weight);line-height:var(--typography-label-line-height);color:var(--neutral-text-subtle);margin-bottom:var(--core-space-2);padding:0}
 .wd2 .txn-row{align-items:flex-start}
 .wd2-table th,.wd2-table td{padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
@@ -945,26 +948,8 @@
 .wd2-src-row{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--core-space-4);padding:var(--core-space-4) var(--core-space-5);border-top:1px solid var(--neutral-border-light)}
 .wd2-src-row:first-child{border-top:0}
 .wd2-src-name{display:flex;flex-direction:column;gap:var(--core-space-1);flex:0 1 auto;min-width:160px;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-.wd2-src-link{display:block;padding:0;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);text-align:left;overflow-wrap:anywhere}
 .wd2-src-name > b{display:block;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default);overflow-wrap:anywhere}
-.wd2-src-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2);flex:1 1 0;min-width:0}
-.wd2-src-chip{
-  display:inline-flex;align-items:center;gap:var(--core-space-1);max-width:100%;min-height:28px;padding:0 var(--core-space-3);
-  border:1px solid var(--brand-border-primary-default,var(--brand-text-primary-default));border-radius:var(--core-radius-full);
-  background:var(--brand-background-primary-light);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-/* Collapsed rows cap the investment name; expanded rows show it in full. */
-.wd2-src-chip-name{min-width:0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wd2-src-row.expanded .wd2-src-chip{padding-top:var(--core-space-1);padding-bottom:var(--core-space-1)}
-.wd2-src-row.expanded .wd2-src-chip-name{max-width:none;white-space:normal;overflow:visible}
-.wd2-src-chip b{flex:0 0 auto;color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-bold)}
-.wd2-more{
-  display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 var(--core-space-2);
-  border:1px solid var(--brand-border-primary-default,var(--brand-text-primary-default));border-radius:var(--core-radius-full);background:var(--neutral-surface-layer-01);
-  font:inherit;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);
-  color:var(--brand-text-primary-default);cursor:pointer}
-.wd2-more:hover{background:var(--brand-background-primary-light)}
 @media (max-width:767px){.wd2-src-row{flex-direction:column;align-items:stretch}.wd2-src-chips{justify-content:flex-start}}
-.wd2-more:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
 .wd2-hist{list-style:none;margin:var(--core-space-4) 0 0;padding:0}
 .wd2-hist li{position:relative;display:flex;flex-direction:column;gap:var(--core-space-1);padding:0 0 var(--core-space-4) var(--core-space-5);border-left:2px solid var(--neutral-border-light);margin-left:var(--core-space-1)}
 .wd2-hist li:last-child{border-left-color:transparent;padding-bottom:0}
@@ -1026,3 +1011,50 @@
    action buttons sit 24px below the step content on every step. */
 .wd2 .txn-row{gap:var(--core-space-4)}
 .wd2 .txn-actions{margin-top:var(--core-space-6)}
+
+/* Allocation table fits the card instead of scrolling: tighter cell padding
+   (a generic .table-wrap rule was giving every cell 16px a side) and a
+   narrower recipient column that wraps. Long rows still scroll on phones. */
+.table-wrap .alloc-table.wd2-table :is(th,td){padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
+.table-wrap .alloc-table.wd2-table :is(th,td):first-child{padding-left:var(--core-space-4)}
+.table-wrap .alloc-table.wd2-table :is(th,td):last-child{padding-right:var(--core-space-3)}
+.wd2-table .alloc-name-col{min-width:150px}
+/* Source name column stays compact so fund chips fill the remaining row
+   (no empty space on the right), with "+N" after them. One column on phones. */
+.wd2-src-name{min-width:120px;flex:0 0 120px}
+@media (max-width:767px){.wd2-src-name{flex-basis:auto}}
+/* Action column: header and the edit/delete icons share one centre line
+   (right-aligning left the icon buttons' padding showing past the header). */
+.table-wrap .alloc-table.wd2-table :is(th,td):last-child{text-align:center}
+.wd2-table td:last-child .tf-actions{justify-content:center}
+/* Eligibility / balance alerts follow CORE Alert: 20px status icon, 12px gap,
+   16px padding, bold title on its own line. `.plan-notice` resets margin in
+   index.css, so the gap above needs the doubled class to apply. */
+.plan-notice.wd2-banner{margin:var(--core-space-4) var(--core-space-0) var(--core-space-0)}
+.plan-notice.wd2-alert{display:flex;align-items:flex-start;gap:var(--core-space-3);padding:var(--core-space-4)}
+.wd2-alert-icon{flex:0 0 auto;margin-top:0}
+.wd2-alert-body{display:flex;flex-direction:column;gap:var(--core-space-1);min-width:0}
+.wd2-alert-body b{display:block;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-bold);line-height:20px}
+.wd2-alert-body span{font-size:var(--typography-body-sm-size);line-height:20px}
+/* CORE error field (style guide "With error"): critical border on the control,
+   kept on hover and focus, with the usual focus ring on top. Error text is
+   12px / 20px, 8px below the field. */
+.txn-field :is(input,textarea,.ui-select-btn)[aria-invalid="true"],
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]),
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]):hover,
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]):focus-within{border-color:var(--semantics-critical-border)}
+.txn-field :is(input,textarea)[aria-invalid="true"]:focus,
+.txn-field .ui-select-btn[aria-invalid="true"]:focus-visible{border-color:var(--semantics-critical-border)}
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]) i{border-color:var(--semantics-critical-border) !important}
+.txn-field .alloc-pct-input.wd2-affix:has(input[aria-invalid="true"]) input{border:0}
+.txn-field .note.err{margin-top:var(--core-space-0);line-height:20px}
+
+/* Summary source funds use the Transfer module's fund pills (badge navy). Names
+   show in full; pills wrap to the next line when space runs out. */
+.wd2-src-chips{flex:1 1 0;min-width:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:var(--core-space-2)}
+.wd2-src-chip{gap:var(--core-space-2);max-width:100%}
+.wd2-src-chip .tf-chip-name{overflow:visible;text-overflow:clip;white-space:normal}
+.wd2-src-chip b{flex:0 0 auto;font-weight:var(--typography-font-weight-bold)}
+.wd2-more{border:0;cursor:pointer;font:inherit;font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-bold)}
+.wd2-more:hover{background:var(--brand-background-primary-subtle)}
+.wd2-more:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}

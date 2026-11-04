@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck, faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../common/Field.jsx'
@@ -88,7 +88,8 @@ const HISTORY = [
   { title: 'Awaiting Trade', by: 'System Generated' },
   { title: 'Completed', by: 'Plan Administrator' }
 ]
-const MAX_CHIPS = 3
+// Summary shows the first 2 funds of a source in full; the rest collapse into "+N".
+const MAX_CHIPS = 2
 
 const r2 = (n) => Math.round((+n || 0) * 100) / 100
 const money = (n) => formatMoney(r2(n))
@@ -261,7 +262,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
   const [reviewTab, setReviewTab] = useState('summary')
 
   const type = TYPES.find((t) => t.id === w.type)
-  const isIns = w.type === 'INS'
   const isRmd = w.type === 'RMD'
   const isSfs = w.type === 'SFS'
   const periodic = isSfs && w.withdrawAs === 'periodic'
@@ -410,7 +410,9 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           today and may change due to market fluctuations.
         </p>
         {balance <= 0 && (
-          <div className="plan-notice opted-notice">{plan.name} has $0.00 available. Choose another plan to request a withdrawal.</div>
+          <WdAlert tone="danger" title="No balance available">
+            {plan.name} has $0.00 available. Choose another plan to request a withdrawal.
+          </WdAlert>
         )}
         <div className="txn-row">
           <Field label="Select the Plan" required>
@@ -439,31 +441,27 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
           </Field>
         </div>
 
-        {isRmd && (
-          <div className={`plan-notice ${rmdEligible ? 'eligible-notice' : 'opted-notice'} wd2-banner`}>
-            {rmdEligible ? (
-              <>
-                <b>Eligible for Required Minimum Distribution</b> You are {persona.age} years old and {persona.status.toLowerCase()}, so you can
-                request your {RMD.year} RMD.
-              </>
-            ) : (
-              <>
-                <b>Not Eligible for Required Minimum Distribution</b> An RMD can only be requested from age {RMD.age} once you have left
-                employment. You are {persona.age} and {persona.status.toLowerCase()}.
-              </>
-            )}
-          </div>
-        )}
+        {isRmd &&
+          (rmdEligible ? (
+            <WdAlert tone="success" title="Eligible for Required Minimum Distribution">
+              You are {persona.age} years old and {persona.status.toLowerCase()}, so you can request your {RMD.year} RMD.
+            </WdAlert>
+          ) : (
+            <WdAlert tone="danger" title="Not Eligible for Required Minimum Distribution">
+              An RMD can only be requested from age {RMD.age} once you have left employment. You are {persona.age} and{' '}
+              {persona.status.toLowerCase()}.
+            </WdAlert>
+          ))}
         {isSfs && persona.status === 'Active' && (
-          <div className="plan-notice opted-notice wd2-banner">
-            <b>Not Eligible for Separation from Service</b> Separation from Service (including periodic payments) is only available once you
-            have left employment. You are currently active.
-          </div>
+          <WdAlert tone="danger" title="Not Eligible for Separation from Service">
+            Separation from Service (including periodic payments) is only available once you have left employment. You are currently active.
+          </WdAlert>
         )}
 
         {w.type && !blocked && (
           <>
-            <div className={isIns ? 'txn-stack spaced' : 'txn-row spaced'}>
+            {/* Stacked for every withdraw type, in the same column as the fields above. */}
+            <div className="txn-stack spaced">
               <FieldGroup label="Withdraw As">
                 <div className="period" role="radiogroup" aria-label="Withdraw As">
                   {/* Periodic payment only exists for Separation from Service. */}
@@ -1021,12 +1019,6 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             )
           })}
         </ul>
-        {docs.some((d) => (w.docs[d.id]?.method || 'docusign') === 'docusign') && (
-          <p className="hint wd2-sum-note">
-            <Icon icon={faInfoCircle} size={13} />
-            <span>You will receive the Docusign documents by email to sign.</span>
-          </p>
-        )}
       </section>
 
       <section className="wd2-terms">
@@ -1095,15 +1087,18 @@ function addressCell(a, c, onFile) {
   )
 }
 
-// A plan-level investment restriction counts only while today is on or before `until`.
-function activeRestriction(plan) {
-  const r = plan?.investmentRestriction
-  if (!r?.until) return false
-  return new Date(`${r.until}T23:59:59`) >= new Date()
-}
-const fmtDate = (iso) => {
-  const [y, m, d] = iso.split('-')
-  return `${m}/${d}/${y}`
+
+// CORE Alert: status icon, bold title on its own line, then the message.
+function WdAlert({ tone, title, children }) {
+  return (
+    <div className={`plan-notice ${tone === 'success' ? 'eligible-notice' : 'opted-notice'} wd2-banner wd2-alert`} role={tone === 'danger' ? 'alert' : 'status'}>
+      <Icon icon={tone === 'success' ? faCircleCheck : faExclamationCircle} size={20} aria-hidden="true" className="wd2-alert-icon" />
+      <div className="wd2-alert-body">
+        <b>{title}</b>
+        <span>{children}</span>
+      </div>
+    </div>
+  )
 }
 
 function SourceSummaryRow({ source }) {
@@ -1113,26 +1108,21 @@ function SourceSummaryRow({ source }) {
   return (
     <div className={`wd2-src-row${expanded ? ' expanded' : ''}`}>
       <div className="wd2-src-name">
-        {extra > 0 ? (
-          <button type="button" className="text-link wd2-src-link" title={source.name} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
-            {source.name}
-          </button>
-        ) : (
-          <b title={source.name}>{source.name}</b>
-        )}
+        <b>{source.name}</b>
         <span>{money(source.total)}</span>
       </div>
-      <div className="wd2-src-chips">
+      {/* Same fund pills as the Transfer module: navy badge, name + amount, first 2 then "+N". */}
+      <div className="tf-chips wd2-src-chips">
         {shown.map((l) => (
-          <span key={l.id} className="wd2-src-chip" title={`${l.name} ${money(l.gross)}`}>
-            <span className="wd2-src-chip-name">{l.name}</span>
+          <span key={l.id} className="badge navy tf-chip wd2-src-chip">
+            <span className="tf-chip-name">{l.name}</span>
             <b>{money(l.gross)}</b>
           </span>
         ))}
         {extra > 0 && (
           <button
             type="button"
-            className="wd2-more"
+            className="badge navy wd2-more"
             aria-expanded={expanded}
             aria-label={expanded ? `Show fewer for ${source.name}` : `Show ${extra} more for ${source.name}`}
             onClick={() => setExpanded((v) => !v)}
@@ -1247,7 +1237,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   return (
     <Slideover
       title={initial ? 'Edit Withdrawal Allocation' : 'Add Withdrawal Allocation'}
-      width="wide"
+      width="full"
       closeButton={false}
       onClose={onClose}
       actions={
@@ -1286,8 +1276,15 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
           </Field>
           <Field
             label="Allocation Amount"
-            note={errs.amount || `Maximum amount available for withdrawal ${money(modeMax)}`}
-            noteClass={errs.amount ? 'err' : undefined}
+            note={
+              errs.amount || (
+                <>
+                  <Icon icon={faInfoCircle} size={12} />
+                  <span>Maximum amount available for withdrawal {money(modeMax)}</span>
+                </>
+              )
+            }
+            noteClass={errs.amount ? 'err' : 'note-info'}
           >
             <AffixInput prefix="$" type="text" inputMode="decimal" value={a.amount} placeholder="0.00" onChange={(e) => set({ amount: clean(e.target.value) })} />
           </Field>
@@ -1318,11 +1315,27 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
           <Field
             label="Federal Tax"
             tooltip="Federal tax withholding percentage set by your plan."
-            note={`${money(c.fed)} tax deduction`}
+            noteClass="note-info"
+            note={
+              <>
+                <Icon icon={faInfoCircle} size={12} />
+                <span>{money(c.fed)} tax deduction</span>
+              </>
+            }
           >
             <AffixInput suffix="%" type="text" inputMode="decimal" value={a.fedPct} readOnly disabled />
           </Field>
-          <Field label="State Tax" tooltip="State tax withholding percentage set by your plan." note={`${money(c.state)} tax deduction`}>
+          <Field
+            label="State Tax"
+            tooltip="State tax withholding percentage set by your plan."
+            noteClass="note-info"
+            note={
+              <>
+                <Icon icon={faInfoCircle} size={12} />
+                <span>{money(c.state)} tax deduction</span>
+              </>
+            }
+          >
             <AffixInput suffix="%" type="text" inputMode="decimal" value={a.statePct} readOnly disabled />
           </Field>
         </div>
@@ -1331,7 +1344,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
           noteClass="note-info"
           note={
             <>
-              <Icon icon={faInfoCircle} size={13} />
+              <Icon icon={faInfoCircle} size={12} />
               {a.penaltyApply === 'yes'
                 ? 'Early Withdrawal Penalty applies to this transaction. This notice is shared with the participant and the admin.'
                 : 'Early Withdrawal Penalty does not apply for this transaction. This notice is shared with the participant and the admin.'}
@@ -1399,7 +1412,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                 noteClass="note-info"
                 note={
                   <>
-                    <Icon icon={faInfoCircle} size={13} />
+                    <Icon icon={faInfoCircle} size={12} />
                     Fee will be deducted from account balance
                   </>
                 }
@@ -1605,15 +1618,6 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
                 </div>
               </FieldGroup>
             )}
-            {a.sourceMode === 'choose' && activeRestriction(plan) && (
-              <div className="inline-alert warn wd2-restrict" role="alert">
-                <Icon icon={faExclamationCircle} size={16} />
-                <span>
-                  Investment restriction - {plan.investmentRestriction.name} has an active investment restriction until{' '}
-                  {fmtDate(plan.investmentRestriction.until)}
-                </span>
-              </div>
-            )}
             <div className="table-wrap wd2-src">
               <table className="alloc-table">
                 <thead>
@@ -1812,10 +1816,6 @@ function DocBlock({ doc, state, error, onChange }) {
           </div>
         ) : (
           <>
-            <p className="wd2-doc-accept">
-              <span>Accepted File : PDF</span>
-              <span>Max File Size : {MAX_FILE_MB} MB</span>
-            </p>
             <button type="button" className="wd2-doc-template" onClick={downloadTemplate}>
               <Icon icon={faDownload} size={13} /> Download Template
             </button>
