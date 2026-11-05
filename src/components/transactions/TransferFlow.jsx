@@ -694,7 +694,7 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
           </ul>
         </section>
 
-        <section className="tf-col" aria-labelledby="tf-c3">
+        <section className="tf-col tf-col-alloc" aria-labelledby="tf-c3">
           <h4 className="tf-col-title" id="tf-c3">
             3. Set allocation
           </h4>
@@ -708,70 +708,87 @@ function EditSell({ holding, sell, t, holdings, buyOptions, onClose, onSave }) {
               onChange={(e) => setAddedQuery(e.target.value)}
             />
           </div>
-          {!groups.length && (
-            <p className="add-inv-count">
-              <b>0</b> Investment(s) added
-            </p>
-          )}
-          {groups.map((g) => {
+          {/* Cards scroll here; the Total bar below stays pinned to the column foot. */}
+          <div className="tf-alloc-scroll">
+            {!groups.length && (
+              <p className="add-inv-count">
+                <b>0</b> Investment(s) added
+              </p>
+            )}
+            {groups.map((g) => {
+              const list = draft.buys[g.key] || []
+              const shown = aq ? list.filter((r) => r.name.toLowerCase().includes(aq)) : list
+              const total = sumPct(list)
+              return (
+                <div key={g.key} className={`tf-alloc-group${t.sourceWise && activeSrc === g.key ? ' active' : ''}`}>
+                  {g.title && <p className="tf-group-title">{g.title}</p>}
+                  <div className="tf-alloc-bar">
+                    <span>
+                      <b>{list.length ? String(list.length).padStart(2, '0') : 0}</b> Investment(s) added
+                    </span>
+                    {list.length > 1 && (
+                      <button type="button" className="text-link" onClick={() => setRowsFor(g.key, evenSplit)}>
+                        Split evenly
+                      </button>
+                    )}
+                  </div>
+                  <ul className="tf-fund-cards">
+                    {shown.map((r) => (
+                      <li key={r.id} className="tf-fund-card">
+                        <span className="tf-fund-meta">
+                          <span>
+                            CUSIP: <b>{r.cusip}</b>
+                          </span>
+                          <span>
+                            Type: <b>{r.asset}</b>
+                          </span>
+                        </span>
+                        <FundNameLink fund={r} className="tf-fund-name" onOpen={setOpenFund} />
+                        <span className="tf-alloc-row">
+                          <span className={`alloc-pct-input${list.length && Math.abs(total - 100) > 0.01 ? ' tf-bad' : ''}`}>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              aria-label={`Allocation for ${r.name}`}
+                              value={r.pct}
+                              onChange={(e) =>
+                                setRowsFor(g.key, (cur) => cur.map((x) => (x.id === r.id ? { ...x, pct: cleanNumber(e.target.value, x.pct, 'pct') } : x)))
+                              }
+                            />
+                            <i>%</i>
+                          </span>
+                          <b>{formatMoney((g.moved * (+r.pct || 0)) / 100)}</b>
+                          {heldAmount(r.id) == null && trash(g.key, r)}
+                        </span>
+                        {heldAmount(r.id) != null && (
+                          <span className="tf-fund-foot">
+                            <span>
+                              Current balance: <b>{formatMoney(heldAmount(r.id))}</b>
+                            </span>
+                            {trash(g.key, r)}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+          {(() => {
+            const g = t.sourceWise ? groups.find((x) => x.key === activeSrc) || groups[0] : groups[0]
+            if (!g) return null
             const list = draft.buys[g.key] || []
-            const shown = aq ? list.filter((r) => r.name.toLowerCase().includes(aq)) : list
+            if (!list.length) return null
             const total = sumPct(list)
             return (
-              <div key={g.key} className={`tf-alloc-group${t.sourceWise && activeSrc === g.key ? ' active' : ''}`}>
-                {g.title && <p className="tf-group-title">{g.title}</p>}
-                <div className="tf-alloc-bar">
-                  <span>
-                    <b>{list.length ? String(list.length).padStart(2, '0') : 0}</b> Investment(s) added
-                  </span>
-                  {list.length > 1 && (
-                    <button type="button" className="text-link" onClick={() => setRowsFor(g.key, evenSplit)}>
-                      Split evenly
-                    </button>
-                  )}
-                </div>
-                <ul className="tf-fund-cards">
-                  {shown.map((r) => (
-                    <li key={r.id} className="tf-fund-card">
-                      <span className="tf-fund-meta">
-                        <span>
-                          CUSIP: <b>{r.cusip}</b>
-                        </span>
-                        <span>
-                          Type: <b>{r.asset}</b>
-                        </span>
-                      </span>
-                      <FundNameLink fund={r} className="tf-fund-name" onOpen={setOpenFund} />
-                      <span className="tf-alloc-row">
-                        <span className={`alloc-pct-input${list.length && Math.abs(total - 100) > 0.01 ? ' tf-bad' : ''}`}>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            aria-label={`Allocation for ${r.name}`}
-                            value={r.pct}
-                            onChange={(e) =>
-                              setRowsFor(g.key, (cur) => cur.map((x) => (x.id === r.id ? { ...x, pct: cleanNumber(e.target.value, x.pct, 'pct') } : x)))
-                            }
-                          />
-                          <i>%</i>
-                        </span>
-                        <b>{formatMoney((g.moved * (+r.pct || 0)) / 100)}</b>
-                        {heldAmount(r.id) == null && trash(g.key, r)}
-                      </span>
-                      {heldAmount(r.id) != null && (
-                        <span className="tf-fund-foot">
-                          <span>
-                            Current balance: <b>{formatMoney(heldAmount(r.id))}</b>
-                          </span>
-                          {trash(g.key, r)}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <p className={`tf-alloc-total ${Math.abs(total - 100) > 0.01 ? 'bad' : 'ok'}`} aria-live="polite">
+                <span>Total</span>
+                <b>{pctText(total)}</b>
+                <b>{formatMoney((g.moved * total) / 100)}</b>
+              </p>
             )
-          })}
+          })()}
         </section>
       </div>
 

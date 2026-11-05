@@ -457,10 +457,16 @@
   padding:var(--core-space-3);border:1px solid var(--brand-text-primary-default);border-radius:var(--core-radius-sm);background:var(--brand-background-primary-light)}
 .tf-alloc li .text-link{grid-column:1/-1;justify-self:start}
 .tf-alloc b{display:block;font-size:var(--typography-body-sm-size)}
-.tf-alloc-total{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-3);margin-top:auto;padding-top:var(--core-space-3);
-  border-top:1px solid var(--neutral-border-light);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-.tf-alloc-total b{color:var(--semantics-critical-text);font-size:var(--typography-body-lg-size)}
+.tf-alloc-total{display:flex;align-items:center;gap:var(--core-space-4);margin-top:auto;padding:var(--core-space-3) var(--core-space-0);
+  border-top:1px solid var(--neutral-border-light);background:var(--neutral-surface-layer-01);font-size:var(--typography-body-md-size);color:var(--neutral-text-subtle)}
+.tf-alloc-total span{flex:1 1 auto;font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
+.tf-alloc-total b{flex:0 0 auto;color:var(--semantics-critical-text);font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold)}
 .tf-alloc-total.ok b{color:var(--semantics-success-text)}
+.tf-alloc-total.ok b + b,.tf-alloc-total.bad b + b{color:var(--neutral-text-default)}
+/* Set allocation: list scrolls; Total stays pinned at the column foot. */
+.tf-col.tf-col-alloc{overflow:hidden}
+.tf-col-alloc .tf-alloc-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:var(--core-space-3)}
+.tf-col-alloc > .tf-alloc-total{flex:0 0 auto;margin-top:0;position:relative;z-index:1}
 .tf-errors{list-style:none;margin:var(--core-space-4) var(--core-space-0) var(--core-space-0);padding:var(--core-space-3) var(--core-space-4);border-radius:var(--core-radius-sm);
   background:var(--semantics-critical-background-light);display:flex;flex-direction:column;gap:var(--core-space-1)}
 .tf-errors li{display:flex;align-items:center;gap:var(--core-space-1);margin:var(--core-space-0)}
@@ -502,6 +508,10 @@
   .tf-options{max-height:320px}
   .tf-review{grid-template-columns:1fr}
   .tf-arrow{transform:rotate(90deg);justify-self:center}
+  /* Stacked slideover: keep Total stuck to the bottom of the viewport while cards scroll. */
+  .tf-col.tf-col-alloc{overflow:visible;max-height:none}
+  .tf-col-alloc .tf-alloc-scroll{flex:none;max-height:none;overflow:visible}
+  .tf-col-alloc > .tf-alloc-total{position:sticky;bottom:0;margin:var(--core-space-3) calc(var(--core-space-4) * -1) calc(var(--core-space-4) * -1);padding:var(--core-space-3) var(--core-space-4);border-top:1px solid var(--neutral-border-light);box-shadow:0 -4px 12px color-mix(in srgb,black 6%,transparent)}
 }
 @media(max-width:640px){
   .tf-controls{align-items:flex-start;flex-direction:column}
