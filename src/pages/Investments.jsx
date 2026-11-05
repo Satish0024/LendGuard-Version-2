@@ -315,7 +315,7 @@ export function InvestmentEditor({
               participant sees their measured investment style, so the
               badge and the banner were merged into one card instead of
               two stacked, visually disconnected boxes. */}
-          <div className="inv-risk-card" style={{ '--risk-color': measuredLevel.color }}>
+          <div className="inv-risk-card">
             <div className="inv-risk-card-head">
               <span className="inv-risk-card-ico" aria-hidden="true">
                 <Icon icon={RISK_LEVEL_ICON[measuredLevel.id]} size={20} />

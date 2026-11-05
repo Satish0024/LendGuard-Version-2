@@ -59,7 +59,7 @@ export default function RiskQuestionnaire() {
   }
   const goBack = () => setStep((s) => Math.max(0, s - 1))
 
-  const { levelId, score } = isResultsStep ? { ...scoreQuestionnaire(answers) } : {}
+  const { levelId } = isResultsStep ? { ...scoreQuestionnaire(answers) } : {}
   const level = isResultsStep ? getRiskLevel(levelId) : null
   const resultIcon = level ? LEVEL_ICON[level.id] : null
 
@@ -128,24 +128,14 @@ export default function RiskQuestionnaire() {
 
           {isResultsStep && (
             <div className="rq-step rq-results">
-              <div className="rq-results-ring" style={{ '--level-color': level.color }}>
-                <svg viewBox="0 0 120 120" aria-hidden="true">
-                  <circle className="rq-ring-track" cx="60" cy="60" r="52" />
-                  <circle
-                    className="rq-ring-fill"
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    style={{ strokeDasharray: `${(score / 100) * 2 * Math.PI * 52} ${2 * Math.PI * 52}` }}
-                  />
-                </svg>
-                <span className="rq-results-ico" style={{ color: level.color }}>
-                  <Icon icon={resultIcon} size={30} />
+              {/* No score and no per-type colour: every investor type gets the same
+                  default brand-colour icon badge and label (client request). */}
+              <div className="rq-results-ring">
+                <span className="rq-results-ico">
+                  <Icon icon={resultIcon} size={30} aria-hidden="true" />
                 </span>
               </div>
-              <span className="rq-results-tag" style={{ color: level.color }}>
-                {level.badge} · {score}/100
-              </span>
+              <span className="rq-results-tag">{level.badge}</span>
               <h2 id="rq-title">{level.label}</h2>
               <p>{level.copy}</p>
             </div>

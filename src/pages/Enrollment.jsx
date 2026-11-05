@@ -165,7 +165,13 @@ export function DeferralEditor({
           <div className="enroll-form-head">
             <div className="form-head-left">
               <span>Deferral by source</span>
-              <button type="button" className={`plan-chip${usingPlan ? ' on' : ''}`} onClick={usePlanRates}>
+              {/* CORE button (not a pill): Secondary · Small; Primary once plan rates are applied. */}
+              <button
+                type="button"
+                className={`btn btn-sm ${usingPlan ? 'btn-primary' : 'btn-secondary'} plan-rate-btn`}
+                aria-pressed={usingPlan}
+                onClick={usePlanRates}
+              >
                 Use plan deferral rate
               </button>
             </div>

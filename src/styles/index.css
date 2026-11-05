@@ -2148,7 +2148,7 @@ this grey triplet is only for
   .rq-money input:focus{outline:none;box-shadow:none}
   .rq-results{align-items:center;text-align:center;padding:var(--core-space-4) 0 var(--core-space-3)}
   .rq-results-ring{position:relative;width:120px;height:120px;margin-bottom:var(--core-space-3);animation:risk-pop .5s ease}
-  .rq-results-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .rq-results-ring{display:grid;place-items:center}
   .rq-ring-track{fill:none;stroke:var(--brand-background-primary-subtle);stroke-width:8}
   .rq-ring-fill{
     fill:none;stroke:var(--level-color, var(--brand-text-primary-default));stroke-width:8;stroke-linecap:round;
@@ -3352,3 +3352,11 @@ summary:focus-visible {
   line-height:var(--typography-body-xs-line-height);text-align:center;box-shadow:var(--core-elevation-1);white-space:nowrap;pointer-events:none;animation:icon-tip-in var(--core-motion-duration-fast) ease-out}
 @keyframes icon-tip-in{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.icon-tip{animation:none}}
+
+/* Questionnaire result: default brand-colour icon badge for every investor type (no score
+   ring, no level colour). The old ring rule rotated every svg in the ring by
+   -90deg, which also turned the Font Awesome icon sideways. */
+.rq-results-ring{width:auto;height:auto}
+.rq-results-ico{position:static;inset:auto;margin:0;width:72px;height:72px;background:var(--brand-background-primary-light);color:var(--brand-text-primary-default)}
+.rq-results-ico svg{transform:none}
+.rq-results-tag{color:var(--brand-text-primary-default);text-transform:uppercase;letter-spacing:.04em}
