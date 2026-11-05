@@ -1820,6 +1820,13 @@ this grey triplet is only for
     display:inline-flex;align-items:center;gap:var(--core-space-1);border:1px solid var(--brand-border-primary-default);background:transparent;min-height:var(--core-size-control-sm);
     color:var(--brand-text-primary-default);border-radius:var(--core-radius-sm);padding:var(--core-space-1) var(--core-space-3);font:inherit;font-size:var(--typography-text12-semibold-size);line-height:var(--typography-text12-semibold-line-height);font-weight:var(--typography-button-sm-weight);cursor:pointer}
   .pr-row-edit:hover{background:color-mix(in srgb,var(--brand-background-primary-strong) 12%,transparent);color:var(--brand-text-primary-hover);border-color:var(--brand-border-primary-hover)}
+  /* Beneficiary Actions: shrink the column and pin controls to the right edge. */
+  .pr-bene-table th:last-child,.pr-bene-table td:last-child{width:1%;white-space:nowrap;text-align:right;padding-right:var(--core-space-4)}
+  .pr-bene-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:var(--core-space-2);flex-wrap:nowrap}
+  /* Delete icon: grey at rest; critical red on hover/focus. */
+  .icon-btn.icon-btn-danger:focus-visible{color:var(--semantics-critical-text)}
+  .icon-btn.icon-btn-danger:hover{color:var(--semantics-critical-text);background:var(--semantics-critical-background-light)}
+  .icon-btn.icon-btn-danger:active:not(:disabled){color:var(--semantics-critical-text);background:color-mix(in srgb,var(--semantics-critical-text) 16%,transparent)}
   .pr-pct-list{display:flex;flex-direction:column;gap:var(--core-space-3);margin:var(--core-space-0) var(--core-space-0) var(--core-space-4)}
   .pr-pct-list label{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);font-weight:var(--typography-font-weight-bold)}
   .pr-pct-input{display:inline-flex;align-items:center;gap:var(--core-space-2);font-weight:var(--typography-font-weight-regular)}

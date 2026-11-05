@@ -6,11 +6,14 @@ import {
   faCheck,
   faHeart,
   faLandmark,
+  faPen,
   faTags,
+  faTrash,
   faUsers
 } from '@fortawesome/free-solid-svg-icons'
 import { useParticipant } from '../context/ParticipantContext.jsx'
 import AddBeneficiary from '../components/profile/AddBeneficiary.jsx'
+import ConfirmDialog from '../components/common/ConfirmDialog.jsx'
 import { useEscapeToClose } from '../hooks/useEscapeToClose'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useSortableRows } from '../hooks/useSortableRows'
@@ -34,6 +37,7 @@ import {
   CLASS_TABS,
   PROFILE_SECTIONS,
   ageLabel,
+  emptyBeneficiary,
   fullSsn,
   groupTotal,
   loadProfile,
@@ -41,6 +45,7 @@ import {
   saveBeneficiaries,
   saveProfileSection
 } from '../lib/profileDetails'
+import { beneficiaryBlockedByActiveRequest } from '../data/transactions.js'
 
 const NAV = [
   { id: 'personal', label: 'Personal Details', icon: faHeart },
@@ -345,7 +350,21 @@ function ClassificationHistory({ history }) {
   )
 }
 
-function BeneficiaryTable({ primary, contingent, onPercent, onSelect }) {
+function beneGroupKey(row) {
+  return row.group === 'Contingent' || row.type === 'Contingent' ? 'contingent' : 'primary'
+}
+
+function rowToDraft(row) {
+  return {
+    ...emptyBeneficiary(),
+    ...(row.detail || {}),
+    type: row.type || row.group || 'Primary',
+    name: row.name || '',
+    relationship: row.relationship || 'Non-Spouse'
+  }
+}
+
+function BeneficiaryTable({ primary, contingent, onPercent, onSelect, onEdit, onDelete }) {
   const rows = [
     ...primary.map((row) => ({ ...row, group: 'Primary' })),
     ...contingent.map((row) => ({ ...row, group: 'Contingent' }))
@@ -354,7 +373,7 @@ function BeneficiaryTable({ primary, contingent, onPercent, onSelect }) {
     return <p className="pr-empty">No beneficiaries on file.</p>
   }
   return (
-    <div className="table-wrap pr-table t-stack-wrap">
+    <div className="table-wrap pr-table pr-bene-table t-stack-wrap">
       <table className="t-stack">
         <thead>
           <tr>
@@ -378,16 +397,36 @@ function BeneficiaryTable({ primary, contingent, onPercent, onSelect }) {
               </td>
               <td data-label="Relationship">{row.relationship || '—'}</td>
               <td className="num" data-label="Share">{row.share}%</td>
-              {/* Unlabelled so the action gets its own full-width line on a
-                  card rather than being squeezed opposite an "Actions" label. */}
+              {/* Unlabelled so actions get their own full-width line on a card
+                  rather than being squeezed opposite an "Actions" label. */}
               <td>
-                <button
-                  type="button"
-                  className="pr-row-edit"
-                  onClick={() => onPercent(row.group === 'Primary' ? 'primary' : 'contingent')}
-                >
-                  Set %
-                </button>
+                <span className="pr-bene-actions">
+                  <button
+                    type="button"
+                    className="pr-row-edit"
+                    onClick={() => onPercent(beneGroupKey(row))}
+                  >
+                    Set %
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-sm"
+                    aria-label={`Edit ${row.name}`}
+                    data-icon-tip="Edit"
+                    onClick={() => onEdit(row)}
+                  >
+                    <Icon icon={faPen} size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-sm icon-btn-danger"
+                    aria-label={`Delete ${row.name}`}
+                    data-icon-tip="Delete"
+                    onClick={() => onDelete(row)}
+                  >
+                    <Icon icon={faTrash} size={13} />
+                  </button>
+                </span>
               </td>
             </tr>
           ))}
@@ -411,10 +450,21 @@ export default function Profile() {
   const [percentDraft, setPercentDraft] = useState([])
   const [percentError, setPercentError] = useState('')
   const [selectedBene, setSelectedBene] = useState(null)
+  const [editingBene, setEditingBene] = useState(null)
+  // { row, blocked } — blocked when an active txn still references this beneficiary.
+  const [deleteDialog, setDeleteDialog] = useState(null)
   useEscapeToClose(!!percentGroup, () => setPercentGroup(null))
   useEscapeToClose(!!selectedBene, () => setSelectedBene(null))
   const percentTrapRef = useFocusTrap(!!percentGroup)
   const beneTrapRef = useFocusTrap(!!selectedBene)
+
+  const requestDelete = (row) => {
+    setSelectedBene(null)
+    setDeleteDialog({
+      row,
+      blocked: beneficiaryBlockedByActiveRequest(participant, row)
+    })
+  }
 
   useEffect(() => {
     setRecord(loadProfile(participant))
@@ -458,6 +508,11 @@ export default function Profile() {
 
   const setField = (key, value) => setDraft((p) => ({ ...p, [key]: value }))
 
+  const persistBenes = (next) => {
+    saveBeneficiaries(participant.id, next)
+    setRecord((p) => ({ ...p, beneficiaries: next }))
+  }
+
   const addBene = (entry) => {
     const row = {
       id: `${entry.type}-${Date.now()}`,
@@ -472,9 +527,39 @@ export default function Profile() {
       primary: entry.type === 'Primary' ? [...record.beneficiaries.primary, row] : record.beneficiaries.primary,
       contingent: entry.type === 'Contingent' ? [...record.beneficiaries.contingent, row] : record.beneficiaries.contingent
     }
-    saveBeneficiaries(participant.id, next)
-    setRecord((p) => ({ ...p, beneficiaries: next }))
+    persistBenes(next)
+    setEditingBene(null)
     go('beneficiary')
+  }
+
+  const updateBene = (row, entry) => {
+    const toKey = entry.type === 'Contingent' ? 'contingent' : 'primary'
+    const updated = {
+      ...row,
+      name: entry.name,
+      relationship: entry.relationship,
+      type: entry.type,
+      detail: entry
+    }
+    let primary = record.beneficiaries.primary.filter((r) => r.id !== row.id)
+    let contingent = record.beneficiaries.contingent.filter((r) => r.id !== row.id)
+    if (toKey === 'primary') primary = [...primary, { ...updated, order: primary.length + 1 }]
+    else contingent = [...contingent, { ...updated, order: contingent.length + 1 }]
+    persistBenes({ primary, contingent })
+    setEditingBene(null)
+    setSelectedBene(null)
+    go('beneficiary')
+  }
+
+  const deleteBene = (row) => {
+    const key = beneGroupKey(row)
+    const next = {
+      ...record.beneficiaries,
+      [key]: (record.beneficiaries[key] || []).filter((r) => r.id !== row.id)
+    }
+    persistBenes(next)
+    setSelectedBene((cur) => (cur?.id === row.id ? null : cur))
+    setDeleteDialog(null)
   }
 
   const openPercent = (group) => {
@@ -499,10 +584,17 @@ export default function Profile() {
 
   const navItems = useMemo(() => NAV, [])
 
-  if (adding) {
+  if (adding || editingBene) {
     return (
       <div className="page-body pr-page">
-        <AddBeneficiary onCancel={() => go('beneficiary')} onSave={addBene} />
+        <AddBeneficiary
+          initial={editingBene ? rowToDraft(editingBene) : undefined}
+          onCancel={() => {
+            setEditingBene(null)
+            go('beneficiary')
+          }}
+          onSave={(entry) => (editingBene ? updateBene(editingBene, entry) : addBene(entry))}
+        />
       </div>
     )
   }
@@ -599,6 +691,8 @@ export default function Profile() {
                 contingent={record.beneficiaries.contingent}
                 onPercent={openPercent}
                 onSelect={setSelectedBene}
+                onEdit={setEditingBene}
+                onDelete={requestDelete}
               />
             )}
             {editing && canEdit && (
@@ -666,12 +760,46 @@ export default function Profile() {
               </li>
             </ul>
             <div className="enroll-modal-actions">
-              <button type="button" className="btn btn-primary" onClick={() => setSelectedBene(null)}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setEditingBene(selectedBene)
+                  setSelectedBene(null)
+                }}
+              >
+                Edit
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => requestDelete(selectedBene)}>
+                Delete
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setSelectedBene(null)}>
                 Close
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {deleteDialog?.blocked && (
+        <ConfirmDialog
+          title="Cannot delete beneficiary"
+          body="This beneficiary cannot be deleted now as they are associated with an active transaction request."
+          confirmLabel="Yes"
+          cancelLabel="No"
+          onConfirm={() => setDeleteDialog(null)}
+          onCancel={() => setDeleteDialog(null)}
+        />
+      )}
+      {deleteDialog && !deleteDialog.blocked && (
+        <ConfirmDialog
+          title="Delete beneficiary"
+          body="Are you sure you want to delete this beneficiary? This action cannot be undone."
+          confirmLabel="Yes"
+          cancelLabel="No"
+          onConfirm={() => deleteBene(deleteDialog.row)}
+          onCancel={() => setDeleteDialog(null)}
+        />
       )}
     </div>
   )
