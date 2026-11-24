@@ -3381,3 +3381,12 @@ summary:focus-visible {
 .rq-results-ico{position:static;inset:auto;margin:0;width:72px;height:72px;background:var(--brand-background-primary-light);color:var(--brand-text-primary-default)}
 .rq-results-ico svg{transform:none}
 .rq-results-tag{color:var(--brand-text-primary-default);text-transform:uppercase;letter-spacing:.04em}
+
+/* Short pages (Profile, Transactions, Portfolio tabs): the white content area
+   stretches to the full layout height so the grey page background no longer
+   shows as a band above the footer. The sidebar keeps align-items:flex-start. */
+.layout > .main{align-self:stretch}
+@media(max-width:640px){
+  .layout:has(> .main){padding-bottom:0}
+  .layout > .main{padding-bottom:var(--core-space-4)}
+}
