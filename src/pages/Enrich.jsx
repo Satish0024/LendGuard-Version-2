@@ -6,6 +6,7 @@ import { BRAND } from '../config/brand.js'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { ARTICLES, CATS } from '../data/learning.js'
 import '../styles/enrich.css'
+import Footer from '../components/layout/Footer.jsx'
 
 export default function Enrich() {
   const [cat, setCat] = useState('All Topics')
@@ -110,6 +111,7 @@ export default function Enrich() {
           })}
         </div>
       </main>
+      <Footer full />
     </>
   )
 }

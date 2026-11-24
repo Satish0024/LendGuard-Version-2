@@ -7,6 +7,7 @@ import { LIKERT_OPTIONS, LIKERT_QUESTIONS, QUESTIONNAIRE_STEP_COUNT } from '../d
 import { getRiskAnswers, getRiskLevel, scoreQuestionnaire, setRiskAnswers, setRiskProfileId } from '../lib/riskProfile'
 import RiskJourneyScene from '../components/questionnaire/RiskJourneyScene.jsx'
 import '../styles/riskQuestionnaire.css'
+import Footer from '../components/layout/Footer.jsx'
 
 const LEVEL_ICON = { conservative: faShieldAlt, moderate: faBalanceScale, aggressive: faRocket }
 
@@ -64,6 +65,7 @@ export default function RiskQuestionnaire() {
   const resultIcon = level ? LEVEL_ICON[level.id] : null
 
   return (
+    <>
     <div className="rqp-page">
       <aside className="rqp-side" aria-hidden="true">
         <RiskJourneyScene />
@@ -164,5 +166,7 @@ export default function RiskQuestionnaire() {
         </div>
       </main>
     </div>
+    <Footer full />
+    </>
   )
 }

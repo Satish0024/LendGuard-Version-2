@@ -5,11 +5,12 @@ import { BRAND } from '../../config/brand.js'
 // on narrow screens rather than truncating either side. Fixed to the
 // viewport (not part of the scrolling document) so it's always visible,
 // the same way the header is pinned to the top.
-export default function Footer() {
+// `full`: pages without the sidebar (Enrich, risk check-in) span the whole width.
+export default function Footer({ full = false }) {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="app-footer">
+    <footer className={`app-footer${full ? ' app-footer--full' : ''}`}>
       <p className="app-footer-copy">&copy; {year} {BRAND.name}.</p>
       <nav className="app-footer-links" aria-label="Legal">
         <a href={`mailto:${BRAND.supportEmail}`}>Privacy</a>
