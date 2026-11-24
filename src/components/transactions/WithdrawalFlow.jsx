@@ -1,24 +1,27 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../lib/icons'
-import { faExclamationTriangle, faInfoCircle, faCheck, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck, faExclamationCircle, faExclamationTriangle, faInfoCircle, faCheck, faChevronDown, faPen, faTrash, faDownload, faUpload, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Slideover from '../common/Slideover.jsx'
 import ConfirmDialog from '../common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../common/Field.jsx'
 import Select, { Option } from '../common/Select.jsx'
 import DatePicker from '../common/DatePicker.jsx'
 import { formatMoney, planBalance, planVested } from '../../lib/accountSummary'
-import { sourcesFor, activeLoanFor } from '../../data/transactions.js'
+import { parsePlace, splitStreet } from '../../lib/profileDetails.js'
+import { downloadDocumentFile } from '../../lib/downloadDocument.js'
+import { sourcesFor, canRequest, investmentsForSource } from '../../data/transactions.js'
 
 // Participant version of the admin "New Withdrawal Request" prototype. Same
 // data points and rules; admin-only overrides (fee, 1099 codes, penalty
-// waiver, custom mailing address) are shown read-only or left out.
+// waiver) are shown read-only or left out.
 
 export const WD_PERSONA_KEY = 'lg-wd-persona'
 const RMD = { year: 2026, age: 73, factor: 20.2 }
 const PENALTY_RATE = 10
 const PENALTY_FREE_AGE = 59.5
-const ETF_FEE = 5
+const PAYMENT_FEE = 5
+const MIN_WITHDRAW = 10
 const OVERALL_FEE = 50
 const MAX_FILE_MB = 2
 const ANNUITANT = { lifeExpectancy: 10.2, age: 80, dob: '15/01/1946', rate: 4 }
@@ -27,17 +30,17 @@ const TYPES = [
   { id: 'INS', label: 'In-Service', display: 'In-Service - INS' },
   { id: 'RMD', label: 'Required Minimum Distribution', display: 'Required Minimum Distribution - RMD' },
   { id: 'SFS', label: 'Separation from Service', display: 'Separation from Service - SFS' },
-  { id: 'hardship', label: 'Hardship', disabled: true },
-  { id: 'permissible', label: 'Permissible Withdrawal', disabled: true },
-  { id: 'forceout', label: 'Force out', disabled: true },
-  { id: 'qbad', label: 'Qualified Birth and Adoption Distribution', disabled: true }
+  { id: 'HDS', label: 'Hardship', display: 'Hardship - HDS' },
+  { id: 'PW', label: 'Permissible Withdrawal', display: 'Permissible Withdrawal - PW' },
+  { id: 'FO', label: 'Force Out', display: 'Force Out - FO' },
+  { id: 'QBAD', label: 'Qualified Birth and Adoption Distribution', display: 'Qualified Birth and Adoption Distribution - QBAD' }
 ]
 const MODES = [
-  { id: 'self', label: 'Distribution to self', ratio: 1 },
-  { id: 'beneficiary', label: 'Distribution to beneficiary', ratio: 1 },
+  { id: 'self', label: 'Distribution to Self', ratio: 1 },
+  { id: 'beneficiary', label: 'Distribution to Beneficiary', ratio: 1 },
   { id: 'rothIra', label: 'Rollover to Roth IRA', ratio: 0.6, rollover: true, excludes: 'pre-tax' },
   { id: 'tradIra', label: 'Rollover to Traditional IRA', ratio: 0.7, rollover: true, excludes: 'Roth' },
-  { id: 'plan', label: 'Rollover to another plan', ratio: 1, rollover: true }
+  { id: 'plan', label: 'Rollover to Another Plan', ratio: 1, rollover: true }
 ]
 const CODES_1099 = { 1: 'Early distribution', 2: 'Early dist. exception', 7: 'Normal distribution', G: 'Direct rollover', H: 'Roth IRA rollover' }
 const PERIODIC_KINDS = [
@@ -53,17 +56,46 @@ const FREQ = [
   { id: 'annual', label: 'Annually', perYear: 1 }
 ]
 const DOCS = [
-  { id: 'spousal', label: 'Spousal consent', types: ['INS', 'SFS'], required: true },
-  { id: 'election', label: 'Distribution election form', types: ['INS', 'RMD', 'SFS'], required: true },
-  { id: 'w4r', label: 'W-4R withholding election', types: ['INS', 'RMD'], required: false }
+  { id: 'spousal', label: 'Spousal Consent', types: ['INS', 'SFS', 'HDS', 'PW', 'QBAD'], required: true },
+  { id: 'election', label: 'Distribution Election Form', types: ['INS', 'RMD', 'SFS', 'HDS', 'PW', 'FO', 'QBAD'], required: true },
+  { id: 'w4r', label: 'W-4R Withholding Election', types: ['INS', 'RMD', 'HDS', 'PW', 'FO', 'QBAD'], required: false }
 ]
-const ADDRESS = '2450 Mission Street, Apt 4B, San Francisco, CA 94110'
-const BANK = { institution: 'JP Morgan Chase', type: 'Checking Account', number: '••••••4521', routing: '021000021' }
+const fmtAddress = (d) => [d?.line1, d?.line2, d?.city, d?.state, d?.zip].filter(Boolean).join(', ')
+const employeeAddress = (participant) => {
+  const street = splitStreet(participant.profile?.address || '')
+  const place = parsePlace(participant.profile?.city || '')
+  return {
+    line1: street.line1 || '',
+    line2: street.line2 || '',
+    city: place.city || '',
+    country: place.country || 'USA',
+    state: place.stateName || place.state || '',
+    zip: place.zip || ''
+  }
+}
+const recordsAddress = (participant) => fmtAddress(employeeAddress(participant))
+const BANK = { institution: 'JP Morgan Chase', holder: 'Jordan Hale', type: 'Checking Account', number: '••••••4521', routing: '021000021' }
 const ROLLOVER_ON_FILE = {
   rothIra: { planName: 'Fidelity Roth IRA', account: 'RIRA-55120934', trustee: 'Fidelity Management Trust' },
   tradIra: { planName: 'Fidelity Traditional IRA', account: 'TIRA-55120771', trustee: 'Fidelity Management Trust' },
   plan: { planName: 'Acme Corp 401(k) Plan', account: 'PLN-2210457', trustee: 'Empower Trust Company' }
 }
+
+const HISTORY = [
+  { title: 'Withdrawal Request Submitted', by: 'You' },
+  { title: 'Approved by Plan Sponsor', by: 'Plan Sponsor' },
+  { title: 'Approved by Plan Administrator', by: 'Plan Administrator' },
+  { title: 'Awaiting Trade', by: 'System Generated' },
+  { title: 'Completed', by: 'Plan Administrator' }
+]
+// Summary shows the first 3 funds of a source (Figma); the rest collapse into "+N".
+const MAX_CHIPS = 3
+// Smallest pill width (fund label + amount), the gap between pills, and room kept for "+N".
+const CHIP_MIN = 112
+const CHIP_GAP = 8
+const MORE_W = 48
+// Pills block width cap: it sits at the row's right edge with pills left-aligned inside.
+const CHIPS_MAX_W = 640
 
 const r2 = (n) => Math.round((+n || 0) * 100) / 100
 const money = (n) => formatMoney(r2(n))
@@ -171,20 +203,44 @@ export function allocCalc(a, persona, type) {
   const rollover = !!mode?.rollover
   const fedPct = rollover ? 0 : +a.fedPct || 0
   const statePct = rollover ? 0 : +a.statePct || 0
-  const penaltyFree = rollover || type === 'RMD' || persona.age >= PENALTY_FREE_AGE
-  const penalty = penaltyFree ? 0 : (gross * PENALTY_RATE) / 100
-  const fee = !rollover && a.payment === 'etf' ? ETF_FEE : 0
+  // Explicit Yes/No from the allocation form; default matches age/type rules when unset.
+  const defaultPenalty = !(rollover || type === 'RMD' || type === 'QBAD' || persona.age >= PENALTY_FREE_AGE)
+  const applyPenalty = a.penaltyApply ? a.penaltyApply === 'yes' : defaultPenalty
+  const penalty = !rollover && applyPenalty ? (gross * PENALTY_RATE) / 100 : 0
+  // Check/EFT fee is plan-set and read-only for participants; comes out of account balance.
+  const fee = rollover ? 0 : PAYMENT_FEE
   const fed = (gross * fedPct) / 100
   const state = (gross * statePct) / 100
-  const net = gross - fed - state - penalty - fee
-  const codes = rollover
-    ? a.mode === 'rothIra' ? ['H', 'G'] : ['G', 'G']
-    : type === 'RMD' || persona.age >= PENALTY_FREE_AGE ? ['7', '7'] : ['1', '1']
+  const net = gross - fed - state - penalty
+  const autoCodes = rollover
+    ? a.mode === 'rothIra'
+      ? ['H', 'G']
+      : ['G', 'G']
+    : type === 'QBAD'
+      ? ['2', '2']
+      : type === 'RMD' || persona.age >= PENALTY_FREE_AGE
+        ? ['7', '7']
+        : ['1', '1']
+  const codes = [a.rothCode || autoCodes[0], a.nonRothCode || autoCodes[1]]
   return { mode, gross, fed, state, penalty, fee, net, codes, rollover, fedPct, statePct }
+}
+// One row per investment held in a source. A source with no investment lineup
+// is treated as a single line so it can still be allocated.
+function sourceLines(plan, source) {
+  const lines = investmentsForSource(plan, source)
+  return lines.length ? lines : [{ id: source.id, name: source.name, amount: source.amount }]
+}
+const pickKey = (source, line) => `${source.id}::${line.id}`
+function linesTotal(plan, sources) {
+  return sources.reduce((t, s) => t + sourceLines(plan, s).reduce((x, l) => x + l.amount, 0), 0)
+}
+function lineGross(a, source, line, total) {
+  if (a.sourceMode === 'choose') return +a.picks?.[pickKey(source, line)] || 0
+  return total ? ((+a.amount || 0) * line.amount) / total : 0
 }
 
 // ---------- main ----------
-export default function WithdrawalFlow({ step, plan, participant, form, set, onNext, onBack, onSubmit, onEdit }) {
+export default function WithdrawalFlow({ step, plan, plans = [], participant, form, set, onNext, onBack, onSubmit, onEdit, onChangePlan }) {
   const navigate = useNavigate()
   const w = form.withdrawal || blankWithdrawal()
   const setW = (patch) =>
@@ -209,6 +265,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
   const [notice, setNotice] = useState(null)
   const [tried, setTried] = useState(false)
   const [triedDocs, setTriedDocs] = useState(false)
+  const [reviewTab, setReviewTab] = useState('summary')
 
   const type = TYPES.find((t) => t.id === w.type)
   const isRmd = w.type === 'RMD'
@@ -241,7 +298,6 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
       : ''
   const canAdd = !!w.type && !blocked && periodicOk && !rmdAmountErr && (periodic || !!w.entire)
   const detailsOk = !!w.type && !blocked && periodicOk && !rmdAmountErr && (periodic || !!w.entire) && balance > 0
-  const loan = activeLoanFor(participant, plan)
 
   const chooseType = (id) => {
     const wasRmd = w.type === 'RMD'
@@ -254,6 +310,19 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
     }))
   }
   const setP = (patch) => setW((cur) => ({ periodic: { ...cur.periodic, ...patch } }))
+  const changePlan = (id) => {
+    if (id === plan.id) return
+    if (!w.type) return onChangePlan(id)
+    setConfirm({
+      title: 'Do you want to proceed?',
+      body: 'Changing the plan now will result in losing all your progress.',
+      confirmLabel: 'Okay',
+      onConfirm: () => {
+        setConfirm(null)
+        onChangePlan(id)
+      }
+    })
+  }
   const saveAlloc = (a) => {
     setW((cur) => {
       const list = [...cur.allocations]
@@ -261,7 +330,9 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
       else list[editing] = a
       return { allocations: list }
     })
-    setNotice(editing === 'new' ? { text: `Allocation of ${money(a.amount)} added.` } : { text: 'Allocation updated.' })
+    // The new/updated row in the table is confirmation enough; only removal
+    // gets a banner, because it carries Undo.
+    setNotice(null)
     setEditing(null)
   }
   const removeAlloc = (i) => {
@@ -322,6 +393,8 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           plan={plan}
           persona={persona}
           type={w.type}
+          recordsAddr={employeeAddress(participant)}
+          takenModes={w.allocations.map((a, i) => (editing !== 'new' && i === editing ? null : a.mode)).filter(Boolean)}
           showSources={!periodic}
           onClose={() => setEditing(null)}
           onSave={saveAlloc}
@@ -343,59 +416,68 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           today and may change due to market fluctuations.
         </p>
         {balance <= 0 && (
-          <div className="plan-notice opted-notice">{plan.name} has $0.00 available. Choose another plan to request a withdrawal.</div>
+          <WdAlert tone="danger" title="No balance available">
+            {plan.name} has $0.00 available. Choose another plan to request a withdrawal.
+          </WdAlert>
         )}
         <div className="txn-row">
+          <Field label="Select the Plan" required>
+            <Select value={plan.id} onChange={(e) => changePlan(e.target.value)}>
+              {plans.map((p) => (
+                <Option key={p.id} value={p.id} disabled={!canRequest(p, 'withdrawal')}>
+                  {p.name}
+                </Option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Company">
+            <input type="text" value={participant.profile?.employer || ''} readOnly disabled />
+          </Field>
+        </div>
+        <div className="txn-row spaced">
           <Field label="Withdraw Type" required>
-            <Select value={w.type} onChange={(e) => chooseType(e.target.value)} disabled={balance <= 0} placeholder="Select the withdrawal type">
-              <Option value="">Select the withdrawal type</Option>
+            <Select value={w.type} onChange={(e) => chooseType(e.target.value)} disabled={balance <= 0} placeholder="Select the Withdrawal Type">
+              <Option value="">Select the Withdrawal Type</Option>
               {TYPES.map((t) => (
-                <Option key={t.id} value={t.id} disabled={t.disabled}>
-                  {t.disabled ? `${t.label} (not available)` : t.label}
+                <Option key={t.id} value={t.id}>
+                  {t.label}
                 </Option>
               ))}
             </Select>
           </Field>
         </div>
 
-        {isRmd && (
-          <div className={`plan-notice ${rmdEligible ? 'eligible-notice' : 'opted-notice'} wd2-banner`}>
-            {rmdEligible ? (
-              <>
-                <b>Eligible for Required Minimum Distribution</b> You are {persona.age} years old and {persona.status.toLowerCase()}, so you can
-                request your {RMD.year} RMD.
-              </>
-            ) : (
-              <>
-                <b>Not eligible for Required Minimum Distribution</b> An RMD can only be requested from age {RMD.age} once you have left
-                employment. You are {persona.age} and {persona.status.toLowerCase()}.
-              </>
-            )}
-          </div>
-        )}
+        {isRmd &&
+          (rmdEligible ? (
+            <WdAlert tone="success" title="Eligible for Required Minimum Distribution">
+              You are {persona.age} years old and {persona.status.toLowerCase()}, so you can request your {RMD.year} RMD.
+            </WdAlert>
+          ) : (
+            <WdAlert tone="danger" title="Not Eligible for Required Minimum Distribution">
+              An RMD can only be requested from age {RMD.age} once you have left employment. You are {persona.age} and{' '}
+              {persona.status.toLowerCase()}.
+            </WdAlert>
+          ))}
         {isSfs && persona.status === 'Active' && (
-          <div className="plan-notice opted-notice wd2-banner">
-            <b>Not eligible for Separation from Service</b> Separation from Service (including periodic payments) is only available once you
-            have left employment. You are currently active.
-          </div>
+          <WdAlert tone="danger" title="Not Eligible for Separation from Service">
+            Separation from Service (including periodic payments) is only available once you have left employment. You are currently active.
+          </WdAlert>
         )}
 
         {w.type && !blocked && (
           <>
-            <div className="txn-row spaced">
-              <FieldGroup label="Withdraw as" note={!isSfs ? 'Periodic payment is available for Separation from Service only.' : undefined}>
-                <div className="period" role="radiogroup" aria-label="Withdraw as">
-                  {[
-                    ['one', 'One time payment'],
-                    ['periodic', 'Periodic payment']
-                  ].map(([id, label]) => (
+            {/* Stacked for every withdraw type, in the same column as the fields above. */}
+            <div className="txn-stack spaced">
+              <FieldGroup label="Withdraw As">
+                <div className="period" role="radiogroup" aria-label="Withdraw As">
+                  {/* Periodic payment only exists for Separation from Service. */}
+                  {[['one', 'One Time Payment'], ...(isSfs ? [['periodic', 'Periodic Payment']] : [])].map(([id, label]) => (
                     <button
                       key={id}
                       type="button"
                       role="radio"
                       aria-checked={w.withdrawAs === id}
                       className={w.withdrawAs === id ? 'on' : ''}
-                      disabled={id === 'periodic' && !isSfs}
                       onClick={() => setW({ withdrawAs: id, allocations: [] })}
                     >
                       {label}
@@ -404,8 +486,8 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                 </div>
               </FieldGroup>
               {!periodic && (
-                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : undefined} noteClass="err">
-                  <div className="period" role="radiogroup" aria-label="Withdraw entire balance">
+                <FieldGroup label="Withdraw Entire Balance" note={tried && !w.entire ? 'Choose Yes or No.' : `Minimum ${money(MIN_WITHDRAW)} / Maximum ${money(balance)}`} noteClass={tried && !w.entire ? 'err' : undefined}>
+                  <div className="period" role="radiogroup" aria-label="Withdraw Entire Balance">
                     {[
                       ['yes', 'Yes'],
                       ['no', 'No']
@@ -424,28 +506,19 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                   </div>
                 </FieldGroup>
               )}
-              <Field label="Overall Withdraw Fee" tooltip="Set by your plan. Deducted once from the total withdrawal.">
-                <input type="text" value={money(OVERALL_FEE)} readOnly disabled />
-              </Field>
             </div>
-
-            {w.entire === 'yes' && loan && !periodic && (
-              <div className="wd-note">
-                You have an outstanding loan on this plan. Withdrawing your entire balance applies the default loan treatment first.
-              </div>
-            )}
 
             {isRmd && (
               <div className="txn-row spaced">
-                <Field label="RMD year">
+                <Field label="RMD Year">
                   <input type="text" value={RMD.year} readOnly disabled />
                 </Field>
-                <Field label="Required minimum amount">
+                <Field label="Required Minimum Amount">
                   <input type="text" value={money(rmdMin)} readOnly disabled />
                 </Field>
                 {rmdPartial && (
                   <Field
-                    label="Withdrawal amount"
+                    label="Withdrawal Amount"
                     required
                     note={rmdAmountErr || `Minimum ${money(rmdMin)} (prior year-end balance ÷ IRS factor ${RMD.factor}). You can withdraw more, up to ${money(balance)}.`}
                     noteClass={rmdAmountErr ? 'err' : undefined}
@@ -459,7 +532,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
             {periodic && (
               <div className="wd2-periodic">
                 <div className="txn-row spaced">
-                  <Field label="Periodic payment" required note={tried && pErr.kind} noteClass="err">
+                  <Field label="Periodic Payment" required note={tried && pErr.kind} noteClass="err">
                     <Select value={w.periodic.kind} onChange={(e) => setP({ kind: e.target.value })} placeholder="Select">
                       <Option value="">Select</Option>
                       {PERIODIC_KINDS.map((k) => (
@@ -474,52 +547,52 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                   <>
                     <h4 className="wd2-sub">{kindLabel} Details</h4>
                     <div className="txn-row">
-                      <Field label="Total available amount" required note={pErr.total && (tried || w.periodic.total) ? pErr.total : `Up to ${money(balance)}`} noteClass={pErr.total && (tried || w.periodic.total) ? 'err' : undefined}>
+                      <Field label="Total Available Amount" required note={pErr.total && (tried || w.periodic.total) ? pErr.total : `Up to ${money(balance)}`} noteClass={pErr.total && (tried || w.periodic.total) ? 'err' : undefined}>
                         <input type="text" inputMode="decimal" value={w.periodic.total} onChange={(e) => setP({ total: clean(e.target.value) })} placeholder="0.00" />
                       </Field>
                       {w.periodic.kind === 'dollar' && (
-                        <Field label="Installment amount" required note={pErr.installment && (tried || w.periodic.installment) ? pErr.installment : undefined} noteClass="err">
+                        <Field label="Installment Amount" required note={pErr.installment && (tried || w.periodic.installment) ? pErr.installment : undefined} noteClass="err">
                           <input type="text" inputMode="decimal" value={w.periodic.installment} onChange={(e) => setP({ installment: clean(e.target.value) })} placeholder="0.00" />
                         </Field>
                       )}
                       {w.periodic.kind === 'tenure' && (
                         <Field label="Specific Tenure" required>
                           <Select value={w.periodic.tenure} onChange={(e) => setP({ tenure: e.target.value })}>
-                            <Option value="life">My life expectancy</Option>
+                            <Option value="life">My Life Expectancy</Option>
                             <Option value="other">Other</Option>
                           </Select>
                         </Field>
                       )}
                       {w.periodic.kind === 'tenure' && w.periodic.tenure === 'other' && (
-                        <Field label="Number of years" required note={pErr.years && (tried || w.periodic.years) ? pErr.years : undefined} noteClass="err">
+                        <Field label="Number of Years" required note={pErr.years && (tried || w.periodic.years) ? pErr.years : undefined} noteClass="err">
                           <input type="text" inputMode="numeric" value={w.periodic.years} onChange={(e) => setP({ years: e.target.value.replace(/\D/g, '').slice(0, 2) })} />
                         </Field>
                       )}
                       {w.periodic.kind === 'annuity' && (
-                        <Field label="Interest rate (%)" required note={pErr.rate} noteClass="err">
+                        <Field label="Interest Rate (%)" required note={pErr.rate} noteClass="err">
                           <input type="text" inputMode="decimal" value={w.periodic.rate} onChange={(e) => setP({ rate: clean(e.target.value) })} />
                         </Field>
                       )}
                     </div>
                     {(w.periodic.kind === 'annuity' || (w.periodic.kind === 'tenure' && w.periodic.tenure === 'life')) && (
                       <div className="txn-row">
-                        <Field label="Life expectancy (years)">
+                        <Field label="Life Expectancy (Years)">
                           <input type="text" value={ANNUITANT.lifeExpectancy} readOnly disabled />
                         </Field>
-                        <Field label="Current age">
+                        <Field label="Current Age">
                           <input type="text" value={persona.age} readOnly disabled />
                         </Field>
-                        <Field label="Date of birth">
+                        <Field label="Date of Birth">
                           <input type="text" value={persona.dob} readOnly disabled />
                         </Field>
                       </div>
                     )}
                     <div className="txn-row">
-                      <FieldGroup label="Installment date">
-                        <div className="period" role="radiogroup" aria-label="Installment date">
+                      <FieldGroup label="Installment Date">
+                        <div className="period" role="radiogroup" aria-label="Installment Date">
                           {[
-                            ['fixed', 'Fixed date'],
-                            ['custom', 'Custom date']
+                            ['fixed', 'Fixed Date'],
+                            ['custom', 'Custom Date']
                           ].map(([id, label]) => (
                             <button key={id} type="button" role="radio" aria-checked={w.periodic.dateMode === id} className={w.periodic.dateMode === id ? 'on' : ''} onClick={() => setP({ dateMode: id })}>
                               {label}
@@ -532,7 +605,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                           <input type="text" value="1st of every period" readOnly disabled />
                         </Field>
                       ) : (
-                        <Field label="First installment date" required note={pErr.date && (tried || w.periodic.date) ? pErr.date : undefined} noteClass="err">
+                        <Field label="First Installment Date" required note={pErr.date && (tried || w.periodic.date) ? pErr.date : undefined} noteClass="err">
                           <DatePicker value={w.periodic.date} onChange={(v) => setP({ date: v })} />
                         </Field>
                       )}
@@ -592,7 +665,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           <div>
             <h3>Withdrawal Allocation</h3>
             <p className="hint">
-              {type?.display} · {periodic ? 'Periodic payment' : 'One time payment'} · up to {money(cap)}
+              {type?.display} · {periodic ? 'Periodic Payment' : 'One Time Payment'} · up to {money(cap)}
             </p>
           </div>
           <button type="button" className="btn btn-secondary" disabled={!canAdd || allocTotal >= cap - 0.009} onClick={() => setEditing('new')}>
@@ -600,18 +673,20 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           </button>
         </div>
         {!w.allocations.length ? (
-          <div className="wd-note">Add how the money is paid out: to you, a beneficiary, or rolled over to an IRA or another plan.</div>
+          <div className="wd-note">
+            <Icon icon={faInfoCircle} size={13} />
+            <span>Add how the money is paid out: to you, a beneficiary, or rolled over to an IRA or another plan.</span>
+          </div>
         ) : (
           <div className="table-wrap">
             <table className="alloc-table wd2-table">
               <thead>
                 <tr>
-                  <th scope="col">Allocation &amp; Payment</th>
-                  <th scope="col">1099 codes</th>
+                  <th scope="col">Recipient &amp; Payment</th>
+                  <th scope="col">1099 Codes</th>
                   <th scope="col" className="num">Gross</th>
-                  <th scope="col" className="num">State tax</th>
-                  <th scope="col" className="num">Federal tax</th>
-                  <th scope="col" className="num">Penalty</th>
+                  <th scope="col" className="num">State Tax</th>
+                  <th scope="col" className="num">Federal Tax</th>
                   <th scope="col" className="num">Fee</th>
                   <th scope="col" className="num">Net</th>
                   <th scope="col" className="num">Action</th>
@@ -640,22 +715,17 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                         <small className="wd2-pct">{c.fedPct}%</small>
                       </td>
                       <td className="num">
-                        {c.rollover ? 'Rollover' : c.penalty ? money(c.penalty) : 'None'}
-                        {c.penalty > 0 && <small className="wd2-pct">{PENALTY_RATE}%</small>}
-                      </td>
-                      <td className="num">
-                        {c.rollover ? 'Rollover' : c.fee ? money(c.fee) : 'No fee'}
-                        {c.fee > 0 && <small className="wd2-pct">ETF fee</small>}
+                        {c.rollover ? 'Rollover' : money(c.fee)}
                       </td>
                       <td className="num">
                         <b>{money(c.net)}</b>
                       </td>
                       <td className="num">
                         <span className="tf-actions">
-                          <button type="button" className="icon-btn" aria-label="Edit allocation" onClick={() => setEditing(i)}>
+                          <button type="button" className="icon-btn" aria-label="Edit Allocation" data-icon-tip="Edit allocation" onClick={() => setEditing(i)}>
                             <Icon icon={faPen} size={13} />
                           </button>
-                          <button type="button" className="icon-btn" aria-label="Remove allocation" onClick={() => removeAlloc(i)}>
+                          <button type="button" className="icon-btn icon-btn-danger" aria-label="Remove Allocation" data-icon-tip="Remove allocation" onClick={() => removeAlloc(i)}>
                             <Icon icon={faTrash} size={13} />
                           </button>
                         </span>
@@ -663,11 +733,6 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                     </tr>
                   )
                 })}
-                <tr className="alloc-total">
-                  <td colSpan={2}>Total</td>
-                  <td className="num">{money(allocTotal)}</td>
-                  <td colSpan={6} />
-                </tr>
               </tbody>
             </table>
           </div>
@@ -697,7 +762,10 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
     return (
       <div className="txn-card wd2">
         <h3>Required Documents</h3>
-        <p className="hint">Accepted file: PDF · Max file size: {MAX_FILE_MB} MB</p>
+        <p className="wd2-doc-accept">
+          <span>Accepted File : PDF</span>
+          <span>Max File Size : {MAX_FILE_MB} MB</span>
+        </p>
         {docs.map((d) => (
           <DocBlock key={d.id} doc={d} state={w.docs[d.id] || { method: 'docusign' }} error={triedDocs ? docErr(d) : ''} onChange={(s) => setW((cur) => ({ docs: { ...cur.docs, [d.id]: s } }))} />
         ))}
@@ -728,56 +796,119 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
     ['Federal tax', sum('fed')],
     ['State tax', sum('state')],
     ['Early withdrawal penalty', sum('penalty')],
-    ['ETF fee', sum('fee')],
+    ['EFT fee', w.allocations.reduce((t, a, i) => t + (a.payment === 'eft' ? calcs[i].fee : 0), 0)],
+    ['Check fee', w.allocations.reduce((t, a, i) => t + (a.payment === 'eft' ? 0 : calcs[i].fee), 0)],
     ['Overall withdraw fee', OVERALL_FEE]
   ].filter(([, v]) => v > 0)
   const totalDed = deductions.reduce((t, [, v]) => t + v, 0)
   const pc = periodic ? periodicCalc(w.periodic) : null
+  const lineTotal = linesTotal(plan, sources)
+  const sourceRows = sources
+    .map((s) => {
+      const lines = sourceLines(plan, s)
+        .map((l) => ({ ...l, gross: w.allocations.reduce((t, a) => t + lineGross(a, s, l, lineTotal), 0) }))
+        .filter((l) => l.gross > 0.004)
+      return { id: s.id, name: s.name, lines, total: lines.reduce((t, l) => t + l.gross, 0) }
+    })
+    .filter((s) => s.lines.length)
   return (
     <div className="txn-card wd2">
-      <h3>Review your withdrawal</h3>
-      <p className="hint">Requests are usually processed within 10 business days after approval.</p>
+      <h3>Review Your Withdrawal</h3>
+      <div className="tabs" role="tablist" aria-label="Withdrawal Review">
+        {[
+          ['summary', 'Request Summary'],
+          ['history', 'History']
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`wd-tab-${id}`}
+            aria-selected={reviewTab === id}
+            aria-controls={`wd-panel-${id}`}
+            className={`tab${reviewTab === id ? ' on' : ''}`}
+            onClick={() => setReviewTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
+      {reviewTab === 'history' ? (
+        <ol className="wd2-hist" role="tabpanel" id="wd-panel-history" aria-labelledby="wd-tab-history">
+          <li className="done">
+            <b>Request Drafted</b>
+            <span>You · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </li>
+          {HISTORY.map((h) => (
+            <li key={h.title}>
+              <b>{h.title}</b>
+              <span>{h.by} · Pending</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+      <div role="tabpanel" id="wd-panel-summary" aria-labelledby="wd-tab-summary">
       <section className="wd2-sum">
         <div className="wd2-sum-h">
-          <h4>
-            <span className="tf-col-num">1</span> Withdrawal Details
-          </h4>
+          <h4>Withdrawal Details</h4>
           <button type="button" className="text-link" onClick={() => onEdit?.('details')}>
             Edit
           </button>
         </div>
-        <p className="wd2-tags">
-          <span className="badge navy">{type?.display}</span>
-          <span className="badge navy">{periodic ? 'Periodic payment' : 'One time payment'}</span>
-          {!periodic && <span className="badge navy">Withdraw entire balance: {w.entire === 'yes' ? 'Yes' : 'No'}</span>}
-        </p>
-        <ul className="detail-rows">
-          <li>
-            <span>Gross withdrawal amount</span>
-            <b>{money(gross)}</b>
-          </li>
-          <li className="wd2-ded">
-            <details>
-              <summary>
-                <span>Fee &amp; Tax details</span>
-                <b>−{money(totalDed)}</b>
-              </summary>
-              <ul>
-                {deductions.map(([k, v]) => (
-                  <li key={k}>
-                    <span>{k}</span>
-                    <span>−{money(v)}</span>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </li>
-          <li className="wd2-net">
-            <span>Net withdrawal amount</span>
-            <b>{money(gross - totalDed)}</b>
-          </li>
-        </ul>
+        <div className="wd2-details-split">
+          <ul className="detail-rows wd2-details-col">
+            <li>
+              <span>Requested Amount</span>
+              <b>{money(gross)}</b>
+            </li>
+            <li>
+              <span>Withdrawal Type</span>
+              <b>{type?.display || '—'}</b>
+            </li>
+            <li>
+              <span>Withdrawal As</span>
+              <b>{periodic ? 'Periodic Payment' : 'One Time Payment'}</b>
+            </li>
+            {!periodic && (
+              <li>
+                <span>Withdrawal Entire Balance</span>
+                <b>{w.entire === 'yes' ? 'Yes' : 'No'}</b>
+              </li>
+            )}
+          </ul>
+          <ul className="detail-rows wd2-details-col">
+            <li>
+              <span>Gross Withdrawal Amount</span>
+              <b>{money(gross)}</b>
+            </li>
+            <li className="wd2-ded">
+              <details>
+                <summary aria-label={`Fee and tax details, ${deductions.length} items`}>
+                  <span className="wd2-ded-toggle">
+                    <span className="wd2-ded-chev" aria-hidden="true">
+                      <Icon icon={faChevronDown} size={10} />
+                    </span>
+                    <span>Fee &amp; Tax Details</span>
+                  </span>
+                  <b>−{money(totalDed)}</b>
+                </summary>
+                <ul>
+                  {deductions.map(([k, v]) => (
+                    <li key={k}>
+                      <span>{k}</span>
+                      <span>−{money(v)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+            <li className="wd2-net">
+              <span>Net Withdrawal Amount</span>
+              <b>{money(gross - totalDed)}</b>
+            </li>
+          </ul>
+        </div>
         {isRmd && (
           <p className="hint">
             RMD {RMD.year}: required minimum {money(rmdMin)} · withdrawing {money(rmdPartial ? rmdAmt : balance)}
@@ -788,34 +919,31 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
       {periodic && pc && (
         <section className="wd2-sum">
           <div className="wd2-sum-h">
-            <h4>
-              <span className="tf-col-num">2</span> Payment schedule
-            </h4>
+            <h4>Payment Schedule</h4>
             <button type="button" className="text-link" onClick={() => setSchedule(true)}>
-              View schedule
-            </button>
+              View Schedule            </button>
           </div>
           <ul className="detail-rows">
             <li>
-              <span>Periodic payment</span>
+              <span>Periodic Payment</span>
               <b>{PERIODIC_KINDS.find((k) => k.id === w.periodic.kind)?.label}</b>
             </li>
             <li>
-              <span>Total amount</span>
+              <span>Total Amount</span>
               <b>{money(w.periodic.total)}</b>
             </li>
             <li>
-              <span>Installment amount</span>
+              <span>Installment Amount</span>
               <b>{money(pc.amount)}</b>
             </li>
             <li>
-              <span>Number of installments</span>
+              <span>Number of Installments</span>
               <b>
                 {pc.count} · {FREQ.find((f) => f.id === w.periodic.freq).label}
               </b>
             </li>
             <li>
-              <span>Installment date</span>
+              <span>Installment Date</span>
               <b>{w.periodic.dateMode === 'fixed' ? '1st of every period' : w.periodic.date}</b>
             </li>
           </ul>
@@ -824,9 +952,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
 
       <section className="wd2-sum">
         <div className="wd2-sum-h">
-          <h4>
-            <span className="tf-col-num">{periodic ? 3 : 2}</span> Withdrawal Allocation
-          </h4>
+          <h4>Withdrawal Allocation</h4>
           <button type="button" className="text-link" onClick={() => onEdit?.('allocation')}>
             Edit
           </button>
@@ -835,9 +961,9 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
           <table className="alloc-table">
             <thead>
               <tr>
-                <th scope="col">Allocation &amp; Payment</th>
-                <th scope="col">1099 codes</th>
-                <th scope="col">Source</th>
+                <th scope="col">Recipient &amp; Payment</th>
+                <th scope="col">1099 Codes</th>
+                <th scope="col">Address</th>
                 <th scope="col" className="num">Net</th>
               </tr>
             </thead>
@@ -852,17 +978,7 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
                     Roth {calcs[i].codes[0]} · Non Roth {calcs[i].codes[1]}
                   </td>
                   <td>
-                    <span className="tf-chips">
-                      {a.sourceMode === 'choose'
-                        ? Object.entries(a.sources || {})
-                            .filter(([, v]) => +v > 0)
-                            .map(([id, v]) => (
-                              <span key={id} className="badge navy">
-                                {sources.find((s) => s.id === id)?.name} {money(v)}
-                              </span>
-                            ))
-                        : <span className="badge navy">Pro-rata across sources</span>}
-                    </span>
+                    {addressCell(a, calcs[i], recordsAddress(participant))}
                   </td>
                   <td className="num">
                     <b>{money(calcs[i].net)}</b>
@@ -874,11 +990,18 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
         </div>
       </section>
 
+      {sourceRows.length > 0 && (
+        <section className="wd2-sum">
+          <div className="wd2-sum-h">
+            <h4>Source Withdraw Amount</h4>
+          </div>
+          <SourceSummaryList rows={sourceRows} />
+        </section>
+      )}
+
       <section className="wd2-sum">
         <div className="wd2-sum-h">
-          <h4>
-            <span className="tf-col-num">{periodic ? 4 : 3}</span> Documents
-          </h4>
+          <h4>Documents</h4>
           <button type="button" className="text-link" onClick={() => onEdit?.('documents')}>
             Edit
           </button>
@@ -889,20 +1012,36 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
             return (
               <li key={d.id}>
                 <span>{d.label}</span>
-                <b>{s.method === 'manual' ? s.file?.name || 'Not uploaded' : 'Sent via Docusign'}</b>
+                {s.method === 'manual' && s.file ? (
+                  <UploadedFileCard file={s.file} />
+                ) : (
+                  <b className="wd2-doc-name">{s.method === 'manual' ? 'Not Uploaded' : 'Sent via Docusign'}</b>
+                )}
               </li>
             )
           })}
         </ul>
-        {docs.some((d) => (w.docs[d.id]?.method || 'docusign') === 'docusign') && (
-          <p className="hint">You will receive the Docusign documents by email to sign.</p>
-        )}
       </section>
 
-      <label className="alloc-apply-all tf-ack">
-        <input type="checkbox" checked={!!w.terms} onChange={(e) => setW({ terms: e.target.checked })} />
-        <span>By checking this box, I declare that I have read the Terms &amp; Conditions.</span>
-      </label>
+      <section className="wd2-terms">
+        <h4 className="txn-section-title">Confirm and Submit</h4>
+        {/* The link sits outside the <label> so clicking it never toggles the checkbox. */}
+        <div className="alloc-apply-all tf-ack wd2-ack">
+          <input id="wd-terms-ack" type="checkbox" checked={!!w.terms} onChange={(e) => setW({ terms: e.target.checked })} />
+          <span>
+            <label htmlFor="wd-terms-ack">By checking this box, I declare that I have read the</label>{' '}
+            <button
+              type="button"
+              className="text-link wd2-terms-link"
+              onClick={(e) => e.preventDefault()}
+            >
+              Terms &amp; Conditions
+            </button>
+          </span>
+        </div>
+      </section>
+      </div>
+      )}
       <div className="txn-actions">
         <button
           type="button"
@@ -925,25 +1064,173 @@ export default function WithdrawalFlow({ step, plan, participant, form, set, onN
 
 function paymentLine(a, c, plan) {
   if (c.rollover) return `${a.delivery === 'wire' ? 'Wire transfer' : 'Check mailed to trustee'} · ${a.rollover?.planName || plan.name}`
-  return a.payment === 'check' ? 'Mail check · Address on file' : `ETF · ${a.bank === 'custom' ? a.customBank?.institution || 'New bank' : 'Bank on file'}`
+  if (a.payment === 'check') return `Mail Check · ${a.addressSrc === 'custom' ? 'Custom Address' : 'Address on File'}`
+  return `EFT · ${a.bank === 'custom' ? a.customBank?.institution || 'New Bank' : 'Bank on File'}`
+}
+// Money / percent control that accepts Field's cloned id/required onto the real input.
+function AffixInput({ id, required, prefix, suffix, disabled, invalid, ...rest }) {
+  return (
+    <span className={`alloc-pct-input wd2-affix${disabled ? ' is-disabled' : ''}${invalid ? ' tf-bad' : ''}`}>
+      {prefix != null && <i aria-hidden="true">{prefix}</i>}
+      <input id={id} required={required} disabled={disabled} {...rest} />
+      {suffix != null && <i aria-hidden="true">{suffix}</i>}
+    </span>
+  )
+}
+function addressCell(a, c, onFile) {
+  const custom = !c.rollover && a.payment === 'check' && a.addressSrc === 'custom'
+  const text = c.rollover ? a.rollover?.trustee : custom ? fmtAddress(a.address) : onFile
+  const tag = c.rollover ? 'Rollover Trustee' : custom ? 'Custom Address' : 'As per Your Records'
+  return (
+    <>
+      {text}
+      <span className="tf-meta">{tag}</span>
+    </>
+  )
+}
+
+
+// CORE Alert: status icon, bold title on its own line, then the message.
+function WdAlert({ tone, title, children }) {
+  return (
+    <div className={`plan-notice ${tone === 'success' ? 'eligible-notice' : 'opted-notice'} wd2-banner wd2-alert`} role={tone === 'danger' ? 'alert' : 'status'}>
+      <Icon icon={tone === 'success' ? faCircleCheck : faExclamationCircle} size={20} aria-hidden="true" className="wd2-alert-icon" />
+      <div className="wd2-alert-body">
+        <b>{title}</b>
+        <span>{children}</span>
+      </div>
+    </div>
+  )
+}
+
+// Shows the first MAX_SOURCES sources; the rest sit behind a "Show all" toggle.
+const MAX_SOURCES = 4
+function SourceSummaryList({ rows }) {
+  const [all, setAll] = useState(false)
+  const hidden = rows.length - MAX_SOURCES
+  return (
+    <>
+      <div className="wd2-src-list">
+        {(all ? rows : rows.slice(0, MAX_SOURCES)).map((s) => (
+          <SourceSummaryRow key={s.id} source={s} />
+        ))}
+      </div>
+      {hidden > 0 && (
+        <button type="button" className="btn btn-ghost btn-sm wd2-src-all" aria-expanded={all} onClick={() => setAll((v) => !v)}>
+          <Icon icon={faChevronDown} size={12} className={all ? 'is-up' : undefined} />
+          {all ? 'Show fewer sources' : `Show all ${rows.length} sources (+${hidden})`}
+        </button>
+      )}
+    </>
+  )
+}
+
+function SourceSummaryRow({ source }) {
+  const [expanded, setExpanded] = useState(false)
+  const shown = expanded ? source.lines : source.lines.slice(0, MAX_CHIPS)
+  // One line only (like the Transfer request): pills shrink (down to
+  // CHIP_MIN, name cut with "…") to share the row; when even that doesn't fit,
+  // fewer pills render and the rest count into "+N".
+  const boxRef = useRef(null)
+  const [fit, setFit] = useState(MAX_CHIPS)
+  useLayoutEffect(() => {
+    const el = boxRef.current
+    if (!el || expanded) return
+    const measure = () => {
+      // Phones let pills wrap freely, so every pill shows.
+      if (window.matchMedia('(max-width: 767px)').matches) return setFit(MAX_CHIPS)
+      // Room = row width minus the name column, the row gap/padding and "+N".
+      const row = el.parentElement
+      const rs = getComputedStyle(row)
+      const avail = row.clientWidth - row.firstElementChild.offsetWidth - parseFloat(rs.columnGap || 0) - parseFloat(rs.paddingRight || 0)
+      const room = Math.min(avail, CHIPS_MAX_W) - MORE_W - CHIP_GAP
+      setFit(Math.max(1, Math.min(MAX_CHIPS, Math.floor((room + CHIP_GAP) / (CHIP_MIN + CHIP_GAP)))))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el.parentElement)
+    return () => ro.disconnect()
+  }, [expanded])
+  // Expanded: shrink the pills block to its widest line so it sits flush at the
+  // table's right edge while the pills inside stay left-aligned.
+  useLayoutEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    if (!expanded) {
+      el.style.width = ''
+      return
+    }
+    const hug = () => {
+      el.style.width = ''
+      if (window.matchMedia('(max-width: 767px)').matches) return
+      const left = el.getBoundingClientRect().left
+      const right = Math.max(...[...el.querySelectorAll('.wd2-src-chip, .wd2-more')].map((c) => c.getBoundingClientRect().right))
+      el.style.width = `${Math.ceil(right - left)}px`
+    }
+    hug()
+    const ro = new ResizeObserver(() => requestAnimationFrame(hug))
+    ro.observe(el.parentElement)
+    return () => ro.disconnect()
+  }, [expanded])
+  const visible = expanded ? shown.length : Math.min(fit, shown.length)
+  const extra = source.lines.length - visible
+  const toggle = () => setExpanded((v) => !v)
+  return (
+    <div className={`wd2-src-row${expanded ? ' expanded' : ''}`}>
+      <div className="wd2-src-name">
+        {/* Figma: the source name is a link; here it shows or hides all of its funds. */}
+        <button type="button" className="wd2-src-link" title={source.name} aria-expanded={expanded} onClick={toggle} disabled={source.lines.length <= 1}>
+          {source.name}
+        </button>
+        <span className="wd2-src-total">{money(source.total)}</span>
+      </div>
+      <div className="wd2-src-chips" ref={boxRef}>
+        <span className="wd2-src-track">
+          {shown.slice(0, visible).map((l) => (
+            <span key={l.id} className="wd2-src-chip" title={`${l.name} ${money(l.gross)}`}>
+              <span className="wd2-src-chip-name">{l.name}</span>
+              <b>{money(l.gross)}</b>
+            </span>
+          ))}
+        </span>
+        {(expanded || extra > 0) && (
+          <button
+            type="button"
+            className="wd2-more"
+            aria-expanded={expanded}
+            aria-label={expanded ? `Show fewer funds for ${source.name}` : `Show ${extra} more funds for ${source.name}`}
+            onClick={toggle}
+          >
+            {expanded ? 'Show less' : `+${extra}`}
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ---------- allocation slide-out ----------
-function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, showSources, onClose, onSave }) {
+function AllocationSlideover({ initial, max, balance, sources, plan, persona, type, recordsAddr, takenModes = [], showSources, onClose, onSave }) {
   const [a, setA] = useState(
     () =>
       initial || {
         mode: '',
-        amount: '',
-        fedPct: '20',
-        statePct: '0',
-        payment: 'etf',
+        amount: '0.00',
+        fedPct: '20.00',
+        statePct: '0.00',
+        rothCode: '',
+        nonRothCode: '',
+        penaltyApply: 'no',
+        payment: 'check',
+        paymentFee: PAYMENT_FEE.toFixed(2),
+        addressSrc: 'records',
+        address: { line1: '', line2: '', city: '', country: 'USA', state: '', zip: '' },
         bank: 'records',
         customBank: { institution: '', holder: '', type: 'Checking Account', number: '', routing: '', email: '', phone: '' },
         rollover: null,
         delivery: 'check',
         sourceMode: 'prorata',
-        sources: {}
+        picks: {}
       }
   )
   const set = (patch) => setA((cur) => ({ ...cur, ...patch }))
@@ -952,20 +1239,49 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   const c = allocCalc(a, persona, type)
   const amt = +a.amount || 0
   const errs = {}
+  if (a.amount !== '' && amt > 0 && amt < MIN_WITHDRAW) errs.amount = `Minimum allocation amount is ${money(MIN_WITHDRAW)}.`
   if (a.amount !== '' && amt > modeMax + 1e-9) errs.amount = modeMax <= 0 ? 'No balance left to allocate.' : `Maximum amount available for ${mode?.rollover ? 'rollover' : 'withdrawal'} ${money(modeMax)}`
   if (+a.fedPct > 100 || +a.statePct > 100) errs.tax = 'Enter a rate between 0 and 100%.'
   if (amt > 0 && c.net <= 0) errs.net = 'Deductions are more than the allocation amount. Lower the tax rates.'
   if (mode?.rollover && a.rollover?.account && !/^[A-Za-z0-9-]{5,20}$/.test(a.rollover.account)) errs.account = 'Account / IRA no must be 5 to 20 letters, numbers or dashes.'
   const cb = a.customBank
-  if (!mode?.rollover && a.payment === 'etf' && a.bank === 'custom') {
+  const ad = a.address
+  const fromRecords = a.addressSrc === 'records'
+  const bankFromRecords = a.bank === 'records'
+  const recordAddr = recordsAddr || {}
+  const isRollover = !!mode?.rollover
+  const availableModes = MODES.filter((m) => m.id === a.mode || !takenModes.includes(m.id))
+  const customAddress = !isRollover && a.payment === 'check' && a.addressSrc === 'custom'
+  if (customAddress && ad.zip && !/^\d{5}$/.test(ad.zip)) errs.zip = 'Zip code must be 5 digits.'
+  if (!isRollover && a.payment === 'eft' && a.bank === 'custom') {
     if (cb.number && !/^\d{4,17}$/.test(cb.number)) errs.number = 'Account number must be 4 to 17 digits.'
     if (cb.routing && !/^\d{9}$/.test(cb.routing)) errs.routing = 'ABA routing number must be 9 digits.'
     if (cb.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cb.email)) errs.email = 'Enter a valid email ID, e.g. name@company.com.'
   }
-  const srcTotal = r2(Object.values(a.sources || {}).reduce((t, v) => t + (+v || 0), 0))
+  const lineTotal = linesTotal(plan, sources)
+  const srcTotal = r2(Object.values(a.picks || {}).reduce((t, v) => t + (+v || 0), 0))
   sources.forEach((s) => {
-    if (a.sourceMode === 'choose' && +a.sources[s.id] > s.amount + 1e-9) errs[`src-${s.id}`] = `More than available ${money(s.amount)}.`
+    const lines = sourceLines(plan, s)
+    const avail = lines.reduce((t, l) => t + l.amount, 0)
+    const picked = lines.reduce((t, l) => t + (+a.picks[pickKey(s, l)] || 0), 0)
+    if (a.sourceMode === 'choose' && picked > avail + 0.009) errs[`src-${s.id}`] = `More than available ${money(avail)}.`
   })
+  // Choose by Sources: the amount typed for a source is spread across its
+  // investments pro-rata; the last line takes the rounding remainder.
+  const setSourceGross = (s, v) => {
+    const val = clean(v)
+    const lines = sourceLines(plan, s)
+    const avail = lines.reduce((t, l) => t + l.amount, 0)
+    const want = +val || 0
+    const picks = { ...a.picks }
+    let left = r2(want)
+    lines.forEach((l, i) => {
+      const share = i === lines.length - 1 ? left : r2(avail ? (want * l.amount) / avail : 0)
+      picks[pickKey(s, l)] = share > 0 ? share.toFixed(2) : ''
+      left = r2(left - share)
+    })
+    set({ picks, srcPicks: { ...a.srcPicks, [s.id]: val } })
+  }
   const srcMsg =
     showSources && a.sourceMode === 'choose' && amt > 0 && Math.abs(srcTotal - amt) > 0.009
       ? srcTotal < amt
@@ -976,12 +1292,16 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
     ? 'Select the distribution mode'
     : !(amt > 0)
       ? 'Enter the allocation amount'
-      : mode.rollover && !(a.rollover?.planName && a.rollover?.account && a.rollover?.trustee)
+      : isRollover && !(a.rollover?.planName && a.rollover?.account && a.rollover?.trustee)
         ? 'Fill in the rollover information'
-        : !mode.rollover && a.payment === 'etf' && a.bank === 'custom' && !(cb.institution && cb.holder && cb.number && cb.routing)
+        : !isRollover && a.payment === 'eft' && a.bank === 'custom' && !(cb.institution && cb.holder && cb.number && cb.routing)
           ? 'Fill in the custom bank details'
-          : ''
+          : customAddress && !(ad.line1 && ad.city && ad.state && ad.zip)
+            ? 'Fill in the custom address'
+            : ''
+  const [openSources, setOpenSources] = useState(() => ({ [sources[0]?.id]: true }))
   const canSave = !missing && !Object.keys(errs).length && !srcMsg
+  const codeOptions = Object.entries(CODES_1099)
 
   const pickMode = (id) => {
     const m = MODES.find((x) => x.id === id)
@@ -991,7 +1311,7 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
   return (
     <Slideover
       title={initial ? 'Edit Withdrawal Allocation' : 'Add Withdrawal Allocation'}
-      width="wide"
+      width="full"
       closeButton={false}
       onClose={onClose}
       actions={
@@ -1007,237 +1327,434 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
     >
       <div className="wd2-so">
         <h4 className="wd2-sub">Distribution</h4>
-        <FieldGroup label="Select distribution mode" required>
-          <div className="choice-list wd2-modes" role="radiogroup">
-            {MODES.map((m) => {
-              const off = type === 'RMD' && m.rollover
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={a.mode === m.id}
-                  className={`choice${a.mode === m.id ? ' on' : ''}`}
-                  disabled={off}
-                  onClick={() => pickMode(m.id)}
-                >
-                  <span className="choice-dot" aria-hidden="true" />
-                  <span>
-                    <b>{m.label}</b>
-                    <small>{off ? "RMD amounts can't be rolled over" : `Available ${money(Math.min(max, balance * m.ratio))}${m.excludes ? ` (excludes ${m.excludes} balance)` : ''}`}</small>
-                  </span>
-                </button>
+        <div className="txn-stack">
+          <Field label="Select Distribution Mode">
+            <Select
+              value={a.mode}
+              onChange={(e) => {
+                const id = e.target.value
+                if (id) pickMode(id)
+                else set({ mode: '', rollover: null })
+              }}
+              placeholder="Select the Distribution Mode"
+            >
+              {availableModes.map((m) => {
+                const off = type === 'RMD' && m.rollover
+                return (
+                  <Option key={m.id} value={m.id} disabled={off}>
+                    {off ? `${m.label} (not available for RMD)` : m.label}
+                  </Option>
+                )
+              })}
+            </Select>
+          </Field>
+          <Field
+            label="Allocation Amount"
+            note={
+              errs.amount || (
+                <>
+                  <Icon icon={faInfoCircle} size={12} />
+                  <span>Maximum amount available for withdrawal {money(modeMax)}</span>
+                </>
               )
-            })}
-          </div>
-        </FieldGroup>
-        <div className="txn-row spaced">
-          <Field label="Allocation amount" required note={errs.amount || (mode ? `Maximum amount available for ${mode.rollover ? 'rollover' : 'withdrawal'} ${money(modeMax)}` : undefined)} noteClass={errs.amount ? 'err' : undefined}>
-            <input type="text" inputMode="decimal" value={a.amount} disabled={!a.mode} placeholder="0.00" onChange={(e) => set({ amount: clean(e.target.value) })} />
+            }
+            noteClass={errs.amount ? 'err' : 'note-info'}
+          >
+            <AffixInput prefix="$" type="text" inputMode="decimal" value={a.amount} placeholder="0.00" onChange={(e) => set({ amount: clean(e.target.value) })} />
           </Field>
         </div>
 
-        {mode && (
+        <h4 className="wd2-sub">Tax &amp; Penalty</h4>
+        <div className="txn-row">
+          <Field label="Select Roth 1099 Code">
+            <Select value={a.rothCode} onChange={(e) => set({ rothCode: e.target.value })} placeholder="Select Roth 1099">
+              {codeOptions.map(([id, label]) => (
+                <Option key={id} value={id}>
+                  {id} - {label}
+                </Option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Select Non Roth 1099 Code">
+            <Select value={a.nonRothCode} onChange={(e) => set({ nonRothCode: e.target.value })} placeholder="Select Non Roth 1099">
+              {codeOptions.map(([id, label]) => (
+                <Option key={id} value={id}>
+                  {id} - {label}
+                </Option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <div className="txn-row">
+          <Field
+            label="Federal Tax"
+            tooltip="Federal tax withholding percentage set by your plan."
+            noteClass="note-info"
+            note={
+              <>
+                <Icon icon={faInfoCircle} size={12} />
+                <span>{money(c.fed)} tax deduction</span>
+              </>
+            }
+          >
+            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.fedPct} readOnly disabled />
+          </Field>
+          <Field
+            label="State Tax"
+            tooltip="State tax withholding percentage set by your plan."
+            noteClass="note-info"
+            note={
+              <>
+                <Icon icon={faInfoCircle} size={12} />
+                <span>{money(c.state)} tax deduction</span>
+              </>
+            }
+          >
+            <AffixInput suffix="%" type="text" inputMode="decimal" value={a.statePct} readOnly disabled />
+          </Field>
+        </div>
+        <FieldGroup
+          label="Early Withdraw Penalty"
+          noteClass="note-info"
+          note={
+            <>
+              <Icon icon={faInfoCircle} size={12} />
+              {a.penaltyApply === 'yes'
+                ? 'Early Withdrawal Penalty applies to this transaction. This notice is shared with the participant and the admin.'
+                : 'Early Withdrawal Penalty does not apply for this transaction. This notice is shared with the participant and the admin.'}
+            </>
+          }
+        >
+          <div className="period" role="radiogroup" aria-label="Early Withdraw Penalty">
+            {[
+              ['yes', 'Yes'],
+              ['no', 'No']
+            ].map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={a.penaltyApply === id} className={a.penaltyApply === id ? 'on' : ''} onClick={() => set({ penaltyApply: id })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </FieldGroup>
+
+        {isRollover ? (
           <>
-            <h4 className="wd2-sub">Tax &amp; Penalty</h4>
+            <h4 className="wd2-sub">Rollover Information</h4>
+            <p className="hint">Pre-filled with the rollover account on file. Update it if it has changed.</p>
             <div className="txn-row">
-              <Field label="1099 code (Roth)">
-                <input type="text" value={`${c.codes[0]} - ${CODES_1099[c.codes[0]]}`} readOnly disabled />
+              <Field label="Plan Name">
+                <input type="text" value={a.rollover?.planName || ''} onChange={(e) => set({ rollover: { ...a.rollover, planName: e.target.value } })} />
               </Field>
-              <Field label="1099 code (Non Roth)">
-                <input type="text" value={`${c.codes[1]} - ${CODES_1099[c.codes[1]]}`} readOnly disabled />
+              <Field label="Account / IRA No" note={errs.account} noteClass="err">
+                <input type="text" value={a.rollover?.account || ''} onChange={(e) => set({ rollover: { ...a.rollover, account: e.target.value } })} />
+              </Field>
+              <Field label="Company / Trustee Name">
+                <input type="text" value={a.rollover?.trustee || ''} onChange={(e) => set({ rollover: { ...a.rollover, trustee: e.target.value } })} />
               </Field>
             </div>
-            {!mode.rollover && (
-              <div className="txn-row">
-                <Field label="Federal tax withholding (%)" note={errs.tax || `${money(c.fed)} tax deduction`} noteClass={errs.tax ? 'err' : undefined}>
-                  <input type="text" inputMode="decimal" value={a.fedPct} onChange={(e) => set({ fedPct: clean(e.target.value) })} />
-                </Field>
-                <Field label="State tax withholding (%)" note={`${money(c.state)} tax deduction`}>
-                  <input type="text" inputMode="decimal" value={a.statePct} onChange={(e) => set({ statePct: clean(e.target.value) })} />
-                </Field>
+            <FieldGroup label="Rollover Delivery">
+              <div className="period" role="radiogroup" aria-label="Rollover Delivery">
+                {[
+                  ['check', 'Check Mailed to Trustee'],
+                  ['wire', 'Wire Transfer']
+                ].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={a.delivery === id} className={a.delivery === id ? 'on' : ''} onClick={() => set({ delivery: id })}>
+                    {label}
+                  </button>
+                ))}
               </div>
-            )}
-            {c.penalty > 0 && (
-              <div className="wd-note">
-                <b>Early withdrawal penalty applies.</b> You are under 59½, so a {PENALTY_RATE}% early withdrawal penalty ({money(c.penalty)}) will be
-                deducted.
+            </FieldGroup>
+          </>
+        ) : (
+          <>
+            <h4 className="wd2-sub">Payment Method</h4>
+            <FieldGroup label="Choose Payment Method">
+              <div className="period" role="radiogroup" aria-label="Payment Method">
+                {[
+                  ['check', 'Mail Check to Address'],
+                  ['eft', 'EFT']
+                ].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={a.payment === id} className={a.payment === id ? 'on' : ''} onClick={() => set({ payment: id })}>
+                    {label}
+                  </button>
+                ))}
               </div>
-            )}
-
-            {!mode.rollover ? (
-              <>
-                <h4 className="wd2-sub">Payment method</h4>
-                <div className="period" role="radiogroup" aria-label="Payment method">
-                  {[
-                    ['check', 'Mail check to address'],
-                    ['etf', 'ETF']
-                  ].map(([id, label]) => (
-                    <button key={id} type="button" role="radio" aria-checked={a.payment === id} className={a.payment === id ? 'on' : ''} onClick={() => set({ payment: id })}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {a.payment === 'check' ? (
-                  <ul className="detail-rows wd2-ro">
-                    <li>
-                      <span>Mailing address (as in your records)</span>
-                      <b>{ADDRESS}</b>
-                    </li>
-                  </ul>
-                ) : (
+            </FieldGroup>
+            <div className="txn-stack">
+              <Field
+                label={a.payment === 'eft' ? 'EFT Fee' : 'Check Fee'}
+                noteClass="note-info"
+                note={
                   <>
-                    <ul className="detail-rows wd2-ro">
-                      <li>
-                        <span>ETF fee</span>
-                        <b>{money(ETF_FEE)}</b>
-                      </li>
-                    </ul>
-                    <FieldGroup label="Select bank details">
-                      <div className="period" role="radiogroup" aria-label="Bank details">
-                        {[
-                          ['records', 'As in my records'],
-                          ['custom', 'Custom']
-                        ].map(([id, label]) => (
-                          <button key={id} type="button" role="radio" aria-checked={a.bank === id} className={a.bank === id ? 'on' : ''} onClick={() => set({ bank: id })}>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </FieldGroup>
-                    {a.bank === 'records' ? (
-                      <ul className="detail-rows wd2-ro">
-                        <li>
-                          <span>Bank</span>
-                          <b>{BANK.institution}</b>
-                        </li>
-                        <li>
-                          <span>Account</span>
-                          <b>
-                            {BANK.type} {BANK.number}
-                          </b>
-                        </li>
-                        <li>
-                          <span>Routing number</span>
-                          <b>{BANK.routing}</b>
-                        </li>
-                      </ul>
-                    ) : (
-                      <>
-                        <div className="txn-row spaced">
-                          <Field label="Financial institution" required>
-                            <input type="text" value={cb.institution} onChange={(e) => set({ customBank: { ...cb, institution: e.target.value } })} />
-                          </Field>
-                          <Field label="Account holder name" required>
-                            <input type="text" value={cb.holder} onChange={(e) => set({ customBank: { ...cb, holder: e.target.value } })} />
-                          </Field>
-                        </div>
-                        <div className="txn-row">
-                          <Field label="Account type" required>
-                            <Select value={cb.type} onChange={(e) => set({ customBank: { ...cb, type: e.target.value } })}>
-                              <Option value="Savings Account">Savings Account</Option>
-                              <Option value="Checking Account">Checking Account</Option>
-                            </Select>
-                          </Field>
-                          <Field label="Account number" required note={errs.number} noteClass="err">
-                            <input type="text" inputMode="numeric" value={cb.number} onChange={(e) => set({ customBank: { ...cb, number: e.target.value.replace(/\D/g, '').slice(0, 17) } })} />
-                          </Field>
-                          <Field label="ABA routing number" required note={errs.routing} noteClass="err">
-                            <input type="text" inputMode="numeric" value={cb.routing} onChange={(e) => set({ customBank: { ...cb, routing: e.target.value.replace(/\D/g, '').slice(0, 9) } })} />
-                          </Field>
-                        </div>
-                        <div className="txn-row">
-                          <Field label="Email ID" note={errs.email} noteClass="err">
-                            <input type="email" value={cb.email} onChange={(e) => set({ customBank: { ...cb, email: e.target.value } })} />
-                          </Field>
-                          <Field label="Mobile No">
-                            <input type="tel" value={cb.phone} onChange={(e) => set({ customBank: { ...cb, phone: e.target.value.replace(/[^\d+ -]/g, '') } })} />
-                          </Field>
-                        </div>
-                      </>
-                    )}
+                    <Icon icon={faInfoCircle} size={12} />
+                    Fee will be deducted from account balance
                   </>
-                )}
-              </>
-            ) : (
+                }
+              >
+                <AffixInput prefix="$" type="text" value={PAYMENT_FEE.toFixed(2)} readOnly disabled />
+              </Field>
+            </div>
+            {a.payment === 'check' ? (
               <>
-                <h4 className="wd2-sub">Rollover Information</h4>
-                <p className="hint">Pre-filled with the rollover account on file. Update it if it has changed.</p>
-                <div className="txn-row">
-                  <Field label="Plan name" required>
-                    <input type="text" value={a.rollover?.planName || ''} onChange={(e) => set({ rollover: { ...a.rollover, planName: e.target.value } })} />
-                  </Field>
-                  <Field label="Account / IRA no" required note={errs.account} noteClass="err">
-                    <input type="text" value={a.rollover?.account || ''} onChange={(e) => set({ rollover: { ...a.rollover, account: e.target.value } })} />
-                  </Field>
-                  <Field label="Company / Trustee name" required>
-                    <input type="text" value={a.rollover?.trustee || ''} onChange={(e) => set({ rollover: { ...a.rollover, trustee: e.target.value } })} />
-                  </Field>
-                </div>
-                <FieldGroup label="Rollover delivery">
-                  <div className="period" role="radiogroup" aria-label="Rollover delivery">
+                <FieldGroup label="Select Address Details">
+                  <div className="period" role="radiogroup" aria-label="Address Details">
                     {[
-                      ['check', 'Check mailed to trustee'],
-                      ['wire', 'Wire transfer']
+                      ['records', 'As in Employee Records'],
+                      ['custom', 'Custom']
                     ].map(([id, label]) => (
-                      <button key={id} type="button" role="radio" aria-checked={a.delivery === id} className={a.delivery === id ? 'on' : ''} onClick={() => set({ delivery: id })}>
+                      <button key={id} type="button" role="radio" aria-checked={a.addressSrc === id} className={a.addressSrc === id ? 'on' : ''} onClick={() => set({ addressSrc: id })}>
                         {label}
                       </button>
                     ))}
                   </div>
                 </FieldGroup>
+                <>
+                  <h4 className="wd2-sub">{fromRecords ? 'Address Details (From Employee Records)' : 'Address Details'}</h4>
+                  <div className="txn-row spaced">
+                    <Field label="Address Line 1">
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.line1 || '' : ad.line1}
+                        placeholder="Enter Street Address"
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, line1: e.target.value } })}
+                      />
+                    </Field>
+                    <Field label="Address Line 2">
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.line2 || '' : ad.line2}
+                        placeholder={fromRecords ? '' : 'Apartment, suite, unit (optional)'}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, line2: e.target.value } })}
+                      />
+                    </Field>
+                  </div>
+                  <div className="txn-row">
+                    <Field label="City">
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.city || '' : ad.city}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, city: e.target.value } })}
+                      />
+                    </Field>
+                    <Field label="Country">
+                      <input
+                        type="text"
+                        value={(fromRecords ? recordAddr.country : ad.country) || 'USA'}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, country: e.target.value } })}
+                      />
+                    </Field>
+                  </div>
+                  <div className="txn-row">
+                    <Field label="State">
+                      <input
+                        type="text"
+                        value={fromRecords ? recordAddr.state || '' : ad.state}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, state: e.target.value } })}
+                      />
+                    </Field>
+                    <Field label="Zip Code" note={!fromRecords ? errs.zip : undefined} noteClass="err">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={fromRecords ? recordAddr.zip || '' : ad.zip}
+                        readOnly={fromRecords}
+                        disabled={fromRecords}
+                        onChange={(e) => set({ address: { ...ad, zip: e.target.value.replace(/\D/g, '').slice(0, 5) } })}
+                      />
+                    </Field>
+                  </div>
+                </>
+              </>
+            ) : (
+              <>
+                <FieldGroup label="Select Bank Details">
+                  <div className="period" role="radiogroup" aria-label="Bank Details">
+                    {[
+                      ['records', 'As in Employee Records'],
+                      ['custom', 'Custom']
+                    ].map(([id, label]) => (
+                      <button key={id} type="button" role="radio" aria-checked={a.bank === id} className={a.bank === id ? 'on' : ''} onClick={() => set({ bank: id })}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </FieldGroup>
+                <h4 className="wd2-sub">{bankFromRecords ? 'Bank Details (From Employee Records)' : 'Bank Details'}</h4>
+                <div className="txn-row spaced">
+                  <Field label="Financial Institution">
+                    <input
+                      type="text"
+                      value={bankFromRecords ? BANK.institution : cb.institution}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, institution: e.target.value } })}
+                    />
+                  </Field>
+                  <Field label="Account Holder Name">
+                    <input
+                      type="text"
+                      value={bankFromRecords ? BANK.holder : cb.holder}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, holder: e.target.value } })}
+                    />
+                  </Field>
+                </div>
+                <div className="txn-row">
+                  <Field label="Account Type">
+                    {bankFromRecords ? (
+                      <input type="text" value={BANK.type} readOnly disabled />
+                    ) : (
+                      <Select value={cb.type} onChange={(e) => set({ customBank: { ...cb, type: e.target.value } })}>
+                        <Option value="Savings Account">Savings Account</Option>
+                        <Option value="Checking Account">Checking Account</Option>
+                      </Select>
+                    )}
+                  </Field>
+                  <Field label="Account Number" note={!bankFromRecords ? errs.number : undefined} noteClass="err">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={bankFromRecords ? BANK.number : cb.number}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, number: e.target.value.replace(/\D/g, '').slice(0, 17) } })}
+                    />
+                  </Field>
+                </div>
+                <div className="txn-row">
+                  <Field label="ABA Routing Number" note={!bankFromRecords ? errs.routing : undefined} noteClass="err">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={bankFromRecords ? BANK.routing : cb.routing}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, routing: e.target.value.replace(/\D/g, '').slice(0, 9) } })}
+                    />
+                  </Field>
+                  <Field label="Email ID" note={!bankFromRecords ? errs.email : undefined} noteClass="err">
+                    <input
+                      type="email"
+                      value={bankFromRecords ? '' : cb.email}
+                      readOnly={bankFromRecords}
+                      disabled={bankFromRecords}
+                      onChange={(e) => set({ customBank: { ...cb, email: e.target.value } })}
+                    />
+                  </Field>
+                </div>
+                {!bankFromRecords && (
+                  <div className="txn-row">
+                    <Field label="Mobile No">
+                      <input type="tel" value={cb.phone} onChange={(e) => set({ customBank: { ...cb, phone: e.target.value.replace(/[^\d+ -]/g, '') } })} />
+                    </Field>
+                  </div>
+                )}
               </>
             )}
+          </>
+        )}
 
-            {showSources && (
-              <>
-                <h4 className="wd2-sub">Source details</h4>
-                <div className="period" role="radiogroup" aria-label="Source selection">
-                  {[
-                    ['prorata', 'Pro-Rata'],
-                    ['choose', 'Allow me to choose']
-                  ].map(([id, label]) => (
-                    <button key={id} type="button" role="radio" aria-checked={a.sourceMode === id} className={a.sourceMode === id ? 'on' : ''} onClick={() => set({ sourceMode: id })}>
-                      {label}
-                    </button>
-                  ))}
+        {showSources && (
+          <>
+            <FieldGroup label="Source Details">
+              <div className="period" role="radiogroup" aria-label="Source Details">
+                {[
+                  ['prorata', 'Pro-Rata'],
+                  ['choose', 'Allow Me to Choose']
+                ].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={a.sourceMode === id} className={a.sourceMode === id ? 'on' : ''} onClick={() => set({ sourceMode: id })}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldGroup>
+            {a.sourceMode === 'choose' && (
+              // Only choosing by source is supported for now; Investments is shown but disabled.
+              <FieldGroup label="Choose By">
+                <div className="period" role="radiogroup" aria-label="Choose By">
+                  <button type="button" role="radio" aria-checked="true" className="on">
+                    Sources
+                  </button>
+                  <button type="button" role="radio" aria-checked="false" disabled>
+                    Investments
+                  </button>
                 </div>
-                <div className="table-wrap wd2-src">
-                  <table className="alloc-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Source</th>
-                        <th scope="col" className="num">Available</th>
-                        <th scope="col" className="num">Gross withdrawal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sources.map((s) => {
-                        const total = sources.reduce((t, x) => t + x.amount, 0) || 1
-                        return (
-                          <tr key={s.id}>
-                            <td>{s.name}</td>
-                            <td className="num">{money(s.amount)}</td>
-                            <td className="num">
-                              {a.sourceMode === 'choose' ? (
-                                <span className="tf-amount-wrap">
-                                  <span className={`alloc-pct-input${errs[`src-${s.id}`] ? ' tf-bad' : ''}`}>
-                                    <i>$</i>
-                                    <input
+              </FieldGroup>
+            )}
+            <div className="table-wrap wd2-src">
+              <table className="alloc-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Source / Investment</th>
+                    <th scope="col" className="num">Available</th>
+                    <th scope="col" className="num">Gross Withdrawal</th>
+                    <th scope="col" className="num">Net Withdrawal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sources.map((s) => {
+                    const lines = sourceLines(plan, s)
+                    const keep = c.gross > 0 ? c.net / c.gross : 0
+                    const srcGross = lines.reduce((t, l) => t + lineGross(a, s, l, lineTotal), 0)
+                    const open = !!openSources[s.id]
+                    return (
+                      <Fragment key={s.id}>
+                        <tr className="wd2-src-head">
+                          <td>
+                            <button type="button" className="wd2-src-toggle" aria-expanded={open} onClick={() => setOpenSources((o) => ({ ...o, [s.id]: !open }))}>
+                              <Icon icon={faChevronDown} size={11} />
+                              {s.name}
+                            </button>
+                          </td>
+                              <td className="num">{money(s.amount)}</td>
+                              <td className="num">
+                                {a.sourceMode === 'choose' ? (
+                                  <span className="tf-amount-wrap">
+                                    <AffixInput
+                                      prefix="$"
+                                      invalid={!!errs[`src-${s.id}`]}
                                       type="text"
                                       inputMode="decimal"
                                       aria-label={`${s.name} gross withdrawal`}
-                                      value={a.sources[s.id] || ''}
-                                      onChange={(e) => set({ sources: { ...a.sources, [s.id]: clean(e.target.value) } })}
+                                      placeholder="0.00"
+                                      value={a.srcPicks?.[s.id] ?? (srcGross > 0 ? srcGross.toFixed(2) : '')}
+                                      onChange={(e) => setSourceGross(s, e.target.value)}
                                     />
+                                    {errs[`src-${s.id}`] && <small className="tf-max over">{errs[`src-${s.id}`]}</small>}
                                   </span>
-                                  {errs[`src-${s.id}`] && <small className="tf-max over">{errs[`src-${s.id}`]}</small>}
-                                </span>
-                              ) : (
-                                money((amt * s.amount) / total)
-                              )}
-                            </td>
-                          </tr>
+                                ) : (
+                                  money(srcGross)
+                                )}
+                              </td>
+                              <td className="num">{money(srcGross * keep)}</td>
+                            </tr>
+                            {open &&
+                              lines.map((l) => {
+                                const k = pickKey(s, l)
+                                const g = lineGross(a, s, l, lineTotal)
+                                return (
+                                  <tr key={k} className="wd2-src-line">
+                                    <td>{l.name}</td>
+                                    <td className="num">{money(l.amount)}</td>
+                                    <td className="num">
+                                      {money(g)}
+                                    </td>
+                                    <td className="num">{money(g * keep)}</td>
+                                  </tr>
+                                )
+                              })}
+                          </Fragment>
                         )
                       })}
                     </tbody>
@@ -1251,46 +1768,10 @@ function AllocationSlideover({ initial, max, balance, sources, plan, persona, ty
               </>
             )}
 
-            <ul className="detail-rows wd2-calc">
-              <li>
-                <span>Gross</span>
-                <b>{money(c.gross)}</b>
-              </li>
-              {c.fed > 0 && (
-                <li>
-                  <span>Federal tax</span>
-                  <span>−{money(c.fed)}</span>
-                </li>
-              )}
-              {c.state > 0 && (
-                <li>
-                  <span>State tax</span>
-                  <span>−{money(c.state)}</span>
-                </li>
-              )}
-              {c.penalty > 0 && (
-                <li>
-                  <span>Early withdrawal penalty</span>
-                  <span>−{money(c.penalty)}</span>
-                </li>
-              )}
-              {c.fee > 0 && (
-                <li>
-                  <span>ETF fee</span>
-                  <span>−{money(c.fee)}</span>
-                </li>
-              )}
-              <li className="wd2-net">
-                <span>Net Withdrawal amount</span>
-                <b>{money(c.net)}</b>
-              </li>
-            </ul>
-            {errs.net && (
-              <p className="alloc-warn">
-                <Icon icon={faExclamationTriangle} size={12} /> {errs.net}
-              </p>
-            )}
-          </>
+        {errs.net && (
+          <p className="alloc-warn">
+            <Icon icon={faExclamationTriangle} size={12} /> {errs.net}
+          </p>
         )}
         {missing && (
           <p className="hint wd2-missing">
@@ -1321,9 +1802,9 @@ function ScheduleSlideover({ p, onClose }) {
           <thead>
             <tr>
               <th scope="col">Installment</th>
-              <th scope="col">Payment date</th>
+              <th scope="col">Payment Date</th>
               <th scope="col" className="num">Amount</th>
-              <th scope="col" className="num">Remaining balance</th>
+              <th scope="col" className="num">Remaining Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -1342,6 +1823,31 @@ function ScheduleSlideover({ p, onClose }) {
   )
 }
 
+// Uploaded file as a green success card: file-type badge, name, size and
+// status, with an Uploaded pill. onRemove adds a remove button (upload step).
+function UploadedFileCard({ file, onRemove }) {
+  const ext = (file.name.split('.').pop() || 'file').slice(0, 4).toUpperCase()
+  return (
+    <span className="wd2-file-card">
+      <span className="wd2-file-badge" aria-hidden="true">
+        {ext}
+      </span>
+      <span className="wd2-file-meta">
+        <b>{file.name}</b>
+        <small>
+          {(file.size / 1024).toFixed(0)} KB · <em>Uploaded</em>
+        </small>
+      </span>
+      <span className="wd2-file-pill">Uploaded</span>
+      {onRemove && (
+        <button type="button" className="icon-btn icon-btn-sm wd2-file-x" aria-label={`Remove ${file.name}`} data-icon-tip="Remove file" onClick={onRemove}>
+          <Icon icon={faXmark} size={14} />
+        </button>
+      )}
+    </span>
+  )
+}
+
 function DocBlock({ doc, state, error, onChange }) {
   const [fileErr, setFileErr] = useState('')
   const pick = (file) => {
@@ -1352,39 +1858,66 @@ function DocBlock({ doc, state, error, onChange }) {
     setFileErr('')
     onChange({ ...state, file: { name: file.name, size: file.size } })
   }
+  const downloadTemplate = () => {
+    downloadDocumentFile({
+      name: `${doc.label} Template`,
+      type: 'Withdrawal document template',
+      date: new Date().toLocaleDateString()
+    })
+  }
   return (
+    // Two columns: label, method and file details on the left; the drop zone
+    // fills the right column at full height.
     <div className="wd2-doc">
-      <p className="txn-doc-label">
-        {doc.label} <span className="txn-doc-required">{doc.required ? '(Required)' : '(Optional)'}</span>
-      </p>
-      <div className="period" role="radiogroup" aria-label={`${doc.label} method`}>
-        {[
-          ['manual', 'Upload manually'],
-          ['docusign', 'Use docusign']
-        ].map(([id, label]) => (
-          <button key={id} type="button" role="radio" aria-checked={state.method === id} className={state.method === id ? 'on' : ''} onClick={() => onChange({ ...state, method: id })}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {state.method === 'docusign' ? (
-        <div className="wd-note">You will receive this document in your Docusign account to sign electronically.</div>
-      ) : state.file ? (
-        <div className="wd2-file">
-          <span>
-            <Icon icon={faCheck} size={12} /> <b>{state.file.name}</b> · {(state.file.size / 1024).toFixed(0)} KB · Uploaded successfully
-          </span>
-          <button type="button" className="text-link danger" onClick={() => onChange({ ...state, file: null })}>
-            Remove
-          </button>
+      <div className="wd2-doc-side">
+        <p className="txn-doc-label">
+          {doc.label} {!doc.required && <span className="txn-doc-required">(Optional)</span>}
+        </p>
+        <div className="period" role="radiogroup" aria-label={`${doc.label} method`}>
+          {[
+            ['manual', 'Upload Manually'],
+            ['docusign', 'Use Docusign']
+          ].map(([id, label]) => (
+            <button key={id} type="button" role="radio" aria-checked={state.method === id} className={state.method === id ? 'on' : ''} onClick={() => onChange({ ...state, method: id })}>
+              {label}
+            </button>
+          ))}
         </div>
-      ) : (
-        <label className="wd2-drop">
+        {state.method === 'docusign' ? (
+          <div className="wd-note">
+            <Icon icon={faInfoCircle} size={13} />
+            <span>You will receive this document in your Docusign account to sign electronically.</span>
+          </div>
+        ) : (
+          <>
+            <button type="button" className="wd2-doc-template" onClick={downloadTemplate}>
+              <Icon icon={faDownload} size={13} /> Download Template
+            </button>
+          </>
+        )}
+      </div>
+      {/* After an upload the drop zone goes away; only the file card shows. */}
+      {state.method !== 'docusign' && !state.file && (
+        <label
+          className="wd2-drop"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            pick(e.dataTransfer.files?.[0])
+          }}
+        >
           <input type="file" accept="application/pdf,.pdf" onChange={(e) => pick(e.target.files?.[0])} />
-          <span>
-            Drag and drop or <u>browse</u> a PDF (max {MAX_FILE_MB} MB)
+          <span className="wd2-drop-title">
+            <Icon icon={faUpload} size={16} /> Drag &amp; Drop Here
           </span>
+          <span>or</span>
+          <u>Browse File</u>
         </label>
+      )}
+      {state.method !== 'docusign' && state.file && (
+        <div className="wd2-doc-files">
+          <UploadedFileCard file={state.file} onRemove={() => onChange({ ...state, file: null })} />
+        </div>
       )}
       {(fileErr || error) && (
         <p className="alloc-warn">

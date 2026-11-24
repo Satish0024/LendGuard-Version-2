@@ -38,7 +38,6 @@ export function TextField({ label, value, onChange, required, placeholder, type 
     <label className={`pr-field${wide ? ' wide' : ''}`}>
       <span>
         {label}
-        {required ? <i>*</i> : null}
       </span>
       <div>
         <input type={type} value={value} placeholder={placeholder || ''} onChange={(e) => onChange(e.target.value)} />
@@ -88,7 +87,6 @@ export function SelectField({ label, value, onChange, options, required, placeho
     <label className={`pr-field${wide ? ' wide' : ''}`}>
       <span>
         {label}
-        {required ? <i>*</i> : null}
       </span>
       <Select value={value} onChange={(e) => onChange(e.target.value)}>
         {placeholder ? <Option value="">{placeholder}</Option> : null}
@@ -109,7 +107,6 @@ export function SsnField({ label, value, revealed, onToggle, onChange, required,
     <label className="pr-field">
       <span>
         {label}
-        {required ? <i>*</i> : null}
       </span>
       <div>
         <div className={`pr-input-ico${message ? ' is-invalid' : ''}`}>
@@ -146,7 +143,6 @@ export function PhoneField({ label, country, number, onCountry, onNumber, requir
     <div className="pr-field">
       <span>
         {label}
-        {required ? <i>*</i> : null}
       </span>
       <div className="pr-phone">
         <input value={country} onChange={(e) => onCountry(e.target.value)} aria-label={`${label || 'Phone'} country code`} />

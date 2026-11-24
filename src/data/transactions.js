@@ -411,6 +411,21 @@ export function requestStatusTone(status) {
   return 'warn'
 }
 
+// Statuses that still block deleting a linked beneficiary (not finished/cancelled).
+const ACTIVE_REQUEST_STATUSES = new Set(['Pending', 'In Review', 'Submitted', 'Approved'])
+
+/** True when this beneficiary is named on an in-flight transaction request. */
+export function beneficiaryBlockedByActiveRequest(participant, bene) {
+  if (!participant || !bene?.name) return false
+  const name = String(bene.name).trim().toLowerCase()
+  return requestsFor(participant).some((r) => {
+    if (!ACTIVE_REQUEST_STATUSES.has(r.status)) return false
+    const names = r.beneficiaryNames || []
+    const ids = r.beneficiaryIds || []
+    return names.some((n) => String(n).trim().toLowerCase() === name) || (bene.id && ids.includes(bene.id))
+  })
+}
+
 // Mock in-flight/completed requests, keyed by participant id — stands in for a
 // real transaction-request service.
 export const TRANSACTION_REQUESTS = {
@@ -426,6 +441,18 @@ export const TRANSACTION_REQUESTS = {
       // Outstanding-loan fields used by the loan calculator slideover.
       balance: 1840,
       monthlyPayment: 214.6
+    },
+    // Demo: Taylor Hale is named on an open withdrawal so Profile → Delete
+    // shows the "cannot be deleted" restriction dialog.
+    {
+      id: 'req-2001',
+      type: 'withdrawal',
+      typeLabel: 'Withdrawal',
+      plan: 'LendGuard Employees Savings and Retirement 401(k) Plan',
+      amount: '$500.00',
+      date: 'Nov 1, 2026',
+      status: 'Pending',
+      beneficiaryNames: ['Taylor Hale']
     }
   ]
 }

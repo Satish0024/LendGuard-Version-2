@@ -30,16 +30,18 @@
 .req-plan-tabs button.on .req-plan-badge{color:var(--brand-text-primary-default)}
 
 .req-plan-strip{
-  display:flex;flex-wrap:wrap;align-items:center;gap:var(--core-space-5);padding:var(--core-space-4);margin-bottom:var(--core-space-5);
+  display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--core-space-4) var(--core-space-5);
+  padding:var(--core-space-4);margin-bottom:var(--core-space-5);box-sizing:border-box;width:100%;min-width:0;
   border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-03)}
+.req-plan-strip > div:first-child{flex:1 1 240px;min-width:0}
 .req-plan-strip .btn{width:auto;flex:0 0 auto}
 .req-plan-strip .eyebrow{font-size:var(--typography-eyebrow-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle-light);display:block;margin-bottom:var(--core-space-1)}
-.req-plan-strip h2{margin:var(--core-space-0);font-size:var(--typography-heading-h5-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default)}
-.req-plan-strip .plan-meta{margin:var(--core-space-1) var(--core-space-0) var(--core-space-0);font-size:var(--typography-caption-size);color:var(--neutral-text-subtle);font-weight:var(--typography-font-weight-semibold)}
-.req-plan-stats{display:flex;flex-wrap:wrap;gap:var(--core-space-3) var(--core-space-6);margin-left:auto}
-.req-plan-stats div{display:flex;flex-direction:column;gap:var(--core-space-1)}
-.req-plan-stats span{font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle-light);}
-.req-plan-stats b{font-size:var(--typography-heading-h5-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);font-variant-numeric:tabular-nums}
+.req-plan-strip h2{margin:var(--core-space-0);font-size:var(--typography-heading-h5-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);overflow-wrap:anywhere;word-break:break-word;line-height:var(--typography-heading-h5-line-height)}
+.req-plan-strip .plan-meta{margin:var(--core-space-1) var(--core-space-0) var(--core-space-0);font-size:var(--typography-caption-size);color:var(--neutral-text-subtle);font-weight:var(--typography-font-weight-semibold);overflow-wrap:anywhere}
+.req-plan-stats{display:flex;flex-wrap:wrap;gap:var(--core-space-3) var(--core-space-5);margin-left:auto;flex:0 1 auto;min-width:0}
+.req-plan-stats div{display:flex;flex-direction:column;gap:var(--core-space-1);min-width:0}
+.req-plan-stats span{font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-subtle-light)}
+.req-plan-stats b{font-size:var(--typography-heading-h5-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);font-variant-numeric:tabular-nums;white-space:nowrap;line-height:var(--typography-heading-h5-line-height)}
 
 .quick-actions{margin-bottom:var(--core-space-5)}
 .quick-actions-label{
@@ -76,7 +78,9 @@
 .tx-toolbar-actions{display:flex;align-items:center;gap:var(--core-space-4)}
 
 /* Transaction request wizard */
-.txn-wizard{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--core-space-0);min-height:calc(100dvh - var(--core-layout-header-height))}
+/* flex:1 so the wizard fills .layout's row for every type, not just ones
+   whose wide tables push it out (Transfer/Rebalance). */
+.txn-wizard{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--core-space-0);min-height:calc(100dvh - var(--core-layout-header-height));flex:1 1 auto;min-width:0}
 .txn-steps{border-right:1px solid var(--neutral-border-light);padding:var(--core-space-6) var(--core-space-5);background:var(--neutral-surface-layer-03)}
 .txn-steps .back{margin-bottom:var(--core-space-4)}
 
@@ -98,9 +102,17 @@
 
 .txn-main{padding:var(--core-space-6) var(--core-space-8);max-width:760px}
 .txn-main.txn-main-wide{max-width:1600px;width:100%;box-sizing:border-box}
-.txn-plan-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--core-space-3) var(--core-space-4);margin-bottom:var(--core-space-5);padding-bottom:var(--core-space-4);border-bottom:1px solid var(--neutral-border-light)}
-.txn-plan-head h2{margin:var(--core-space-0);font-size:var(--typography-heading-h4-size);font-weight:var(--typography-font-weight-bold)}
-.txn-plan-head .req-plan-stats{margin-left:var(--core-space-0)}
+.txn-plan-head{
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;
+  gap:var(--core-space-3) var(--core-space-5);margin-bottom:var(--core-space-5);
+  padding:var(--core-space-0) var(--core-space-0) var(--core-space-4);border-bottom:1px solid var(--neutral-border-light);
+  width:100%;min-width:0;box-sizing:border-box}
+.txn-plan-head > div:first-child{flex:1 1 240px;min-width:0}
+.txn-plan-head h2{
+  margin:var(--core-space-0);font-size:var(--typography-heading-h4-size);font-weight:var(--typography-font-weight-bold);
+  line-height:var(--typography-heading-h4-line-height);overflow-wrap:anywhere;word-break:break-word}
+.txn-plan-head .plan-meta{margin:var(--core-space-1) var(--core-space-0) var(--core-space-0);overflow-wrap:anywhere}
+.txn-plan-head .req-plan-stats{margin-left:var(--core-space-0);flex:0 1 auto}
 
 .txn-card{border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);padding:var(--core-space-4);margin-bottom:var(--core-space-4);background:var(--neutral-surface-layer-01)}
 .txn-card-nested{background:var(--neutral-surface-layer-03)}
@@ -119,7 +131,15 @@
 .txn-card .hint{margin:var(--core-space-0) var(--core-space-0) var(--core-space-4);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
 .txn-row{display:flex;gap:var(--core-space-3);align-items:flex-start;flex-wrap:wrap}
 .txn-row + .txn-row{margin-top:var(--core-space-4)}
+.txn-stack{display:flex;flex-direction:column;gap:var(--core-space-4);width:100%}
+.txn-stack.spaced,.txn-row + .txn-stack,.txn-stack + .txn-row{margin-top:var(--core-space-4)}
+.txn-stack > .txn-field,.txn-stack > .txn-fieldset{flex:0 0 auto;width:100%;max-width:420px}
+/* Every type renders on the wide shell (card fills like Transfer), so row
+   controls stay capped at stacked-field width instead of stretching. */
+.txn-row > .txn-field,
+.txn-row > .txn-fieldset{flex:0 1 420px;width:100%;max-width:420px}
 .txn-field{display:flex;flex-direction:column;gap:var(--core-space-2);flex:1 1 200px;min-width:0}
+.txn-field > input,.txn-field > select,.txn-field > .ui-select{width:100%;box-sizing:border-box}
 .txn-field label{font-size:var(--typography-label-size);font-weight:var(--typography-label-weight);line-height:var(--typography-label-line-height);color:var(--neutral-text-subtle)}
 .txn-field label i{color:var(--semantics-critical-text);font-style:normal;margin-left:var(--core-space-1)}
 .txn-field input,.txn-field select,.txn-field .ui-select-btn{
@@ -127,29 +147,44 @@
   padding:var(--core-space-2) var(--core-space-3);font:inherit;
   font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-md-line-height);
   color:var(--neutral-text-default);background:var(--neutral-surface-layer-01)}
-.txn-field input:disabled{background:var(--neutral-surface-layer-03);color:var(--neutral-text-subtle)}
-.txn-field input:hover:not(:disabled),.txn-field select:hover:not(:disabled),.txn-field .ui-select-btn:hover{border-color:var(--neutral-border-strong);background:color-mix(in srgb,black 8%,var(--neutral-surface-layer-01))}
-.txn-field input:focus,.txn-field select:focus,.txn-field .ui-select-btn:focus-visible{outline:none;border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
+.txn-field input:disabled,.txn-field select:disabled,.txn-field .ui-select.disabled .ui-select-btn{
+  opacity:1;cursor:not-allowed;background:var(--semantics-disabled-background);
+  color:var(--semantics-disabled-text);border-color:var(--semantics-disabled-border);box-shadow:none}
+.txn-field input:disabled::placeholder{color:var(--theme-colors-neutral-400)}
+.txn-field input:hover:not(:disabled),.txn-field select:hover:not(:disabled),.txn-field .ui-select:not(.disabled) .ui-select-btn:hover{border-color:var(--neutral-border-strong);background:color-mix(in srgb,black 8%,var(--neutral-surface-layer-01))}
+.txn-field input:focus,.txn-field select:focus,.txn-field .ui-select:not(.disabled) .ui-select-btn:focus-visible{outline:none;border-color:var(--cds-focus-color);box-shadow:var(--cds-focus-glow)}
 .txn-field .note{font-size:var(--typography-helper-size);font-weight:var(--typography-helper-weight);line-height:var(--typography-helper-line-height);color:var(--neutral-text-subtle)}
 .txn-field .note.warn{color:var(--semantics-warning-text)}
+/* Info notice under a field: icon + text on one line, free to run wider than the capped control. */
+.txn-field .note.note-info{display:flex;align-items:flex-start;gap:var(--core-space-1);width:max-content;max-width:min(720px,100%)}
+/* Icons sit on the optical middle of the first line: a 12px icon on a 16px helper line, 13px on a 20px body line. */
+.txn-field .note.note-info svg{flex-shrink:0;margin-top:2px}
 
-.field-tip{position:relative;display:inline-flex;vertical-align:middle;margin-left:var(--core-space-1)}
+/* The 24px button keeps a comfortable hit area; no extra margin so the icon sits ~6px from the label, and top:-1px puts it on the label's optical middle. */
+.field-tip{position:relative;top:-1px;display:inline-flex;vertical-align:middle;margin-left:var(--core-space-0)}
 .field-tip-btn{
   display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:var(--core-radius-full);
-  border:none;padding:var(--core-space-0);background:var(--theme-neutral-border-primary-default);color:var(--neutral-text-subtle);cursor:help}
-.field-tip-btn:hover,.field-tip-btn:focus-visible{background:var(--brand-background-primary-strong);color:var(--brand-text-primary-oncolor)}
+  border:none;padding:var(--core-space-0);background:transparent;color:var(--neutral-text-subtle);cursor:pointer}
+/* No disc behind the icon: faInfoCircle is already a filled circle, so a
+   background doubled it into a halo. Only the icon colour changes. */
+.field-tip-btn:hover,.field-tip-btn:focus-visible{color:var(--brand-text-primary-default)}
 .field-tip-btn:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
+/* CORE tooltip: dark bubble with an arrow, wrapping onto more lines past 240px.
+   Positioned by FieldTip (fixed, portalled), placement set via .is-<side>. */
 .field-tip-bubble{
-  /* CORE .cds-tooltip; wraps because this carries sentence-length help. */
-  position:absolute;left:50%;bottom:calc(100% + var(--core-tooltip-offset));transform:translateX(-50%) translateY(4px);
-  width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);
-  font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-xs-line-height);text-align:left;box-shadow:var(--core-elevation-1);
-  opacity:0;visibility:hidden;pointer-events:none;transition:opacity var(--core-motion-duration-fast),transform var(--core-motion-duration-fast);z-index:20}
-.field-tip-bubble::after{
-  content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;
-  border-top-color:var(--neutral-text-default)}
-.field-tip:hover .field-tip-bubble,.field-tip:focus-within .field-tip-bubble{
-  opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+  position:fixed;z-index:300;display:block;width:max-content;max-width:var(--core-tooltip-maxWidth);
+  padding:var(--core-space-2) var(--core-space-3);border-radius:var(--core-radius-sm);
+  background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);box-shadow:var(--core-elevation-1);
+  font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-regular);line-height:var(--typography-body-sm-line-height,20px);
+  pointer-events:none;animation:field-tip-in var(--core-motion-duration-fast) ease-out}
+.field-tip-text{display:block;white-space:normal;overflow-wrap:break-word}
+.field-tip-bubble::after{content:"";position:absolute;width:0;height:0;border:6px solid transparent}
+.field-tip-bubble.is-top::after{top:100%;left:var(--tip-arrow,50%);transform:translateX(-50%);border-top-color:var(--neutral-text-default)}
+.field-tip-bubble.is-bottom::after{bottom:100%;left:var(--tip-arrow,50%);transform:translateX(-50%);border-bottom-color:var(--neutral-text-default)}
+.field-tip-bubble.is-right::after{right:100%;top:var(--tip-arrow,50%);transform:translateY(-50%);border-right-color:var(--neutral-text-default)}
+.field-tip-bubble.is-left::after{left:100%;top:var(--tip-arrow,50%);transform:translateY(-50%);border-left-color:var(--neutral-text-default)}
+@keyframes field-tip-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.field-tip-bubble{animation:none}}
 
 .txn-tenure-row{display:flex;gap:var(--core-space-2);align-items:center}
 .txn-tenure-row input{
@@ -422,10 +457,16 @@
   padding:var(--core-space-3);border:1px solid var(--brand-text-primary-default);border-radius:var(--core-radius-sm);background:var(--brand-background-primary-light)}
 .tf-alloc li .text-link{grid-column:1/-1;justify-self:start}
 .tf-alloc b{display:block;font-size:var(--typography-body-sm-size)}
-.tf-alloc-total{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-3);margin-top:auto;padding-top:var(--core-space-3);
-  border-top:1px solid var(--neutral-border-light);font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
-.tf-alloc-total b{color:var(--semantics-critical-text);font-size:var(--typography-body-lg-size)}
+.tf-alloc-total{display:flex;align-items:center;gap:var(--core-space-4);margin-top:auto;padding:var(--core-space-3) var(--core-space-0);
+  border-top:1px solid var(--neutral-border-light);background:var(--neutral-surface-layer-01);font-size:var(--typography-body-md-size);color:var(--neutral-text-subtle)}
+.tf-alloc-total span{flex:1 1 auto;font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
+.tf-alloc-total b{flex:0 0 auto;color:var(--semantics-critical-text);font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold)}
 .tf-alloc-total.ok b{color:var(--semantics-success-text)}
+.tf-alloc-total.ok b + b,.tf-alloc-total.bad b + b{color:var(--neutral-text-default)}
+/* Set allocation: list scrolls; Total stays pinned at the column foot. */
+.tf-col.tf-col-alloc{overflow:hidden}
+.tf-col-alloc .tf-alloc-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:var(--core-space-3)}
+.tf-col-alloc > .tf-alloc-total{flex:0 0 auto;margin-top:0;position:relative;z-index:1}
 .tf-errors{list-style:none;margin:var(--core-space-4) var(--core-space-0) var(--core-space-0);padding:var(--core-space-3) var(--core-space-4);border-radius:var(--core-radius-sm);
   background:var(--semantics-critical-background-light);display:flex;flex-direction:column;gap:var(--core-space-1)}
 .tf-errors li{display:flex;align-items:center;gap:var(--core-space-1);margin:var(--core-space-0)}
@@ -467,6 +508,10 @@
   .tf-options{max-height:320px}
   .tf-review{grid-template-columns:1fr}
   .tf-arrow{transform:rotate(90deg);justify-self:center}
+  /* Stacked slideover: keep Total stuck to the bottom of the viewport while cards scroll. */
+  .tf-col.tf-col-alloc{overflow:visible;max-height:none}
+  .tf-col-alloc .tf-alloc-scroll{flex:none;max-height:none;overflow:visible}
+  .tf-col-alloc > .tf-alloc-total{position:sticky;bottom:0;margin:var(--core-space-3) calc(var(--core-space-4) * -1) calc(var(--core-space-4) * -1);padding:var(--core-space-3) var(--core-space-4);border-top:1px solid var(--neutral-border-light);box-shadow:0 -4px 12px color-mix(in srgb,black 6%,transparent)}
 }
 @media(max-width:640px){
   .tf-controls{align-items:flex-start;flex-direction:column}
@@ -554,36 +599,110 @@
 .wd2-table td.alloc-name-col{white-space:normal}
 .wd2-so .choice-list.wd2-modes{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .wd2-so .period{margin-bottom:var(--core-space-3)}
+/* A helper note under a toggle sits at the field's 8px gap, same as under inputs. */
+.wd2-so .period:has(+ .note){margin-bottom:0}
+.txn-field .alloc-pct-input.wd2-affix,.wd2-so .alloc-pct-input.wd2-affix{display:flex;align-items:stretch;background-clip:padding-box;width:100%;max-width:420px;min-height:var(--core-size-control-md)}
+.wd2-affix i{display:flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:36px;padding:0 var(--core-space-2);font-size:var(--typography-body-md-size);color:var(--neutral-text-subtle);background:var(--neutral-surface-layer-03)}
+/* The affix carries the field's inner corner radius itself. Relying on the
+   wrapper's overflow clip left an anti-aliased seam on the curve that read as
+   a second stroke beside the border. */
+.wd2-affix i:first-child{border-radius:calc(var(--core-radius-sm) - 1px) 0 0 calc(var(--core-radius-sm) - 1px)}
+.wd2-affix i:last-child:not(:first-child){border-radius:0 calc(var(--core-radius-sm) - 1px) calc(var(--core-radius-sm) - 1px) 0}
+.txn-field .alloc-pct-input.wd2-affix input,.wd2-so .alloc-pct-input.wd2-affix input{flex:1 1 auto;width:auto;min-width:0;text-align:left;padding:var(--core-space-2) var(--core-space-3);font-size:var(--typography-body-md-size)}
+.txn-field .alloc-pct-input.wd2-affix i:first-child,.wd2-so .alloc-pct-input.wd2-affix i:first-child{border-left:0;border-right:1px solid var(--core-color-border-control)}
+.txn-field .alloc-pct-input.wd2-affix i:last-child:not(:first-child),.wd2-so .alloc-pct-input.wd2-affix i:last-child:not(:first-child){border-left:1px solid var(--core-color-border-control);border-right:0}
+/* Disabled: the whole control (value area and affix) takes the same grey fill
+   and the light disabled border, so it reads as one locked field. */
+.txn-field .alloc-pct-input.wd2-affix.is-disabled,.txn-field .alloc-pct-input.wd2-affix:has(input:disabled){
+  background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);box-shadow:none}
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) input{background:transparent;color:var(--semantics-disabled-text);cursor:not-allowed}
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i,
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i:first-child,
+.txn-field .alloc-pct-input.wd2-affix:has(input:disabled) i:last-child:not(:first-child){background:var(--semantics-disabled-background);border-color:var(--semantics-disabled-border);color:var(--semantics-disabled-text)}
+.wd2-so .txn-field .note.err{color:var(--semantics-critical-text);display:flex;align-items:flex-start;gap:var(--core-space-1)}
 .wd2-ro{margin:var(--core-space-2) var(--core-space-0) var(--core-space-3)}
 .wd2-src{margin-top:var(--core-space-2)}
 .wd2-calc{margin-top:var(--core-space-5);padding-top:var(--core-space-3);border-top:1px solid var(--neutral-border-light)}
 .wd2-net b,.wd2-net span{font-weight:var(--typography-font-weight-bold)}
-.wd2-missing{margin-top:var(--core-space-4)}
-.wd2-doc{padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);margin-top:var(--core-space-3)}
-.wd2-doc .txn-doc-label{margin:0 0 var(--core-space-2);font-weight:var(--typography-font-weight-bold)}
-.wd2-drop{display:block;margin-top:var(--core-space-2);padding:var(--core-space-5);border:1px dashed var(--neutral-border-strong);border-radius:var(--core-radius-sm);text-align:center;cursor:pointer;color:var(--neutral-text-subtle)}
+.wd2-so .hint.wd2-missing{margin:var(--core-space-3) var(--core-space-0) var(--core-space-0)}
+.wd2-doc{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1fr);gap:var(--core-space-3) var(--core-space-6);align-items:stretch;
+  padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);margin-top:var(--core-space-3)}
+.wd2-doc > .alloc-warn{grid-column:1 / -1;margin:0}
+@media (max-width:767px){.wd2-doc{grid-template-columns:1fr}}
+.wd2-doc .txn-doc-label{margin:0;font-weight:var(--typography-font-weight-regular);font-size:var(--typography-body-md-size)}
+.wd2-doc-side{display:flex;flex-direction:column;align-items:flex-start;gap:var(--core-space-2);min-width:0}
+.wd2-doc-side .period{margin:0}
+.wd2-doc-side .wd-note{margin-top:var(--core-space-1);width:max-content;max-width:100%}
+/* Docusign (no drop zone): the left column spans the card so the note stays on one line. */
+.wd2-doc:not(:has(.wd2-drop)) > .wd2-doc-side{grid-column:1 / -1}
+/* "Accepted file : PDF | Max File Size : 2 MB", split by a hairline divider. */
+.wd2-doc-accept{display:flex;flex-wrap:wrap;align-items:center;margin:0;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle);line-height:var(--typography-body-sm-line-height)}
+.wd2-doc-accept span + span{margin-left:var(--core-space-2);padding-left:var(--core-space-2);border-left:1px solid var(--neutral-border-light)}
+.wd2-doc > .wd2-doc-files{grid-column:1 / -1}
+/* Uploaded file: green success card (badge, name, size/status, pill, remove). */
+.wd2-file-card{display:flex;align-items:center;gap:var(--core-space-3);min-width:0;padding:var(--core-space-3);
+  border:1px solid var(--semantics-success-border);border-radius:var(--core-radius-sm);background:var(--semantics-success-background-light)}
+.wd2-file-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:40px;height:40px;border-radius:var(--core-radius-sm);
+  background:var(--theme-semantics-success-strong-background);color:var(--brand-text-primary-oncolor);font-size:var(--typography-caption-size);font-weight:var(--typography-font-weight-bold);letter-spacing:.02em}
+.wd2-file-meta{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;text-align:left;overflow-wrap:break-word}
+.detail-rows .wd2-file-meta b,.wd2-file-meta b{color:var(--neutral-text-default);font-weight:var(--typography-font-weight-semibold);text-align:left}
+.wd2-file-meta small{font-size:var(--typography-caption-size);color:var(--neutral-text-subtle)}
+.wd2-file-meta em{font-style:normal;font-weight:var(--typography-font-weight-semibold);color:var(--semantics-success-text)}
+.wd2-file-pill{flex:0 0 auto;padding:2px var(--core-space-3);border:1px solid var(--semantics-success-text);border-radius:var(--core-radius-full);
+  font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);color:var(--semantics-success-text)}
+.wd2-file-x{flex:0 0 auto}
+.detail-rows .wd2-file-card{max-width:60%}
+@media (max-width:767px){.detail-rows .wd2-file-card{max-width:100%}.wd2-file-pill{display:none}}
+.wd2-doc-template{
+  display:inline-flex;align-items:center;gap:var(--core-space-1);align-self:flex-start;margin-top:var(--core-space-2);
+  padding:0;border:0;background:none;font:inherit;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);
+  color:var(--brand-text-primary-default);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.wd2-doc-template:hover{color:var(--brand-text-primary-hover)}
+.wd2-doc-template:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-sm)}
+.wd2-drop{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--core-space-1);min-height:120px;
+  margin:0;padding:var(--core-space-4);border:1px dashed var(--brand-border-primary-default);border-radius:var(--core-radius-sm);
+  background:var(--theme-brand-background-primary-subtle);text-align:center;cursor:pointer;color:var(--neutral-text-subtle);
+  font-size:var(--typography-body-sm-size);position:relative}
+.wd2-drop-title{display:inline-flex;align-items:center;gap:var(--core-space-2);color:var(--neutral-text-default)}
+.wd2-drop svg{color:var(--neutral-text-default)}
+.wd2-drop u{color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-regular);text-decoration:none}
+.wd2-drop:hover u{text-decoration:underline}
 .wd2-drop input{position:absolute;width:1px;height:1px;opacity:0}
 .wd2-drop:focus-within{outline:var(--core-focusRing-width) solid var(--cds-focus-color)}
-.wd2-file{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);margin-top:var(--core-space-2);padding:var(--core-space-3);background:var(--neutral-surface-layer-03);border-radius:var(--core-radius-sm)}
+.wd2-ok-mark{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--theme-semantics-success-strong-background);color:var(--brand-text-primary-oncolor)}
 .wd2-sum{margin-top:var(--core-space-4);padding:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm)}
 .wd2-sum-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--core-space-2)}
 .wd2-sum-h h4{display:flex;align-items:center;gap:var(--core-space-2);margin:0;font-size:var(--typography-body-md-size)}
 .wd2-tags{display:flex;flex-wrap:wrap;gap:var(--core-space-2);margin:0 0 var(--core-space-2)}
 .wd2-ded details{width:100%}
-.wd2-ded summary{display:flex;justify-content:space-between;cursor:pointer}
+.wd2-ded summary{display:flex;justify-content:space-between;cursor:pointer;list-style:none}
+.wd2-ded summary::-webkit-details-marker{display:none}
+/* Expand indicator: a chevron beside the label that turns when the breakdown opens. */
+.wd2-ded-toggle{display:inline-flex;align-items:center;gap:var(--core-space-2);color:var(--neutral-text-default);font-weight:var(--typography-font-weight-semibold)}
+.wd2-ded-chev{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--brand-background-primary-light);transition:transform var(--core-motion-duration-fast)}
+.wd2-ded details[open] .wd2-ded-chev{transform:rotate(180deg)}
+.wd2-ded summary:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-sm)}
+@media (prefers-reduced-motion:reduce){.wd2-ded-chev{transition:none}}
 .wd2-ded ul{list-style:none;margin:var(--core-space-2) var(--core-space-0) var(--core-space-0);padding:0 0 0 var(--core-space-4)}
 .wd2-ded ul li{display:flex;justify-content:space-between;font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle);padding:var(--core-space-1) 0}
-.txn-field .note.err{color:var(--semantics-critical-text)}
+.txn-field .note.err{color:var(--semantics-critical-text);display:flex;align-items:flex-start;gap:var(--core-space-1)}
 .wd2 .txn-fieldset{flex:0 1 auto}
 .wd2 .period{width:max-content;max-width:100%;flex-wrap:nowrap}
 .wd2 .hint{align-items:flex-start}
-.wd2 .hint svg{margin-top:3px;flex:0 0 auto}
+/* 4px puts the 13px icon on the optical middle of a 20px line (lowercase text sits lower than the line box centre). */
+.wd2 .hint svg{margin-top:4px;flex:0 0 auto}
 .wd2 .wd-note,.wd2-so .wd-note{display:block;font-size:var(--typography-body-sm-size)}
+/* Info notes lead with an icon, aligned to the first line of text. */
+.wd2 .wd-note:has(> svg),.wd2-so .wd-note:has(> svg){display:flex;align-items:flex-start;gap:var(--core-space-2)}
+.wd2 .wd-note > svg,.wd2-so .wd-note > svg{flex-shrink:0;margin-top:4px}
 .wd2-so .txn-fieldset{margin-top:var(--core-space-3)}
 .table-wrap .alloc-table.wd2-table{min-width:0}
 .wd2-table th,.wd2-table td{padding-left:var(--core-space-3);padding-right:var(--core-space-3)}
 .wd2-pct{display:block;font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
-@media (max-width:1023px){.table-wrap .alloc-table.wd2-table{min-width:820px}}
+/* Only phones scroll the table sideways; tablet/laptop widths fit it by wrapping the text columns. */
+@media (max-width:767px){.table-wrap .alloc-table.wd2-table{min-width:760px}}
 .wd2 .txn-fieldset legend{font-size:var(--typography-label-size);font-weight:var(--typography-label-weight);line-height:var(--typography-label-line-height);color:var(--neutral-text-subtle);margin-bottom:var(--core-space-2);padding:0}
 .wd2 .txn-row{align-items:flex-start}
 .wd2-table th,.wd2-table td{padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
@@ -593,7 +712,7 @@
 .wd2-table .tf-actions{gap:0}
 .wd2 .tf-notice{margin-top:var(--core-space-4)}
 .wd2 .alloc-warn{margin-top:var(--core-space-3)}
-.wd2-doc .txn-doc-required{display:inline;margin-left:var(--core-space-1);font-weight:var(--typography-font-weight-regular)}
+.wd2-doc .txn-doc-required{display:inline;margin-left:var(--core-space-1);font-size:inherit;font-weight:var(--typography-font-weight-regular);color:var(--neutral-text-subtle)}
 .wd2-sum .detail-rows + .hint{margin-top:var(--core-space-3)}
 
 /* ---------- Transfer flow: updated Figma (Census · Final) ---------- */
@@ -804,3 +923,221 @@
   .tf-detail-table td.alloc-name-col{min-width:180px}
 }
 .txn-main h2[tabindex="-1"]:focus,.txn-main h3[tabindex="-1"]:focus{outline:none}
+.wd2 .tabs{margin:var(--core-space-3) var(--core-space-0) var(--core-space-2);padding:0}
+.wd2-details-split{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 var(--core-space-6);align-items:start;
+  padding-top:var(--core-space-1)}
+.wd2-details-split > .wd2-details-col + .wd2-details-col{
+  padding-left:var(--core-space-6);border-left:1px solid var(--neutral-border-light)}
+@media (max-width:767px){
+  .wd2-details-split{grid-template-columns:1fr;gap:var(--core-space-2)}
+  .wd2-details-split > .wd2-details-col + .wd2-details-col{padding-left:0;border-left:0;padding-top:var(--core-space-2);border-top:1px solid var(--neutral-border-light)}
+}
+.wd2-details-col{margin:0}
+/* Rows are 36px (8px padding around a 20px line) in both columns; the last
+   row drops its bottom padding so the card's 16px padding is the only gap. */
+.wd2-sum .detail-rows.wd2-details-col > li{
+  min-height:0;align-items:center;padding:var(--core-space-2) 0;
+  font-size:var(--typography-body-sm-size)}
+.wd2-sum .detail-rows.wd2-details-col > li:last-child{border-bottom:0;padding-bottom:0}
+.wd2-details-col > li > span{flex:1 1 auto;min-width:0}
+.wd2-details-col > li > b{flex:0 0 auto;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold)}
+.wd2-details-col > li.wd2-net > span,.wd2-details-col > li.wd2-net > b{
+  font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default)}
+.wd2-details-col .wd2-ded summary{align-items:center;gap:var(--core-space-3);font-size:inherit}
+.wd2-details-col .wd2-ded summary b{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-default)}
+.wd2-src-head td{font-weight:var(--typography-font-weight-semibold)}
+.wd2-src-line td:first-child{padding-left:var(--core-space-6)}
+.wd2-src-toggle{display:inline-flex;align-items:center;gap:var(--core-space-2);padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.wd2-src-toggle svg{transform:rotate(-90deg);transition:transform .15s}
+.wd2-src-toggle[aria-expanded="true"] svg{transform:none}
+.wd2-src-toggle:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color)}
+.wd2-restrict{margin:var(--core-space-2) 0 var(--core-space-4)}
+.wd2-restrict svg{flex-shrink:0;margin-top:2px}
+/* Source Withdraw Amount: bordered list, linked source + total left, fund chips right. */
+.wd2-hist{list-style:none;margin:var(--core-space-4) 0 0;padding:0}
+.wd2-hist li{position:relative;display:flex;flex-direction:column;gap:var(--core-space-1);padding:0 0 var(--core-space-4) var(--core-space-5);border-left:2px solid var(--neutral-border-light);margin-left:var(--core-space-1)}
+.wd2-hist li:last-child{border-left-color:transparent;padding-bottom:0}
+.wd2-hist li::before{content:"";position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--neutral-surface-layer-01);border:2px solid var(--neutral-border-strong)}
+.wd2-hist li.done::before{background:var(--cds-focus-color);border-color:var(--cds-focus-color)}
+.wd2-hist span{font-size:var(--typography-body-sm-size);color:var(--neutral-text-subtle)}
+.table-wrap.wd2-src .alloc-table{min-width:0;width:100%}
+.wd2-src th,.wd2-src td{padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
+.wd2-src td:first-child{white-space:normal}
+.wd2-src .alloc-pct-input input{width:72px}
+
+/* Withdrawal: every text control is 240px wide; long values and selections
+   truncate with an ellipsis instead of stretching the field. */
+.wd2 .txn-row > .txn-field:not(.txn-fieldset),.wd2-so .txn-row > .txn-field:not(.txn-fieldset){flex:0 1 auto;max-width:100%}
+.wd2 .txn-field > input,.wd2 .txn-field > select,.wd2 .txn-field > .ui-select,.wd2 .txn-field > .ui-datepicker,.wd2 .txn-field > .alloc-pct-input.wd2-affix,
+.wd2-so .txn-field > input,.wd2-so .txn-field > select,.wd2-so .txn-field > .ui-select,.wd2-so .txn-field > .ui-datepicker,.wd2-so .txn-field > .alloc-pct-input.wd2-affix{
+  width:240px;max-width:100%}
+.wd2 .txn-field input,.wd2-so .txn-field input{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+
+/* Checkbox / radio rows (CORE): 20x20 control, 8px to the label, 4px above and below. */
+.wd2 label:has(> input[type="checkbox"]),.wd2 label:has(> input[type="radio"]),
+.wd2-so label:has(> input[type="checkbox"]),.wd2-so label:has(> input[type="radio"]){
+  display:flex;align-items:flex-start;gap:var(--core-space-2);padding:var(--core-space-1) 0;line-height:20px}
+.wd2 label > input[type="checkbox"],.wd2 label > input[type="radio"],
+.wd2-so label > input[type="checkbox"],.wd2-so label > input[type="radio"]{width:20px;height:20px;margin:0}
+
+/* Review and Submit: Terms & Conditions document frame. */
+.wd2-terms{margin-top:var(--core-space-5)}
+.wd2-terms .tf-ack{margin:0}
+.wd2-terms-link{padding:0;font:inherit;font-weight:var(--typography-font-weight-semibold)}
+
+/* Source gross input inside the Choose-by-Sources table. */
+.wd2-so td .alloc-pct-input.wd2-affix{width:160px;max-width:100%;margin-left:auto}
+
+/* Review cards: the last element sits on the card padding, no extra margin. */
+.wd2-sum > :last-child{margin-bottom:0}
+.wd2-sum-note{margin:var(--core-space-3) 0 0}
+/* Long uploaded file names wrap instead of pushing the row wider. */
+.wd2-sum .detail-rows li{gap:var(--core-space-4)}
+.wd2-doc-name{min-width:0;max-width:60%;overflow-wrap:anywhere}
+
+/* Terms acknowledgment row (not a <label>, so it needs the checkbox-row spacing explicitly). */
+.wd2-ack{display:flex;align-items:flex-start;gap:var(--core-space-2);padding:var(--core-space-1) 0;line-height:20px;cursor:default}
+.wd2-ack > input[type="checkbox"]{width:20px;height:20px;margin:0}
+.wd2-ack label{cursor:pointer}
+
+/* Allocation slide-out rhythm: 16px between fields (also when a row wraps),
+   24px above a section heading and 8px below it. Toggles and fieldsets carry
+   no margins of their own so the gap is always the container's. */
+.wd2-so .txn-row,.wd2-so .txn-stack{gap:var(--core-space-4)}
+.wd2-so .period,.wd2-so .period:has(+ .note){margin-bottom:0}
+.wd2-so .txn-fieldset{margin-top:0}
+.wd2-so :is(.txn-row,.txn-stack,.txn-field,.txn-fieldset,.wd2-src,.table-wrap,.inline-alert,.wd-note,div) + :is(.txn-row,.txn-stack,.txn-field,.txn-fieldset,.wd2-src,.table-wrap,.inline-alert,.wd2-calc):not(.txn-row > *):not(.txn-stack > *){margin-top:var(--core-space-4)}
+.wd2-so .txn-row > *,.wd2-so .txn-stack > *{margin-top:0}
+.wd2-so .wd2-sub + *{margin-top:0}
+.wd2-so .wd2-sub{margin:var(--core-space-6) 0 var(--core-space-2)}
+.wd2-so > .wd2-sub:first-child{margin-top:0}
+/* Withdrawal steps: same 16px between fields when a row wraps, and the
+   action buttons sit 24px below the step content on every step. */
+.wd2 .txn-row{gap:var(--core-space-4)}
+.wd2 .txn-actions{margin-top:var(--core-space-6)}
+
+/* Allocation table fits the card instead of scrolling: tighter cell padding
+   (a generic .table-wrap rule was giving every cell 16px a side) and a
+   narrower recipient column that wraps. Long rows still scroll on phones. */
+.table-wrap .alloc-table.wd2-table :is(th,td){padding-left:var(--core-space-2);padding-right:var(--core-space-2)}
+.table-wrap .alloc-table.wd2-table :is(th,td):first-child{padding-left:var(--core-space-4)}
+.table-wrap .alloc-table.wd2-table :is(th,td):last-child{padding-right:var(--core-space-3)}
+.wd2-table .alloc-name-col{min-width:150px}
+/* Source name column stays compact so fund chips fill the remaining row
+   (no empty space on the right), with "+N" after them. One column on phones. */
+/* Action column: header and the edit/delete icons share one centre line
+   (right-aligning left the icon buttons' padding showing past the header). */
+.table-wrap .alloc-table.wd2-table :is(th,td):last-child{text-align:center}
+.wd2-table td:last-child .tf-actions{justify-content:center}
+/* Eligibility / balance alerts follow CORE Alert: 20px status icon, 12px gap,
+   16px padding, bold title on its own line. `.plan-notice` resets margin in
+   index.css, so the gap above needs the doubled class to apply. */
+.plan-notice.wd2-banner{margin:var(--core-space-4) var(--core-space-0) var(--core-space-0)}
+.plan-notice.wd2-alert{display:flex;align-items:flex-start;gap:var(--core-space-3);padding:var(--core-space-4)}
+.wd2-alert-icon{flex:0 0 auto;margin-top:0}
+.wd2-alert-body{display:flex;flex-direction:column;gap:var(--core-space-1);min-width:0}
+.wd2-alert-body b{display:block;font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-bold);line-height:20px}
+.wd2-alert-body span{font-size:var(--typography-body-sm-size);line-height:20px}
+/* CORE error field (style guide "With error"): critical border on the control,
+   kept on hover and focus, with the usual focus ring on top. Error text is
+   12px / 20px, 8px below the field. */
+.txn-field :is(input,textarea,.ui-select-btn)[aria-invalid="true"],
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]),
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]):hover,
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]):focus-within{border-color:var(--semantics-critical-border)}
+.txn-field :is(input,textarea)[aria-invalid="true"]:focus,
+.txn-field .ui-select-btn[aria-invalid="true"]:focus-visible{border-color:var(--semantics-critical-border)}
+.txn-field .alloc-pct-input:has(input[aria-invalid="true"]) i{border-color:var(--semantics-critical-border) !important}
+.txn-field .alloc-pct-input.wd2-affix:has(input[aria-invalid="true"]) input{border:0}
+.txn-field .note.err{margin-top:var(--core-space-0);line-height:20px}
+
+/* ---------- Summary: Source Withdraw Amount (Figma 5372-77396) ----------
+   Bordered list, one row per source. Left cell 400px: source name as a
+   brand link (bold 16, one line) with the source total under it. Right: up to
+   3 fund tags then "+N", right-aligned. Tag = 24px pill, brand-subtle fill,
+   brand border, grey fund label + bold brand amount, 8px apart. */
+.wd2-src-list{border:1px solid var(--core-color-neutral-300);border-radius:var(--core-radius-sm);background:var(--neutral-surface-layer-01);overflow:hidden}
+.wd2-src-row{display:flex;align-items:center;justify-content:space-between;gap:var(--core-space-4);padding:0 var(--core-space-4) 0 0;border-top:1px solid var(--core-color-neutral-300)}
+.wd2-src-row:first-child{border-top:0}
+.wd2-src-row.expanded{align-items:flex-start}
+.wd2-src-row.expanded .wd2-src-chips{padding-top:var(--core-space-4);padding-bottom:var(--core-space-4)}
+.wd2-src-name{flex:0 1 400px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:var(--core-space-1);padding:var(--core-space-4)}
+.wd2-src-link{max-width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-bold);line-height:20px;color:var(--brand-text-primary-default);text-align:left;text-decoration:underline;text-underline-offset:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wd2-src-link:hover:not(:disabled){color:var(--brand-text-primary-hover)}
+.wd2-src-link:disabled{cursor:default;opacity:1}
+.wd2-src-link:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-xs,4px)}
+.wd2-src-total{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle);letter-spacing:.02em}
+.wd2-src-chips{flex:0 1 auto;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--core-space-2)}
+.wd2-src-chip,.wd2-more{display:inline-flex;align-items:center;gap:var(--core-space-1);min-height:24px;padding:var(--core-space-1) var(--core-space-2);border:1px solid var(--brand-border-primary-default);border-radius:var(--core-radius-full);background:var(--brand-background-primary-subtle);font:inherit;font-size:var(--typography-body-sm-size);line-height:16px;white-space:nowrap}
+.wd2-src-chip{max-width:200px}
+.wd2-src-row.expanded .wd2-src-chip{max-width:none}
+.wd2-src-chip-name{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:var(--typography-font-weight-semibold);color:var(--neutral-text-subtle)}
+.wd2-src-chip b{flex:0 0 auto;font-weight:var(--typography-font-weight-bold);color:var(--brand-text-primary-default)}
+.wd2-more{cursor:pointer;font-weight:var(--typography-font-weight-semibold);color:var(--brand-text-primary-default)}
+.wd2-more:hover{background:var(--brand-background-primary-disabled)}
+.wd2-more:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
+.wd2-src-all{margin-top:var(--core-space-2);display:inline-flex;align-items:center;gap:var(--core-space-2)}
+.wd2-src-all svg{transition:transform var(--core-motion-duration-fast)}
+.wd2-src-all svg.is-up{transform:rotate(180deg)}
+@media (max-width:767px){
+  .wd2-src-row{flex-direction:column;align-items:stretch;gap:0;padding:0 var(--core-space-4) var(--core-space-4) 0}
+  .wd2-src-name{flex-basis:auto}
+  .wd2-src-chips{justify-content:flex-start;padding-left:var(--core-space-4)}
+}
+
+/* Figma sizing: 16px bold name link, 24px pills, and one line of pills that
+   shrink with an ellipsis (full name on hover) instead of wrapping. */
+.wd2-src-link{font-size:var(--typography-font-size-md,16px)}
+.wd2-src-name{flex:0 1 400px;min-width:200px}
+.wd2-src-chips{flex:1 1 0;flex-wrap:nowrap}
+.wd2-src-chip,.wd2-more{min-height:24px;padding-top:3px;padding-bottom:3px}
+.wd2-src-chip{flex:0 1 auto;min-width:0;max-width:220px}
+.wd2-more{flex:0 0 auto}
+.wd2-src-row.expanded .wd2-src-chips{flex-wrap:wrap}
+@media (max-width:767px){.wd2-src-name{min-width:0}.wd2-src-chips{flex-wrap:wrap}.wd2-src-chip{max-width:100%}}
+/* One line, Transfer-request style: the name column gives up width first
+   (down to 180px), each pill keeps at least 112px (fund label + amount), and
+   the track clips anything that still doesn't fit; "+N" always stays visible. */
+.wd2-src-name{flex:0 1 400px;min-width:180px}
+.wd2-src-chips{flex:0 1 auto;min-width:0;flex-wrap:nowrap}
+.wd2-src-track{display:flex;flex:0 1 auto;min-width:0;gap:var(--core-space-2);overflow:hidden}
+.wd2-src-chip{flex:0 1 auto;min-width:112px;max-width:220px}
+.wd2-src-row.expanded .wd2-src-chips{flex-wrap:wrap}
+.wd2-src-row.expanded .wd2-src-track{flex-wrap:wrap;overflow:visible;justify-content:flex-end}
+@media (max-width:767px){.wd2-src-track{flex-wrap:wrap;overflow:visible}.wd2-src-chip{min-width:0;max-width:100%}}
+/* Track wraps but only its first line shows (24px), so a pill is either
+   fully visible or hidden — never cut in half. */
+.wd2-src-track{flex-wrap:wrap;justify-content:flex-end;max-height:24px;overflow:hidden}
+.wd2-src-row.expanded .wd2-src-track{max-height:none}
+@media (max-width:767px){.wd2-src-track{max-height:none;justify-content:flex-start}}
+/* Pills start right after the name column (left-aligned) in both the one-line
+   and expanded views; the name column is fixed so the pills get the rest. */
+.wd2-src-name{flex:0 0 240px;min-width:0}
+.wd2-src-chips{flex:1 1 0;justify-content:flex-start}
+.wd2-src-track{justify-content:flex-start}
+.wd2-src-row.expanded .wd2-src-track{justify-content:flex-start}
+.wd2-src-chip{max-width:240px}
+@media (max-width:767px){.wd2-src-name{flex-basis:auto}}
+/* Final one-line behaviour: no wrapping in the collapsed row; pills shrink to
+   112px with "…" (JS renders only as many as fit). Expanded rows wrap, left-aligned. */
+.wd2-src-track{flex:0 1 auto;flex-wrap:nowrap;max-height:none;overflow:hidden}
+.wd2-src-chip{flex:0 1 auto;min-width:112px;max-width:240px}
+.wd2-src-row.expanded .wd2-src-track{flex-wrap:wrap;overflow:visible}
+@media (max-width:767px){.wd2-src-track{flex-wrap:wrap;overflow:visible}.wd2-src-chip{min-width:0;max-width:100%}}
+/* Pills block sits at the right of the row (Figma); inside it the pills are
+   left-aligned, so expanded rows form a neat left-aligned column on the right. */
+.wd2-src-chips{flex:0 1 auto;width:auto;max-width:640px;margin-left:auto;justify-content:flex-start}
+.wd2-src-row.expanded .wd2-src-chips{flex:0 1 640px}
+.wd2-src-row.expanded .wd2-src-track{justify-content:flex-start}
+@media (max-width:767px){.wd2-src-chips{max-width:none;margin-left:0}.wd2-src-row.expanded .wd2-src-chips{flex-basis:auto}}
+/* Expanded: block wraps within 640px, then JS narrows it to its widest line
+   (inline width) so it ends flush with the table's right edge. */
+.wd2-src-row.expanded .wd2-src-chips{flex:0 1 auto;max-width:640px;margin-left:auto}
+/* Fee & tax breakdown lines up with the arrow and "Net Withdrawal Amount" (no indent). */
+.wd2-ded ul{padding-left:var(--core-space-0)}
+/* Delete icon: grey at rest like the other icons; turns critical red, with a
+   light red wash, on hover and keyboard focus. */
+.icon-btn.icon-btn-danger:focus-visible{color:var(--semantics-critical-text)}
+.icon-btn.icon-btn-danger:hover{color:var(--semantics-critical-text);background:var(--semantics-critical-background-light)}
+.icon-btn.icon-btn-danger:active:not(:disabled){color:var(--semantics-critical-text);background:color-mix(in srgb,var(--semantics-critical-text) 16%,transparent)}

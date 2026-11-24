@@ -66,14 +66,14 @@ const WIZARDS = {
       { id: 'details', title: 'Withdrawal Details' },
       { id: 'allocation', title: 'Withdrawal Allocation' },
       { id: 'documents', title: 'Required Documents' },
-      { id: 'summary', title: 'Review and submit' }
+      { id: 'summary', title: 'Review and Submit' }
     ]
   },
   transfer: {
     title: 'New Transfer Request',
     steps: [
       { id: 'details', title: 'Investments to move' },
-      { id: 'summary', title: 'Review and submit' }
+      { id: 'summary', title: 'Review and Submit' }
     ]
   },
   rebalance: {
@@ -280,9 +280,9 @@ function TransactionRequestWizard() {
             </ol>
           </aside>
 
-          {/* Transfer and rebalance render wide current-vs-target tables, so
-              they get more room than the form-style loan/withdrawal steps. */}
-          <main ref={mainRef} className={`txn-main${type === 'transfer' || type === 'withdrawal' || type === 'rebalance' || type === 'rollover' ? ' txn-main-wide' : ''}`}>
+          {/* Every type uses the wide shell so the card fills the content area
+              like Transfer; field max-widths keep form controls from stretching. */}
+          <main ref={mainRef} className="txn-main txn-main-wide">
             <div className="txn-plan-head">
               <div>
                 <h2>{plan.name}</h2>
@@ -292,11 +292,11 @@ function TransactionRequestWizard() {
               </div>
               <div className="req-plan-stats">
                 <div>
-                  <span>Account balance</span>
+                  <span>Account Balance</span>
                   <b>{formatMoney(planBalance(plan))}</b>
                 </div>
                 <div>
-                  <span>Vested balance</span>
+                  <span>Vested Balance</span>
                   <b>{formatMoney(planVested(plan))}</b>
                 </div>
               </div>
@@ -319,6 +319,7 @@ function TransactionRequestWizard() {
               <WithdrawalFlow
                 step={step.id}
                 plan={plan}
+                plans={plans}
                 participant={participant}
                 form={form}
                 set={set}
@@ -326,6 +327,12 @@ function TransactionRequestWizard() {
                 onBack={back}
                 onSubmit={submit}
                 onEdit={(id) => goTo(wizard.steps.findIndex((s) => s.id === id))}
+                onChangePlan={(id) => {
+                  setForm(blankForm(type))
+                  setStepIdx(0)
+                  setMaxReached(0)
+                  navigate(`/transactions/request/${type}?plan=${id}`, { replace: true })
+                }}
               />
             )}
             {type === 'transfer' && (
@@ -1525,11 +1532,11 @@ function RolloverSteps({ step, plan, form, set, onNext, onBack, onSubmit, onEdit
         </ul>
         <ul className="detail-rows" style={{ flex: 1 }}>
           <li>
-            <span>Account balance</span>
+            <span>Account Balance</span>
             <b>{formatMoney(planBalance(plan))}</b>
           </li>
           <li>
-            <span>Vested balance</span>
+            <span>Vested Balance</span>
             <b>{formatMoney(planVested(plan))}</b>
           </li>
         </ul>
@@ -1626,7 +1633,7 @@ function DocumentUploadBlock({ doc, uploaded, onUploaded }) {
   const [mode, setMode] = useState('manual')
   return (
     <div style={{ marginBottom: 'var(--core-space-4)' }}>
-      <span className="txn-doc-required">{doc.required ? 'Required' : 'Not required'}</span>
+      {!doc.required && <span className="txn-doc-required">Not required</span>}
       <div className="txn-upload">
         <div className="tabs2">
           <button type="button" className={mode === 'manual' ? 'on' : ''} onClick={() => setMode('manual')}>

@@ -1518,7 +1518,7 @@ this grey triplet is only for
   input[type="radio"]::before{content:"";width:var(--core-space-2);height:var(--core-space-2);border-radius:var(--core-radius-full);background:var(--neutral-surface-layer-01);opacity:0;transition:opacity var(--core-motion-duration-instant) ease}
   input[type="checkbox"]::before{
     content:"";width:10px;height:5px;border-left:2px solid var(--brand-text-primary-oncolor);border-bottom:2px solid var(--brand-text-primary-oncolor);
-    transform:rotate(-45deg) translate(1px,-2px);opacity:0;transition:opacity var(--core-motion-duration-instant) ease}
+    transform:translateY(-2px) rotate(-45deg);opacity:0;transition:opacity var(--core-motion-duration-instant) ease}
   input[type="checkbox"]:checked::before,input[type="radio"]:checked::before{opacity:1}
   input[type="checkbox"]:focus-visible,input[type="radio"]:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset)}
   input[type="checkbox"]:focus-visible:not(:checked),input[type="radio"]:focus-visible:not(:checked){border-color:var(--cds-focus-color);background:var(--neutral-surface-layer-01)}
@@ -1820,6 +1820,15 @@ this grey triplet is only for
     display:inline-flex;align-items:center;gap:var(--core-space-1);border:1px solid var(--brand-border-primary-default);background:transparent;min-height:var(--core-size-control-sm);
     color:var(--brand-text-primary-default);border-radius:var(--core-radius-sm);padding:var(--core-space-1) var(--core-space-3);font:inherit;font-size:var(--typography-text12-semibold-size);line-height:var(--typography-text12-semibold-line-height);font-weight:var(--typography-button-sm-weight);cursor:pointer}
   .pr-row-edit:hover{background:color-mix(in srgb,var(--brand-background-primary-strong) 12%,transparent);color:var(--brand-text-primary-hover);border-color:var(--brand-border-primary-hover)}
+  /* Beneficiary Actions: shrink the column; header label left, controls right. */
+  .pr-bene-table th:last-child,.pr-bene-table td:last-child{width:1%;white-space:nowrap;padding-right:var(--core-space-4)}
+  .pr-bene-table th:last-child{text-align:left}
+  .pr-bene-table td:last-child{text-align:right}
+  .pr-bene-actions{display:inline-flex;align-items:center;justify-content:flex-end;gap:var(--core-space-2);flex-wrap:nowrap}
+  /* Delete icon: grey at rest; critical red on hover/focus. */
+  .icon-btn.icon-btn-danger:focus-visible{color:var(--semantics-critical-text)}
+  .icon-btn.icon-btn-danger:hover{color:var(--semantics-critical-text);background:var(--semantics-critical-background-light)}
+  .icon-btn.icon-btn-danger:active:not(:disabled){color:var(--semantics-critical-text);background:color-mix(in srgb,var(--semantics-critical-text) 16%,transparent)}
   .pr-pct-list{display:flex;flex-direction:column;gap:var(--core-space-3);margin:var(--core-space-0) var(--core-space-0) var(--core-space-4)}
   .pr-pct-list label{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);font-weight:var(--typography-font-weight-bold)}
   .pr-pct-input{display:inline-flex;align-items:center;gap:var(--core-space-2);font-weight:var(--typography-font-weight-regular)}
@@ -2139,7 +2148,7 @@ this grey triplet is only for
   .rq-money input:focus{outline:none;box-shadow:none}
   .rq-results{align-items:center;text-align:center;padding:var(--core-space-4) 0 var(--core-space-3)}
   .rq-results-ring{position:relative;width:120px;height:120px;margin-bottom:var(--core-space-3);animation:risk-pop .5s ease}
-  .rq-results-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .rq-results-ring{display:grid;place-items:center}
   .rq-ring-track{fill:none;stroke:var(--brand-background-primary-subtle);stroke-width:8}
   .rq-ring-fill{
     fill:none;stroke:var(--level-color, var(--brand-text-primary-default));stroke-width:8;stroke-linecap:round;
@@ -3356,3 +3365,19 @@ summary:focus-visible {
   .topbar,.mobile-nav{transition:none}
 }
 .app-footer.app-footer--full{margin-left:0;width:100%}
+/* Floating tooltip for icon-only buttons (IconTooltip.jsx) -- identical look to
+   the header's [data-tip] tooltip, fixed-positioned so tables and slide-outs
+   can't clip it. */
+.icon-tip{position:fixed;z-index:300;width:max-content;max-width:var(--core-tooltip-maxWidth);padding:var(--core-space-1) var(--core-space-2);border-radius:var(--core-radius-sm);
+  background:var(--neutral-text-default);color:var(--neutral-surface-layer-01);font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-regular);
+  line-height:var(--typography-body-xs-line-height);text-align:center;box-shadow:var(--core-elevation-1);white-space:nowrap;pointer-events:none;animation:icon-tip-in var(--core-motion-duration-fast) ease-out}
+@keyframes icon-tip-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.icon-tip{animation:none}}
+
+/* Questionnaire result: default brand-colour icon badge for every investor type (no score
+   ring, no level colour). The old ring rule rotated every svg in the ring by
+   -90deg, which also turned the Font Awesome icon sideways. */
+.rq-results-ring{width:auto;height:auto}
+.rq-results-ico{position:static;inset:auto;margin:0;width:72px;height:72px;background:var(--brand-background-primary-light);color:var(--brand-text-primary-default)}
+.rq-results-ico svg{transform:none}
+.rq-results-tag{color:var(--brand-text-primary-default);text-transform:uppercase;letter-spacing:.04em}

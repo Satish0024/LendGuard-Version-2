@@ -164,11 +164,11 @@ export default function AccountSummary() {
                 </div>
                 <div className="as-plan-stats">
                   <div>
-                    <span>Account balance</span>
+                    <span>Account Balance</span>
                     <b>{formatMoney(bal)}</b>
                   </div>
                   <div>
-                    <span>Vested balance</span>
+                    <span>Vested Balance</span>
                     <b className="vested">{formatMoney(vest)}</b>
                   </div>
                 </div>
@@ -228,7 +228,7 @@ export default function AccountSummary() {
                     aria-label={`${tab === 'sources' ? 'Sources' : 'Investments'} balance breakdown chart -- see the table below for exact figures`}
                   />
                   <div className="as-donut-center">
-                    <small>{highlight ? highlight.name : 'Account balance'}</small>
+                    <small>{highlight ? highlight.name : 'Account Balance'}</small>
                     <b>{formatMoney(highlight ? highlight.amount : summary.balance)}</b>
                     <em>{highlight ? formatPct(highlight.pct) : '100.00%'}</em>
                   </div>

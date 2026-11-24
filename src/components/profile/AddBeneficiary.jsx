@@ -12,9 +12,10 @@ const STEPS = [
   { id: 'bank', title: 'Bank details', hint: 'Specify the active bank details of the beneficiary.' }
 ]
 
-export default function AddBeneficiary({ onCancel, onSave }) {
+export default function AddBeneficiary({ initial, onCancel, onSave }) {
+  const editing = Boolean(initial)
   const [step, setStep] = useState(0)
-  const [draft, setDraft] = useState(emptyBeneficiary)
+  const [draft, setDraft] = useState(() => (initial ? { ...emptyBeneficiary(), ...initial } : emptyBeneficiary()))
   const [showSsn, setShowSsn] = useState(false)
   const [error, setError] = useState('')
   const [leaveOpen, setLeaveOpen] = useState(false)
@@ -69,7 +70,7 @@ export default function AddBeneficiary({ onCancel, onSave }) {
           <button type="button" className="text-link pr-back" onClick={() => setLeaveOpen(true)}>
             Back
           </button>
-          <h1>Add beneficiary</h1>
+          <h1>{editing ? 'Edit beneficiary' : 'Add beneficiary'}</h1>
         </div>
       </div>
 
@@ -275,7 +276,11 @@ export default function AddBeneficiary({ onCancel, onSave }) {
             onClick={(e) => e.stopPropagation()}
           >
             <h4 id="pr-leave-title">Leave Without Saving?</h4>
-            <p>If you leave now, the beneficiary details you entered will not be saved.</p>
+            <p>
+              {editing
+                ? 'If you leave now, changes to this beneficiary will not be saved.'
+                : 'If you leave now, the beneficiary details you entered will not be saved.'}
+            </p>
             <div className="enroll-modal-actions">
               <button type="button" className="btn btn-primary" onClick={onCancel}>
                 Leave
