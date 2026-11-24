@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import Header from './Header.jsx'
 import Sidebar from './Sidebar.jsx'
+import Footer from './Footer.jsx'
 import '../../styles/enrollment.css'
 
 const STEPS = [
@@ -99,6 +100,7 @@ export default function EnrollmentLayout() {
           <Outlet />
         </main>
       </div>
+      <Footer />
     </>
   )
 }

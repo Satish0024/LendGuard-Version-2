@@ -3355,3 +3355,4 @@ summary:focus-visible {
 @media(max-width:640px) and (prefers-reduced-motion:reduce){
   .topbar,.mobile-nav{transition:none}
 }
+.app-footer.app-footer--full{margin-left:0;width:100%}

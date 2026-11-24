@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Icon } from '../lib/icons'
 import { faBookOpen, faClock, faSearch } from '@fortawesome/free-solid-svg-icons'
 import { BRAND } from '../config/brand.js'
+import Footer from '../components/layout/Footer.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { ARTICLES, CATS } from '../data/learning.js'
 import '../styles/enrich.css'
@@ -110,6 +111,7 @@ export default function Enrich() {
           })}
         </div>
       </main>
+      <Footer full />
     </>
   )
 }

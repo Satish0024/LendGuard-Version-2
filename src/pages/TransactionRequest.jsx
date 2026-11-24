@@ -6,6 +6,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useEscapeToClose } from '../hooks/useEscapeToClose'
 import Header from '../components/layout/Header.jsx'
 import Sidebar from '../components/layout/Sidebar.jsx'
+import Footer from '../components/layout/Footer.jsx'
 import ConfirmDialog from '../components/common/ConfirmDialog.jsx'
 import Field, { FieldGroup } from '../components/common/Field.jsx'
 import LegalCopySlideover from '../components/transactions/LegalCopySlideover.jsx'
@@ -370,6 +371,7 @@ function TransactionRequestWizard() {
           so "Back to Transactions" reads as dismissing a confirmation, not
           navigating away from content that's already gone. */}
       {done && <SubmittedPanel type={type} transactionId={transactionId} navigate={navigate} />}
+      <Footer />
     </>
   )
 }
