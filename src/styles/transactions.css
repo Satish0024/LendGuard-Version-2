@@ -1141,3 +1141,19 @@
 .icon-btn.icon-btn-danger:focus-visible{color:var(--semantics-critical-text)}
 .icon-btn.icon-btn-danger:hover{color:var(--semantics-critical-text);background:var(--semantics-critical-background-light)}
 .icon-btn.icon-btn-danger:active:not(:disabled){color:var(--semantics-critical-text);background:color-mix(in srgb,var(--semantics-critical-text) 16%,transparent)}
+
+/* Early Withdrawal Penalty Notice accordion (review step) */
+.wd2-notice{margin-top:var(--core-space-4);border:1px solid var(--neutral-border-light);border-radius:var(--core-radius-sm);background:var(--neutral-bg-subtle,#f8fafc)}
+.wd2-notice > summary{display:flex;justify-content:space-between;align-items:center;gap:var(--core-space-3);padding:var(--core-space-4);cursor:pointer;list-style:none}
+.wd2-notice > summary::-webkit-details-marker{display:none}
+.wd2-notice > summary:focus-visible{outline:2px solid var(--brand-primary,#2563eb);outline-offset:2px;border-radius:var(--core-radius-sm)}
+.wd2-notice-title{display:flex;align-items:center;gap:var(--core-space-2);font-weight:500;color:var(--neutral-text-primary,#1f2937)}
+.wd2-notice-title svg{color:var(--neutral-text-secondary,#64748b)}
+.wd2-notice-more{display:inline-flex;align-items:center;gap:var(--core-space-1,4px);color:var(--brand-primary,#2563eb);white-space:nowrap}
+.wd2-notice-more-label{text-decoration:underline}
+.wd2-notice-more-label::before{content:'View more'}
+.wd2-notice[open] .wd2-notice-more-label::before{content:'View less'}
+.wd2-notice-more svg{transition:transform .2s}
+.wd2-notice[open] .wd2-notice-more svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.wd2-notice-more svg{transition:none}}
+.wd2-notice > p{margin:0;padding:0 var(--core-space-4) var(--core-space-4) calc(var(--core-space-4) + 16px + var(--core-space-2));color:var(--neutral-text-secondary,#475569)}
