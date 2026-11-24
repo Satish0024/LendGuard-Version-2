@@ -3352,7 +3352,11 @@ summary:focus-visible {
    The demo badge leaves the fixed layer and sits in the page flow. */
 @media(max-width:640px){
   .topbar{height:48px;padding:0 var(--core-space-3);transition:transform .2s ease}
-  .brand img{height:28px;width:27px;max-width:none;object-fit:cover;object-position:left center}
+  /* Full LendGuard wordmark, just smaller -- it fits beside the three
+     header controls down to ~300px (400% zoom on a 1280px screen = 320px).
+     Cropping to the bare icon read as a broken/cut-off logo. */
+  .brand{min-width:0;flex:0 1 auto}
+  .brand img{height:24px;width:auto;max-width:100%;object-fit:contain}
   .top-right{gap:var(--core-space-1)}
   .mobile-nav{transition:transform .2s ease}
   body.chrome-hidden .topbar{transform:translateY(-100%)}
@@ -3360,6 +3364,9 @@ summary:focus-visible {
   .demo-switcher{position:relative;right:auto;bottom:auto;display:flex;justify-content:flex-end;padding:var(--core-space-2) var(--core-space-3) calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + var(--core-space-2))}
   .demo-switcher-menu{right:var(--core-space-3);bottom:calc(100% - var(--mobile-nav-h))}
   .layout{padding-bottom:var(--core-space-4)}
+}
+@media(max-width:299px){
+  .brand img{height:28px;width:27px;max-width:none;object-fit:cover;object-position:left center}
 }
 @media(max-width:640px) and (prefers-reduced-motion:reduce){
   .topbar,.mobile-nav{transition:none}
@@ -3390,3 +3397,49 @@ summary:focus-visible {
   .layout:has(> .main){padding-bottom:0}
   .layout > .main{padding-bottom:var(--core-space-4)}
 }
+
+/* ---------- CORE Mobile Stepper (components/common/MobileStepper.jsx) ----------
+   Only shown at <=768px (phones, small tablets, and desktop at 250%+ zoom -- 1920px/2.5 = 768); the full
+   vertical step list is hidden there instead. One row regardless of step
+   count; "View all steps" expands the list on demand. */
+.mstep{display:none}
+@media(max-width:768px){
+  .mstep{display:block;padding:var(--core-space-3) var(--core-space-4);border-bottom:1px solid var(--neutral-border-light);background:var(--neutral-surface-layer-01)}
+  .mstep-row{display:flex;align-items:center;gap:var(--core-space-3)}
+  .mstep-ring{position:relative;width:52px;height:52px;flex:0 0 52px}
+  .mstep-ring svg{display:block}
+  .mstep-track{fill:none;stroke:var(--neutral-border-light);stroke-width:5}
+  .mstep-bar{fill:none;stroke-width:5;stroke-linecap:round;stroke:var(--theme-semantics-success-strong-background);transition:stroke-dashoffset .3s ease}
+  .mstep-ring.tone-warning .mstep-bar{stroke:var(--theme-semantics-warning-strong-background)}
+  .mstep-ring.tone-error .mstep-bar{stroke:var(--theme-semantics-critical-strong-background)}
+  .mstep-count{position:absolute;inset:0;display:grid;place-items:center;font-size:var(--typography-font-size-xs);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);white-space:nowrap}
+  .mstep-text{min-width:0;flex:1 1 auto}
+  .mstep-text p{margin:0}
+  .mstep-title{font-size:var(--typography-body-lg-size);line-height:var(--typography-body-lg-line-height);font-weight:var(--typography-font-weight-bold);color:var(--neutral-text-default);overflow-wrap:anywhere}
+  .mstep-next{font-size:var(--typography-body-sm-size);line-height:var(--typography-body-sm-line-height);color:var(--neutral-text-subtle);overflow-wrap:anywhere}
+  .mstep-state{font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-semibold)}
+  .mstep-state.tone-warning{color:var(--semantics-warning-text)}
+  .mstep-state.tone-error{color:var(--theme-semantics-critical-strong-background)}
+  .mstep-toggle{margin-top:var(--core-space-2);background:none;border:none;padding:var(--core-space-1) 0;min-height:var(--core-space-6);font:inherit;
+    font-size:var(--typography-body-sm-size);font-weight:var(--typography-font-weight-bold);color:var(--brand-text-primary-default);text-decoration:underline;cursor:pointer}
+  .mstep-toggle:focus-visible,.mstep-item:focus-visible{outline:var(--core-focusRing-width) solid var(--cds-focus-color);outline-offset:var(--core-focusRing-offset);border-radius:var(--core-radius-sm)}
+  .mstep-list{list-style:none;margin:var(--core-space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--core-space-1)}
+  .mstep-item{display:flex;align-items:center;gap:var(--core-space-3);width:100%;padding:var(--core-space-2) 0;background:none;border:none;font:inherit;text-align:left;cursor:pointer;color:var(--neutral-text-default)}
+  .mstep-item:disabled{cursor:default}
+  .mstep-num{width:var(--core-stepper-marker-size);height:var(--core-stepper-marker-size);flex:0 0 var(--core-stepper-marker-size);border-radius:var(--core-radius-sm);display:grid;place-items:center;
+    font-size:var(--typography-body-xs-size);font-weight:var(--typography-font-weight-bold);border:var(--core-border-width-default) solid var(--theme-neutral-border-primary-default);color:var(--theme-neutral-text-subtle);background:var(--neutral-surface-layer-02)}
+  .mstep-item.complete .mstep-num{background:var(--theme-semantics-success-strong-background);border-color:var(--theme-semantics-success-strong-background);color:var(--brand-text-primary-oncolor)}
+  .mstep-item.current .mstep-num{background:var(--brand-background-primary-strong);border-color:var(--brand-background-primary-strong);color:var(--brand-text-primary-oncolor)}
+  .mstep-item-text{display:flex;flex-direction:column;min-width:0}
+  .mstep-item-title{font-size:var(--typography-body-md-size);font-weight:var(--typography-font-weight-semibold);overflow-wrap:anywhere}
+  .mstep-item.current .mstep-item-title{color:var(--brand-text-primary-default);font-weight:var(--typography-font-weight-bold)}
+  .mstep-item-state{font-size:var(--typography-body-xs-size);color:var(--neutral-text-subtle)}
+  /* hide the full desktop/tablet step lists -- MobileStepper replaces them */
+  .steps > .step,.steps > .divider,.txn-step-list{display:none}
+  .steps{padding:0 !important;border-bottom:none !important}
+  .txn-steps{padding:var(--core-space-3) var(--core-space-0) var(--core-space-0) !important;border-bottom:none !important}
+  .txn-steps > .back,.txn-steps > h1{margin-left:var(--core-space-4);margin-right:var(--core-space-4)}
+}
+@media(max-width:768px) and (prefers-reduced-motion:reduce){.mstep-bar{transition:none}}
+@media(max-width:768px){.steps > .mstep{flex:1 1 100%;min-width:0;align-self:stretch;width:100%;box-sizing:border-box}}
+.mstep-list[hidden]{display:none !important}

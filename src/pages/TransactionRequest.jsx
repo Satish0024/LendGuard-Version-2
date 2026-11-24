@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../lib/icons'
 import { faExclamationTriangle, faCheck, faCopy, faInfoCircle, faPrint } from '@fortawesome/free-solid-svg-icons'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import MobileStepper from '../components/common/MobileStepper.jsx'
 import { useEscapeToClose } from '../hooks/useEscapeToClose'
 import Header from '../components/layout/Header.jsx'
 import Sidebar from '../components/layout/Sidebar.jsx'
@@ -278,6 +279,12 @@ function TransactionRequestWizard() {
                 )
               })}
             </ol>
+            <MobileStepper
+              steps={wizard.steps.map((s) => ({ id: s.id, title: s.title }))}
+              current={stepIdx}
+              isEnabled={(i) => i <= maxReached}
+              onSelect={goTo}
+            />
           </aside>
 
           {/* Every type uses the wide shell so the card fills the content area
