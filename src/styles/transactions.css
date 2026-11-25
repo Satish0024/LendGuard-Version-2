@@ -1149,10 +1149,7 @@
 .wd2-notice > summary:focus-visible{outline:2px solid var(--brand-primary,#2563eb);outline-offset:2px;border-radius:var(--core-radius-sm)}
 .wd2-notice-title{display:flex;align-items:center;gap:var(--core-space-2);font-weight:500;color:var(--neutral-text-primary,#1f2937)}
 .wd2-notice-title svg{color:var(--neutral-text-secondary,#64748b)}
-.wd2-notice-more{display:inline-flex;align-items:center;gap:var(--core-space-1,4px);color:var(--brand-primary,#2563eb);white-space:nowrap}
-.wd2-notice-more-label{text-decoration:underline}
-.wd2-notice-more-label::before{content:'View more'}
-.wd2-notice[open] .wd2-notice-more-label::before{content:'View less'}
+.wd2-notice-more{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;color:var(--neutral-text-secondary,#475569)}
 .wd2-notice-more svg{transition:transform .2s}
 .wd2-notice[open] .wd2-notice-more svg{transform:rotate(180deg)}
 @media (prefers-reduced-motion:reduce){.wd2-notice-more svg{transition:none}}

@@ -923,14 +923,13 @@ export default function WithdrawalFlow({ step, plan, plans = [], participant, fo
             <span>Early Withdrawal Penalty Notice</span>
           </span>
           <span className="wd2-notice-more" aria-hidden="true">
-            <span className="wd2-notice-more-label"></span>
             <Icon icon={faChevronDown} size={12} />
           </span>
         </summary>
         <p>
           {sum('penalty') > 0
-            ? 'Early Withdrawal Penalty applies to this transaction. This notice is shared with the participant and the admin.'
-            : 'Early Withdrawal Penalty does not apply for this transaction. This notice is shared with the participant and the admin.'}
+            ? `A ${PENALTY_RATE}% Early Withdrawal Penalty of ${money(sum('penalty'))} applies to this transaction.`
+            : 'Early Withdrawal Penalty does not apply for this transaction.'}
         </p>
       </details>
 
